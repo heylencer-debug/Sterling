@@ -395,77 +395,137 @@ function renderPortfolio() {
   renderTradeHistory();
 }
 
+// Trade store — kept in memory so CRUD doesn't refetch every time
+let _tradeCache = [];
+
 async function renderTradeHistory() {
   const pageEl = document.getElementById('page-portfolio');
   if (!pageEl) return;
-
-  // Remove old history section if present
   const old = document.getElementById('trade-history-section');
   if (old) old.remove();
-
   const section = document.createElement('div');
   section.id = 'trade-history-section';
   section.style.cssText = 'margin-top:32px';
   section.innerHTML = '<div class="section-header" style="margin-bottom:12px">📋 Trade History</div><div id="trade-history-body" style="color:#475569;font-size:12px;text-align:center;padding:16px">Loading trades…</div>';
   pageEl.appendChild(section);
+  await _loadAndRenderTrades();
+}
 
+async function _loadAndRenderTrades() {
   try {
     const [pseRows, goldRows] = await Promise.all([
-      window.sbFetch('sterling_trades', { order: 'created_at.desc', limit: '50' }).catch(() => []),
-      window.sbFetch('sterling_gold_trades', { order: 'created_at.desc', limit: '20' }).catch(() => [])
+      window.sbFetch('sterling_trades', { order: 'created_at.desc', limit: '100' }).catch(() => []),
+      window.sbFetch('sterling_gold_trades', { order: 'created_at.desc', limit: '50' }).catch(() => [])
     ]);
-
-    const allTrades = [
-      ...(pseRows || []).map(r => ({ ...r, asset_type: r.asset_type || 'PSE Stock' })),
-      ...(goldRows || []).map(r => ({ ...r, symbol: r.symbol || 'XAU/USD', asset_type: 'Gold' }))
+    _tradeCache = [
+      ...(pseRows || []).map(r => ({ ...r, _table: 'sterling_trades', asset_type: r.asset_type || 'PSE Stock' })),
+      ...(goldRows || []).map(r => ({ ...r, _table: 'sterling_gold_trades', symbol: r.symbol || 'XAU/USD', asset_type: 'Gold' }))
     ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
+    _renderTradeTable();
+  } catch {
     const body = document.getElementById('trade-history-body');
-    if (!body) return;
-
-    if (!allTrades.length) {
-      body.innerHTML = '<div style="text-align:center;padding:24px;color:#475569">No trades logged yet.<br><span style="font-size:11px">Tap ⚡ Log Trade to record your first trade.</span></div>';
-      return;
-    }
-
-    body.innerHTML = `
-      <div style="overflow-x:auto">
-        <table class="trade-history-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Symbol</th>
-              <th>Type</th>
-              <th>Action</th>
-              <th>Price</th>
-              <th>Qty</th>
-              <th>Total</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${allTrades.map(t => {
-              const isBuy = (t.action || '').toUpperCase() === 'BUY';
-              const total = (parseFloat(t.price || 0) * parseFloat(t.quantity || t.qty || t.lot_size || 0));
-              const dateStr = (t.trade_date || t.date || (t.created_at || '').split('T')[0]);
-              return `<tr>
-                <td>${dateStr}</td>
-                <td style="font-weight:700;color:#F1F5F9">${t.symbol || '—'}</td>
-                <td><span style="font-size:10px;color:#64748B">${t.asset_type || 'PSE'}</span></td>
-                <td><span class="trade-action-badge ${isBuy ? 'buy' : 'sell'}">${t.action || '—'}</span></td>
-                <td style="font-family:monospace">${t.price ? '₱' + parseFloat(t.price).toFixed(2) : '—'}</td>
-                <td style="font-family:monospace">${parseFloat(t.quantity || t.qty || t.lot_size || 0).toLocaleString()}</td>
-                <td style="font-family:monospace;color:${isBuy ? '#FF4757' : '#00D4A0'}">${total ? (isBuy ? '-' : '+') + '₱' + total.toLocaleString('en', {maximumFractionDigits:2}) : '—'}</td>
-                <td style="color:#64748B;font-size:11px">${t.notes || '—'}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  } catch (err) {
-    const body = document.getElementById('trade-history-body');
-    if (body) body.innerHTML = '<div style="color:#475569;text-align:center;padding:16px">Could not load trade history</div>';
+    if (body) body.innerHTML = '<div style="color:#475569;text-align:center;padding:16px">Could not load trades</div>';
   }
+}
+
+function _renderTradeTable() {
+  const body = document.getElementById('trade-history-body');
+  if (!body) return;
+  if (!_tradeCache.length) {
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:#475569">No trades yet. Tap ⚡ Log Trade to start.</div>';
+    return;
+  }
+  body.innerHTML = `
+    <div style="overflow-x:auto">
+      <table class="trade-history-table">
+        <thead><tr>
+          <th>Date</th><th>Symbol</th><th>Type</th><th>Action</th>
+          <th>Price</th><th>Qty</th><th>Total</th><th>Notes</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${_tradeCache.map((t, idx) => {
+            const isBuy = (t.action || '').toUpperCase() === 'BUY';
+            const qty = parseFloat(t.quantity || t.qty || t.lot_size || 0);
+            const price = parseFloat(t.price || t.entry_price || 0);
+            const total = price * qty;
+            const dateStr = t.trade_date || t.date || (t.created_at || '').split('T')[0];
+            return `<tr id="trade-row-${idx}">
+              <td>${dateStr}</td>
+              <td style="font-weight:700;color:#F1F5F9">${t.symbol || '—'}</td>
+              <td><span style="font-size:10px;color:#64748B">${t.asset_type}</span></td>
+              <td><span class="trade-action-badge ${isBuy ? 'buy' : 'sell'}">${t.action || '—'}</span></td>
+              <td style="font-family:monospace">₱${price.toFixed(2)}</td>
+              <td style="font-family:monospace">${qty.toLocaleString()}</td>
+              <td style="font-family:monospace;color:${isBuy ? '#FF4757' : '#00D4A0'}">${total ? (isBuy ? '-' : '+') + '₱' + total.toLocaleString('en', {maximumFractionDigits:2}) : '—'}</td>
+              <td style="color:#64748B;font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.notes || '—'}</td>
+              <td class="trade-actions">
+                <button class="trade-btn edit" onclick="editTrade(${idx})" title="Edit">✏️</button>
+                <button class="trade-btn dupe" onclick="duplicateTrade(${idx})" title="Duplicate">📋</button>
+                <button class="trade-btn del" onclick="deleteTrade(${idx})" title="Delete">🗑️</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function deleteTrade(idx) {
+  const t = _tradeCache[idx];
+  if (!t || !t.id) return;
+  if (!confirm(`Delete ${t.action} ${t.symbol} on ${t.trade_date || t.date}?`)) return;
+  try {
+    const { url, anonKey } = window.SUPABASE_CONFIG;
+    const res = await fetch(`${url}/rest/v1/${t._table}?id=eq.${t.id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey }
+    });
+    if (res.ok || res.status === 204) {
+      _tradeCache.splice(idx, 1);
+      _renderTradeTable();
+      showToast(`Trade deleted`);
+    } else {
+      showToast('Delete failed');
+    }
+  } catch { showToast('Delete failed'); }
+}
+
+function duplicateTrade(idx) {
+  const t = _tradeCache[idx];
+  if (!t) return;
+  // Pre-fill the trade log form with this trade's values
+  document.getElementById('trade-asset-type').value = t.asset_type === 'Gold' ? 'Gold (XAU/USD)' : 'PSE Stock';
+  document.getElementById('trade-symbol').value = t.symbol || '';
+  document.getElementById('trade-action').value = t.action || 'BUY';
+  document.getElementById('trade-price').value = t.price || t.entry_price || '';
+  document.getElementById('trade-qty').value = t.quantity || t.qty || t.lot_size || '';
+  document.getElementById('trade-date').value = new Date().toISOString().split('T')[0]; // today's date
+  document.getElementById('trade-notes').value = t.notes ? 'Copy of: ' + t.notes : '';
+  onAssetTypeChange();
+  openTradeLog();
+  showToast('Form pre-filled — edit and submit to duplicate');
+}
+
+function editTrade(idx) {
+  const t = _tradeCache[idx];
+  if (!t) return;
+  // Pre-fill form with existing values
+  document.getElementById('trade-asset-type').value = t.asset_type === 'Gold' ? 'Gold (XAU/USD)' : 'PSE Stock';
+  document.getElementById('trade-symbol').value = t.symbol || '';
+  document.getElementById('trade-action').value = t.action || 'BUY';
+  document.getElementById('trade-price').value = t.price || t.entry_price || '';
+  document.getElementById('trade-qty').value = t.quantity || t.qty || t.lot_size || '';
+  document.getElementById('trade-date').value = t.trade_date || t.date || new Date().toISOString().split('T')[0];
+  document.getElementById('trade-notes').value = t.notes || '';
+  onAssetTypeChange();
+
+  // Mark the form as editing (stores id + table for PATCH on submit)
+  document.getElementById('trade-log-form').dataset.editId = t.id;
+  document.getElementById('trade-log-form').dataset.editTable = t._table;
+  document.getElementById('trade-log-form').dataset.editIdx = idx;
+  document.querySelector('.trade-modal-header h2').textContent = '✏️ Edit Trade';
+  document.getElementById('trade-submit-btn').textContent = 'Save Changes';
+  openTradeLog();
 }
 
 async function toggleCardChart(sym, btn) {
@@ -2203,7 +2263,15 @@ function openTradeLog() {
 
 function closeTradeLog() {
   document.getElementById('trade-modal-overlay').classList.remove('active');
-  document.getElementById('trade-log-form').reset();
+  const form = document.getElementById('trade-log-form');
+  form.reset();
+  delete form.dataset.editId;
+  delete form.dataset.editTable;
+  delete form.dataset.editIdx;
+  const h2 = document.querySelector('.trade-modal-header h2');
+  if (h2) h2.textContent = '⚡ Log Trade';
+  const btn = document.getElementById('trade-submit-btn');
+  if (btn) btn.textContent = 'Submit Trade';
 }
 
 function onAssetTypeChange() {
@@ -2224,8 +2292,45 @@ function onAssetTypeChange() {
 async function submitTrade(e) {
   e.preventDefault();
   const btn = document.getElementById('trade-submit-btn');
-  btn.textContent = 'Saving...';
+  const form = document.getElementById('trade-log-form');
+  const editId = form.dataset.editId;
+  const editTable = form.dataset.editTable;
+  const editIdx = form.dataset.editIdx;
+  const isEdit = !!editId;
+
+  btn.textContent = isEdit ? 'Saving…' : 'Submitting…';
   btn.disabled = true;
+
+  // Handle EDIT (PATCH existing trade)
+  if (isEdit) {
+    try {
+      const price = parseFloat(document.getElementById('trade-price').value);
+      const qty = parseFloat(document.getElementById('trade-qty').value);
+      const date = document.getElementById('trade-date').value;
+      const notes = document.getElementById('trade-notes').value;
+      const action = document.getElementById('trade-action').value;
+      const { url, anonKey } = window.SUPABASE_CONFIG;
+      const res = await fetch(`${url}/rest/v1/${editTable}?id=eq.${editId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ price, quantity: qty, trade_date: date, action, notes })
+      });
+      if (res.ok || res.status === 204) {
+        // Update cache in place
+        if (editIdx !== undefined && _tradeCache[editIdx]) {
+          _tradeCache[editIdx] = { ..._tradeCache[editIdx], price, quantity: qty, trade_date: date, action, notes };
+        }
+        closeTradeLog();
+        _renderTradeTable();
+        showToast('Trade updated ✓');
+      } else {
+        showToast('Update failed');
+      }
+    } catch { showToast('Update failed'); }
+    btn.textContent = 'Save Changes';
+    btn.disabled = false;
+    return;
+  }
 
   try {
     const assetType = document.getElementById('trade-asset-type').value;
