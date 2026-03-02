@@ -1138,3 +1138,25 @@ body {
   letter-spacing: 0.06em; color: #888; white-space: nowrap;
 }
 .symbol-dd-empty { padding: 12px 14px; font-size: 13px; color: #888; text-align: center; }
+
+/* -- Position Sizing Calculator -------------------------------- */
+.possize-divider { border-top: 1.5px solid #E5E7EB; margin: 16px 0; }
+.possize-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px; }
+.possize-stat { background: #F5F5F5; border-radius: 6px; padding: 14px; text-align: center; }
+.possize-val { font-size: 20px; font-weight: 800; color: #0A0A0A; font-variant-numeric: tabular-nums; }
+.possize-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #888; margin-top: 4px; }
+
+/* -- Dividend History ------------------------------------------ */
+.div-history-header { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+.div-stat { background: #ECFDF5; border: 1.5px solid #059669; border-radius: 6px; padding: 14px; text-align: center; }
+.div-stat-val { display: block; font-size: 18px; font-weight: 800; color: #047857; font-variant-numeric: tabular-nums; }
+.div-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #059669; margin-top: 3px; }
+
+/* -- News Sentiment Badges ------------------------------------- */
+.news-sentiment { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 3px 8px; border-radius: 4px; border: 1.5px solid; }
+.news-sentiment.bullish { color: #047857; border-color: #059669; background: #ECFDF5; }
+.news-sentiment.bearish { color: #B91C1C; border-color: #DC2626; background: #FEF2F2; }
+.news-sentiment.neutral { color: #555; border-color: #D1D5DB; background: #F9FAFB; }
+.news-card.bullish { border-left: 3px solid #059669; }
+.news-card.bearish { border-left: 3px solid #DC2626; }
+.news-card.neutral { border-left: 3px solid #D1D5DB; }
