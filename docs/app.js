@@ -2868,7 +2868,7 @@ async function submitAddPosition(e) {
   let result;
   if (existing && existing.length > 0) {
     // Update existing
-    result = await window.sbUpdate('sterling_portfolio', { qty: shares, avg_buy_price: avg }, _uf(`symbol=eq.${sym}`));
+    result = await window.sbUpdate('sterling_portfolio', _uf(`symbol=eq.${sym}`), { qty: shares, avg_buy_price: avg });
   } else {
     // Insert new
     result = await window.sbInsert('sterling_portfolio', {
