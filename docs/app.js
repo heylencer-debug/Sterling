@@ -2221,41 +2221,32 @@ function renderStudyPortfolio() {
     </div>
   `;
 
-  // Load TradingView charts via iframe embed (most reliable, no script dependency)
+  // Mount TradingView charts — direct iframe, no observer needed (section is already visible)
   function mountTVWidget(id, sym) {
     const el = document.getElementById(id);
     if (!el) return;
-    const encodedSym = encodeURIComponent('PSE:' + sym);
+    // Use www.tradingview.com (not s.tradingview.com) + correct param format
+    const src = `https://www.tradingview.com/widgetembed/?frameElementId=${id}&symbol=PSE%3A${sym}&interval=D&hidetoptoolbar=0&hidelegend=0&saveimage=0&theme=dark&style=1&timezone=Asia%2FManila&studies=RSI%40tv-basicstudies%7CMACD%40tv-basicstudies&locale=en&utm_source=heylencer-debug.github.io&utm_medium=widget`;
     el.innerHTML = `
       <iframe
-        src="https://s.tradingview.com/widgetembed/?symbol=${encodedSym}&interval=D&theme=dark&style=1&locale=en&toolbar_bg=%230A0E1A&studies=RSI%40tv-basicstudies%2CMACD%40tv-basicstudies&hide_top_toolbar=0&saveimage=0&allow_symbol_change=0"
-        style="width:100%;height:350px;border:none;border-radius:8px"
+        id="iframe-${id}"
+        src="${src}"
+        frameborder="no"
+        style="width:100%;height:400px;border:none;border-radius:8px;display:block"
         allowtransparency="true"
         scrolling="no"
         allowfullscreen
       ></iframe>
       <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
-         style="display:block;text-align:center;color:#FFD700;font-size:11px;margin-top:4px;text-decoration:none;opacity:0.7">
-        Open full chart on TradingView ↗
+         style="display:block;text-align:center;color:#FFD700;font-size:11px;margin-top:6px;text-decoration:none;opacity:0.7;padding:4px">
+        📈 Open ${sym} full chart on TradingView ↗
       </a>`;
   }
 
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const id = entry.target.id;
-          const sym = id.replace('tv-', '');
-          mountTVWidget(id, sym);
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.1 });
-    stocks.forEach(s => {
-      const el = document.getElementById('tv-' + s.sym);
-      if (el) observer.observe(el);
-    });
-  }
+  // Mount all charts immediately — no IntersectionObserver (already visible when this runs)
+  setTimeout(() => {
+    stocks.forEach(s => mountTVWidget('tv-' + s.sym, s.sym));
+  }, 300);
 }
 
 // ==================== GOLD PAGE ====================
