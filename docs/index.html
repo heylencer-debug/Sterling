@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Cutive+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
 
 </head>
 <body>
@@ -83,10 +83,13 @@
     <section class="page active" id="page-portfolio">
       <div class="page-header">
         <h1>Portfolio Overview</h1>
-        <div class="psei-widget" id="psei-widget">
+        <div style="display:flex;align-items:center;gap:10px">
+          <button onclick="openPosSize()" style="font-size:11px;font-weight:700;padding:7px 14px;border:1.5px solid #0A0A0A;border-radius:6px;background:#FFFFFF;cursor:pointer;font-family:inherit">🧮 Position Size</button>
+          <div class="psei-widget" id="psei-widget">
           <span class="psei-label">PSEi</span>
           <span class="psei-value" id="psei-value">—</span>
           <span class="psei-change" id="psei-change">—</span>
+        </div>
         </div>
       </div>
 
@@ -225,6 +228,7 @@
     <section class="page" id="page-dividends">
       <div class="page-header">
         <h1>Dividends</h1>
+        <button onclick="openDivModal()" style="font-size:11px;font-weight:700;padding:7px 14px;border:1.5px solid #059669;border-radius:6px;background:#ECFDF5;color:#047857;cursor:pointer;font-family:inherit">+ Log Dividend</button>
       </div>
       <div class="dividend-calendar" id="dividend-calendar">
         <div class="calendar-header">
@@ -245,9 +249,11 @@
       <div class="dividend-income" id="dividend-income">
         <h2>Estimated Annual Income</h2>
         <div class="income-total" id="income-total">—</div>
-        <div class="income-breakdown" id="income-breakdown">
-          <!-- Income breakdown rendered by JS -->
-        </div>
+        <div class="income-breakdown" id="income-breakdown"></div>
+      </div>
+      <div style="margin-top:32px">
+        <h2 style="font-size:16px;font-weight:800;margin-bottom:16px">Dividend History</h2>
+        <div id="dividend-history"></div>
       </div>
     </section>
 
@@ -330,6 +336,88 @@
   <div id="account-modal-overlay" class="account-modal-overlay">
     <div class="account-modal" onclick="event.stopPropagation()">
       <div id="account-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Position Sizing Calculator Modal -->
+  <div id="possize-modal-overlay" class="trade-modal-overlay" onclick="closePosSize()">
+    <div class="trade-modal" onclick="event.stopPropagation()" style="max-width:420px">
+      <div class="trade-modal-header">
+        <h2>🧮 Position Sizing</h2>
+        <button class="trade-modal-close" onclick="closePosSize()">&times;</button>
+      </div>
+      <div class="trade-form-group">
+        <label>Capital Available (₱)</label>
+        <input type="number" id="ps-capital" placeholder="e.g. 10000" oninput="calcPosSize()">
+      </div>
+      <div class="trade-form-group">
+        <label>Entry Price (₱)</label>
+        <input type="number" id="ps-entry" step="0.01" placeholder="e.g. 2.90" oninput="calcPosSize()">
+      </div>
+      <div class="trade-form-group">
+        <label>Stop Loss Price (₱)</label>
+        <input type="number" id="ps-stop" step="0.01" placeholder="e.g. 2.75" oninput="calcPosSize()">
+      </div>
+      <div class="trade-form-group">
+        <label>Target Price (₱) <span style="color:#888;font-weight:400">optional</span></label>
+        <input type="number" id="ps-target" step="0.01" placeholder="e.g. 3.50" oninput="calcPosSize()">
+      </div>
+      <div class="trade-form-group">
+        <label>Max Risk per Trade</label>
+        <select id="ps-risk-pct" onchange="calcPosSize()">
+          <option value="1">1% of capital</option>
+          <option value="2" selected>2% of capital</option>
+          <option value="3">3% of capital</option>
+          <option value="5">5% of capital</option>
+        </select>
+      </div>
+      <div id="possize-result" style="display:none">
+        <div class="possize-divider"></div>
+        <div class="possize-grid">
+          <div class="possize-stat"><div class="possize-val" id="ps-shares">—</div><div class="possize-label">MAX SHARES</div></div>
+          <div class="possize-stat"><div class="possize-val" id="ps-cost">—</div><div class="possize-label">TOTAL COST</div></div>
+          <div class="possize-stat"><div class="possize-val" id="ps-risk-amt">—</div><div class="possize-label">RISK AMOUNT</div></div>
+          <div class="possize-stat"><div class="possize-val" id="ps-rr">—</div><div class="possize-label">R:R RATIO</div></div>
+        </div>
+        <div id="ps-verdict" class="possize-verdict"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Log Dividend Modal -->
+  <div id="div-modal-overlay" class="trade-modal-overlay" onclick="closeDivModal()">
+    <div class="trade-modal" onclick="event.stopPropagation()" style="max-width:400px">
+      <div class="trade-modal-header">
+        <h2>💰 Log Dividend</h2>
+        <button class="trade-modal-close" onclick="closeDivModal()">&times;</button>
+      </div>
+      <form id="div-log-form" onsubmit="submitDividend(event)">
+        <div class="trade-form-group">
+          <label>Symbol</label>
+          <select id="div-symbol" required></select>
+        </div>
+        <div class="trade-form-group">
+          <label>Ex-Date</label>
+          <input type="date" id="div-ex-date" required>
+        </div>
+        <div class="trade-form-group">
+          <label>Payment Date</label>
+          <input type="date" id="div-pay-date">
+        </div>
+        <div class="trade-form-group">
+          <label>Amount per Share (₱)</label>
+          <input type="number" id="div-aps" step="0.0001" placeholder="e.g. 0.1350" required>
+        </div>
+        <div class="trade-form-group">
+          <label>Shares Held</label>
+          <input type="number" id="div-shares" placeholder="e.g. 7000" required>
+        </div>
+        <div class="trade-form-group">
+          <label>Notes (optional)</label>
+          <input type="text" id="div-notes" placeholder="Q1 2026, special dividend…">
+        </div>
+        <button type="submit" class="trade-submit-btn">Log Dividend</button>
+      </form>
     </div>
   </div>
 
