@@ -534,6 +534,15 @@ function renderPortfolio() {
   renderTradeHistory();
 }
 
+function toggleMainChart() {
+  const body = document.getElementById('main-chart-body');
+  const toggle = document.getElementById('main-chart-toggle');
+  if (!body) return;
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (toggle) toggle.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
 function switchMainChart(symbol) {
   const iframe = document.getElementById('main-chart-iframe');
   const label  = document.getElementById('main-chart-label');
