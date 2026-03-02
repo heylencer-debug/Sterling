@@ -2066,3 +2066,16 @@ body {
 .card-chart-toggle .chevron { font-size:10px; transition:transform 0.2s; }
 .card-chart-container { margin-top:8px; }
 .card-chart-links { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+
+/* Trade History Table */
+.trade-history-table { width:100%; border-collapse:collapse; font-size:12px; }
+.trade-history-table th { text-align:left; padding:8px 10px; color:#64748B; font-size:10px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; border-bottom:1px solid #1E2A3A; white-space:nowrap; }
+.trade-history-table td { padding:10px; border-bottom:1px solid rgba(30,42,58,0.5); color:#94A3B8; vertical-align:middle; }
+.trade-history-table tr:hover td { background:rgba(255,255,255,0.02); }
+.trade-action-badge { font-size:10px; font-weight:800; padding:3px 8px; border-radius:10px; letter-spacing:0.5px; }
+.trade-action-badge.buy { background:rgba(0,212,160,0.15); color:#00D4A0; }
+.trade-action-badge.sell { background:rgba(255,71,87,0.15); color:#FF4757; }
+@media (max-width:768px) {
+  .trade-history-table th:nth-child(7), .trade-history-table td:nth-child(7),
+  .trade-history-table th:nth-child(8), .trade-history-table td:nth-child(8) { display:none; }
+}
