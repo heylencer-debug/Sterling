@@ -319,6 +319,36 @@ function renderPortfolio() {
 
   document.getElementById('portfolio-updated').textContent = new Date().toLocaleTimeString('en-PH');
 
+  // ── Main chart (DragonFi iframe) ──────────────────────────────────────────
+  const firstSym = portfolioData[0]?.symbol || 'MBT';
+  let mainChart = document.getElementById('main-chart-section');
+  if (!mainChart) {
+    const chartHTML = `
+      <div id="main-chart-section" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="color:#FFD700;font-size:18px;font-weight:800;letter-spacing:1px" id="main-chart-label">${firstSym}</span>
+            <span style="color:#475569;font-size:11px">DragonFi Live Chart</span>
+          </div>
+          <a id="main-chart-open" href="https://www.dragonfi.ph/market/stocks/${firstSym}" target="_blank"
+             style="color:#475569;font-size:11px;text-decoration:none;border:1px solid #1E2A3A;padding:4px 10px;border-radius:4px">
+            Open full ↗
+          </a>
+        </div>
+        <div style="border-radius:12px;overflow:hidden;border:1px solid #1E2A3A;background:#0D1320;height:520px;position:relative">
+          <iframe id="main-chart-iframe"
+            src="https://www.dragonfi.ph/market/stocks/${firstSym}"
+            width="100%" height="100%"
+            frameborder="0" scrolling="yes"
+            style="border:none;filter:brightness(0.95) saturate(0.9)"
+            loading="lazy"
+            title="${firstSym} — DragonFi">
+          </iframe>
+        </div>
+      </div>`;
+    grid.insertAdjacentHTML('beforebegin', chartHTML);
+  }
+
   // Render cards
   grid.innerHTML = portfolioData.map(h => {
     const currentVal = (h.current_price || 0) * (h.quantity || 0);
@@ -373,19 +403,10 @@ function renderPortfolio() {
             <span class="detail-value">${formatPeso(currentVal)}</span>
           </div>
         </div>
-        ${renderSparkline(h.price_history)}
         ${renderStockAction(h.symbol)}
-        <div class="card-chart-toggle" onclick="toggleCardChart('${h.symbol}', this)">
-          <span>📈 View Chart</span><span class="chevron">▸</span>
-        </div>
-        <div class="card-chart-container" id="card-chart-${h.symbol}" style="display:none">
-          <div id="card-chart-inner-${h.symbol}" style="height:200px;border-radius:6px;overflow:hidden;background:#0D1320;"></div>
-          <div class="card-chart-links">
-            <a href="https://www.tradingview.com/chart/?symbol=PSE:${h.symbol}" target="_blank" class="chart-link-btn tv">TradingView ↗</a>
-            <a href="https://equip.pse.com.ph/charts#${h.symbol}" target="_blank" class="chart-link-btn pse">PSE EQUIP ↗</a>
-            <a href="https://www.investagrams.com/Stock/PSE:${h.symbol}" target="_blank" class="chart-link-btn inv">Investagrams ↗</a>
-          </div>
-        </div>
+        <button onclick="switchMainChart('${h.symbol}')" class="view-chart-btn">
+          📈 View Chart
+        </button>
       </div>
     `;
   }).join('');
@@ -393,6 +414,22 @@ function renderPortfolio() {
 
   // Load and render trade history below the grid
   renderTradeHistory();
+}
+
+function switchMainChart(symbol) {
+  const iframe = document.getElementById('main-chart-iframe');
+  const label  = document.getElementById('main-chart-label');
+  const link   = document.getElementById('main-chart-open');
+  const url    = `https://www.dragonfi.ph/market/stocks/${symbol}`;
+  if (iframe) { iframe.src = url; }
+  if (label)  { label.textContent = symbol; }
+  if (link)   { link.href = url; }
+  // Highlight active card
+  document.querySelectorAll('.view-chart-btn').forEach(b => b.classList.remove('active'));
+  const active = [...document.querySelectorAll('.view-chart-btn')].find(b => b.onclick?.toString().includes(`'${symbol}'`));
+  if (active) active.classList.add('active');
+  // Scroll to chart smoothly
+  document.getElementById('main-chart-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // Trade store — kept in memory so CRUD doesn't refetch every time
