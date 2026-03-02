@@ -2202,18 +2202,23 @@ function renderStudyPortfolio() {
   ];
 
   container.innerHTML = `
-    <div class="section-header">\uD83D\uDCDA Study My Portfolio</div>
-    <p class="section-desc">Live charts for each of your holdings. Click the teaching note to learn what to look for.</p>
+    <div class="section-header">📚 Study My Portfolio</div>
+    <p class="section-desc">Price charts built from Sterling's live data. Tap "View Full Chart" for RSI, MACD, and volume on TradingView or PSE EQUIP.</p>
     <div id="portfolio-study-grid">
       ${stocks.map(s => `
         <div class="study-card">
           <div class="study-header">
-            <span class="study-symbol">PSE:${s.sym}</span>
+            <span class="study-symbol">${s.sym}</span>
             <span class="study-company">${s.name}</span>
           </div>
-          <div class="tradingview-widget-container" id="tv-${s.sym}" style="height:350px;"></div>
+          <div id="chart-${s.sym}" style="height:220px;border-radius:8px;overflow:hidden;background:#111827;"></div>
+          <div class="study-chart-links">
+            <a href="https://www.tradingview.com/chart/?symbol=PSE:${s.sym}" target="_blank" class="chart-link-btn tv">📈 TradingView</a>
+            <a href="https://equip.pse.com.ph/charts#${s.sym}" target="_blank" class="chart-link-btn pse">🏛️ PSE EQUIP</a>
+            <a href="https://www.investagrams.com/Stock/PSE:${s.sym}" target="_blank" class="chart-link-btn inv">📊 Investagrams</a>
+          </div>
           <details class="teach-note">
-            <summary>\uD83D\uDCD6 What to look for</summary>
+            <summary>📖 Sterling's Analysis</summary>
             <p>${TEACHING_NOTES[s.sym]}</p>
           </details>
         </div>
@@ -2221,32 +2226,90 @@ function renderStudyPortfolio() {
     </div>
   `;
 
-  // Mount TradingView charts — direct iframe, no observer needed (section is already visible)
-  function mountTVWidget(id, sym) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    // Use www.tradingview.com (not s.tradingview.com) + correct param format
-    const src = `https://www.tradingview.com/widgetembed/?frameElementId=${id}&symbol=PSE%3A${sym}&interval=D&hidetoptoolbar=0&hidelegend=0&saveimage=0&theme=dark&style=1&timezone=Asia%2FManila&studies=RSI%40tv-basicstudies%7CMACD%40tv-basicstudies&locale=en&utm_source=heylencer-debug.github.io&utm_medium=widget`;
-    el.innerHTML = `
-      <iframe
-        id="iframe-${id}"
-        src="${src}"
-        frameborder="no"
-        style="width:100%;height:400px;border:none;border-radius:8px;display:block"
-        allowtransparency="true"
-        scrolling="no"
-        allowfullscreen
-      ></iframe>
-      <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
-         style="display:block;text-align:center;color:#FFD700;font-size:11px;margin-top:6px;text-decoration:none;opacity:0.7;padding:4px">
-        📈 Open ${sym} full chart on TradingView ↗
-      </a>`;
+  // Render Lightweight Charts from Supabase price history
+  async function renderPriceChart(sym) {
+    const container = document.getElementById('chart-' + sym);
+    if (!container || typeof LightweightCharts === 'undefined') return;
+
+    // Show loading state
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#475569;font-size:12px">Loading price history…</div>';
+
+    try {
+      // Fetch price history from Supabase
+      const rows = await window.sbFetch('sterling_price_history', {
+        filter: `symbol=eq.${sym}`,
+        order: 'recorded_at.asc',
+        limit: '90'
+      });
+
+      container.innerHTML = '';
+
+      if (!rows || rows.length < 2) {
+        // Not enough data yet — show placeholder with chart links
+        container.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;padding:16px">
+            <div style="font-size:28px">📈</div>
+            <div style="color:#64748B;font-size:12px;text-align:center">Price history building up<br><span style="color:#475569;font-size:11px">Sterling collects data every 10min on market days</span></div>
+            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="color:#FFD700;font-size:12px;text-decoration:none;padding:6px 14px;border:1px solid rgba(255,215,0,0.3);border-radius:6px">View on TradingView ↗</a>
+          </div>`;
+        return;
+      }
+
+      // Build chart data from price history
+      const chartData = rows.map(r => ({
+        time: r.recorded_at.split('T')[0],
+        value: parseFloat(r.price || r.close_price || r.current_price || 0)
+      })).filter(d => d.value > 0);
+
+      // Deduplicate by date (keep last value per day)
+      const byDate = {};
+      chartData.forEach(d => { byDate[d.time] = d.value; });
+      const dedupedData = Object.entries(byDate).map(([time, value]) => ({ time, value })).sort((a,b) => a.time.localeCompare(b.time));
+
+      if (dedupedData.length < 2) {
+        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#475569;font-size:12px">Insufficient data — check back tomorrow</div>`;
+        return;
+      }
+
+      const chart = LightweightCharts.createChart(container, {
+        width: container.clientWidth || 320,
+        height: 220,
+        layout: { background: { color: '#111827' }, textColor: '#94A3B8' },
+        grid: { vertLines: { color: '#1E2A3A' }, horzLines: { color: '#1E2A3A' } },
+        timeScale: { borderColor: '#1E2A3A', timeVisible: true },
+        rightPriceScale: { borderColor: '#1E2A3A' },
+        crosshair: { mode: 1 }
+      });
+
+      const series = chart.addAreaSeries({
+        lineColor: '#FFD700',
+        topColor: 'rgba(255,215,0,0.3)',
+        bottomColor: 'rgba(255,215,0,0.02)',
+        lineWidth: 2,
+        priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
+      });
+
+      series.setData(dedupedData);
+      chart.timeScale().fitContent();
+
+      // Resize on window resize
+      window.addEventListener('resize', () => {
+        if (container.clientWidth > 0) chart.resize(container.clientWidth, 220);
+      });
+
+    } catch (err) {
+      container.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px">
+          <div style="color:#475569;font-size:12px">Chart unavailable</div>
+          <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="color:#FFD700;font-size:12px;text-decoration:none">View on TradingView ↗</a>
+        </div>`;
+    }
   }
 
-  // Mount all charts immediately — no IntersectionObserver (already visible when this runs)
+  // Render all charts
   setTimeout(() => {
-    stocks.forEach(s => mountTVWidget('tv-' + s.sym, s.sym));
-  }, 300);
+    stocks.forEach(s => renderPriceChart(s.sym));
+  }, 200);
 }
 
 // ==================== GOLD PAGE ====================
