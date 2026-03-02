@@ -2041,34 +2041,45 @@ function renderStudyPortfolio() {
     </div>
   `;
 
-  // Lazy load TradingView widgets via IntersectionObserver
+  // Load TradingView widgets — retry until tv.js is ready
+  function mountTVWidget(id, sym, attempt) {
+    attempt = attempt || 0;
+    if (typeof TradingView !== 'undefined') {
+      try {
+        new TradingView.widget({
+          container_id: id,
+          symbol: 'PSE:' + sym,
+          interval: 'D',
+          theme: 'dark',
+          style: '1',
+          locale: 'en',
+          toolbar_bg: '#0A0E1A',
+          enable_publishing: false,
+          hide_top_toolbar: false,
+          save_image: false,
+          height: 350,
+          width: '100%',
+          studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies']
+        });
+      } catch (e) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '<p style="color:#64748B;padding:16px;text-align:center">Chart unavailable — open <a href="https://www.tradingview.com/chart/?symbol=PSE:' + sym + '" target="_blank" style="color:#FFD700">TradingView ↗</a></p>';
+      }
+    } else if (attempt < 20) {
+      setTimeout(() => mountTVWidget(id, sym, attempt + 1), 300);
+    } else {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<p style="color:#64748B;padding:16px;text-align:center">Chart unavailable — open <a href="https://www.tradingview.com/chart/?symbol=PSE:' + sym + '" target="_blank" style="color:#FFD700">TradingView ↗</a></p>';
+    }
+  }
+
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           const id = entry.target.id;
           const sym = id.replace('tv-', '');
-          if (typeof TradingView !== 'undefined') {
-            try {
-              new TradingView.widget({
-                container_id: id,
-                symbol: 'PSE:' + sym,
-                interval: 'D',
-                theme: 'dark',
-                style: '1',
-                locale: 'en',
-                toolbar_bg: '#0A0E1A',
-                enable_publishing: false,
-                hide_top_toolbar: false,
-                save_image: false,
-                height: 350,
-                width: '100%',
-                studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies']
-              });
-            } catch (e) {
-              console.log('TradingView widget error for', sym, e);
-            }
-          }
+          mountTVWidget(id, sym, 0);
           observer.unobserve(entry.target);
         }
       });
