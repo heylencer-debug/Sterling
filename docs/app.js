@@ -2662,7 +2662,7 @@ function onAssetTypeChange() {
       <option value="XAU/PHP">XAU/PHP — Gold vs Philippine Peso</option>`;
     qtyLabel.textContent = 'Lot Size';
   } else {
-    const opts = PSE_STOCKS.map(s =>
+    const opts = PSE_UNIVERSE.map(s =>
       `<option value="${s.symbol}">${s.symbol} — ${s.name}</option>`
     ).join('');
     symSelect.innerHTML = `<option value="">Select PSE stock…</option>${opts}`;
