@@ -872,3 +872,7 @@ body {
 }
 
 /* end real-class fixes */
+
+/* Card entrance animation fix */
+.animate-in { opacity: 1 !important; transform: translateY(0) !important; transition: opacity 0.25s ease, transform 0.25s ease; }
+
