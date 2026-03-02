@@ -583,9 +583,12 @@ function renderPortfolio() {
           </div>
         </div>
         ${renderStockAction(h.symbol)}
-        <button onclick="switchMainChart('${h.symbol}')" class="view-chart-btn">
-          📈 View Chart
-        </button>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button onclick="switchMainChart('${h.symbol}')" class="view-chart-btn" style="flex:1">
+            📈 View Chart
+          </button>
+          <button onclick="editPosition('${h.symbol}')" style="flex:0 0 auto;padding:8px 12px;font-size:11px;font-weight:700;border:1.5px solid #0A0A0A;border-radius:6px;background:#FFFFFF;cursor:pointer;font-family:inherit">✏️ Edit</button>
+        </div>
       </div>
     `;
   }).join('');
@@ -2717,6 +2720,191 @@ function renderResources(items) {
 }
 
 // ==================== TRADE LOG ====================
+
+// ── Add / Edit Position Modal ─────────────────────────────────────────────
+
+let _addPosSymbol = null;
+let _addPosSymbolName = null;
+let _addPosDDOpen = false;
+
+function openAddPosition(existingHolding) {
+  const overlay = document.getElementById('addpos-modal-overlay');
+  const title = document.getElementById('addpos-modal-title');
+  const submitBtn = document.getElementById('addpos-submit-btn');
+  overlay.classList.add('active');
+  document.getElementById('addpos-form').reset();
+  _addPosSymbol = null;
+  _addPosSymbolName = null;
+  document.getElementById('addpos-symbol').value = '';
+  document.getElementById('addpos-symbol-input').value = '';
+  document.getElementById('addpos-preview').style.display = 'none';
+
+  if (existingHolding) {
+    title.textContent = '✏️ Edit Position';
+    submitBtn.textContent = 'Update Position';
+    document.getElementById('addpos-symbol-input').value = existingHolding.symbol;
+    document.getElementById('addpos-symbol').value = existingHolding.symbol;
+    document.getElementById('addpos-shares').value = existingHolding.qty || existingHolding.quantity || '';
+    document.getElementById('addpos-avgprice').value = existingHolding.avg_buy_price || existingHolding.average_price || '';
+    _addPosSymbol = existingHolding.symbol;
+    _addPosSymbolName = existingHolding.company_name || existingHolding.symbol;
+    document.getElementById('addpos-form').dataset.editSymbol = existingHolding.symbol;
+    _updateAddPosPreview();
+  } else {
+    title.textContent = '📌 Add Position';
+    submitBtn.textContent = 'Save Position';
+    delete document.getElementById('addpos-form').dataset.editSymbol;
+  }
+  _renderAddPosDropdown('');
+}
+
+function closeAddPosition() {
+  document.getElementById('addpos-modal-overlay').classList.remove('active');
+}
+
+function editPosition(symbol) {
+  const h = portfolioData.find(p => p.symbol === symbol);
+  if (!h) { showToast('Position not found', 'error'); return; }
+  openAddPosition({
+    symbol: h.symbol,
+    company_name: h.company_name || h.symbol,
+    sector: h.sector || 'N/A',
+    qty: h.quantity || h.qty || 0,
+    avg_buy_price: h.average_price || h.avg_buy_price || 0
+  });
+}
+
+function openAddPosDropdown() {
+  _addPosDDOpen = true;
+  _renderAddPosDropdown(document.getElementById('addpos-symbol-input').value);
+}
+
+function closeAddPosDropdownDelayed() {
+  setTimeout(() => {
+    _addPosDDOpen = false;
+    document.getElementById('addpos-symbol-dropdown').style.display = 'none';
+  }, 200);
+}
+
+function filterAddPosDropdown() {
+  _renderAddPosDropdown(document.getElementById('addpos-symbol-input').value);
+}
+
+function _renderAddPosDropdown(query) {
+  const dd = document.getElementById('addpos-symbol-dropdown');
+  const q = (query || '').trim().toUpperCase();
+  const list = PSE_UNIVERSE.filter(s => s.sector !== 'Gold');
+  const filtered = q
+    ? list.filter(s => s.symbol.includes(q) || s.name.toUpperCase().includes(q)).slice(0, 30)
+    : list.slice(0, 40);
+
+  if (!filtered.length) {
+    dd.innerHTML = '<div class="symbol-dd-empty">No results</div>';
+  } else {
+    dd.innerHTML = filtered.map(s =>
+      `<div class="symbol-dd-item" onmousedown="selectAddPosSymbol('${s.symbol}','${s.name.replace(/'/g, '&#39;')}')">
+        <span class="symbol-dd-code">${s.symbol}</span>
+        <span class="symbol-dd-name">${s.name}</span>
+        <span class="symbol-dd-sector">${s.sector}</span>
+      </div>`
+    ).join('');
+  }
+  dd.style.display = 'block';
+}
+
+function selectAddPosSymbol(symbol, name) {
+  _addPosSymbol = symbol;
+  _addPosSymbolName = name;
+  document.getElementById('addpos-symbol').value = symbol;
+  document.getElementById('addpos-symbol-input').value = symbol;
+  document.getElementById('addpos-symbol-dropdown').style.display = 'none';
+  _updateAddPosPreview();
+}
+
+function _updateAddPosPreview() {
+  const sym = _addPosSymbol;
+  const shares = parseFloat(document.getElementById('addpos-shares').value) || 0;
+  const avg = parseFloat(document.getElementById('addpos-avgprice').value) || 0;
+  const prev = document.getElementById('addpos-preview');
+
+  if (!sym || !shares || !avg) { prev.style.display = 'none'; return; }
+  prev.style.display = 'block';
+
+  const cost = shares * avg;
+  // Try to get live price from portfolioData or leave as N/A
+  const holding = portfolioData.find(h => h.symbol === sym);
+  const livePrice = holding ? (holding.current_price || 0) : 0;
+  const value = livePrice ? shares * livePrice : null;
+  const pl = value !== null ? value - cost : null;
+  const plPct = pl !== null && cost > 0 ? (pl / cost) * 100 : null;
+
+  document.getElementById('addpos-prev-cost').textContent = formatPeso(cost);
+  document.getElementById('addpos-prev-value').textContent = value !== null ? formatPeso(value) : 'No live price';
+  const plEl = document.getElementById('addpos-prev-pl');
+  const plPctEl = document.getElementById('addpos-prev-plpct');
+  plEl.textContent = pl !== null ? formatPeso(pl) : '—';
+  plEl.style.color = pl !== null ? (pl >= 0 ? '#16A34A' : '#DC2626') : '#0A0A0A';
+  plPctEl.textContent = plPct !== null ? (plPct >= 0 ? '+' : '') + plPct.toFixed(2) + '%' : '—';
+  plPctEl.style.color = plPct !== null ? (plPct >= 0 ? '#16A34A' : '#DC2626') : '#0A0A0A';
+}
+
+async function submitAddPosition(e) {
+  e.preventDefault();
+  const sym = document.getElementById('addpos-symbol').value.trim();
+  const shares = parseFloat(document.getElementById('addpos-shares').value);
+  const avg = parseFloat(document.getElementById('addpos-avgprice').value);
+  if (!sym || !shares || !avg) { showToast('Fill in all fields.', 'error'); return; }
+
+  const btn = document.getElementById('addpos-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  // Find PSE_UNIVERSE entry for name/sector
+  const meta = PSE_UNIVERSE.find(s => s.symbol === sym) || { name: sym, sector: 'N/A' };
+  const isReit = ['REIT'].includes(meta.sector);
+
+  // Check if position already exists for this user
+  const existing = await window.sbFetch('sterling_portfolio', { filter: _uf(`symbol=eq.${sym}`) });
+  let result;
+  if (existing && existing.length > 0) {
+    // Update existing
+    result = await window.sbUpdate('sterling_portfolio', { qty: shares, avg_buy_price: avg }, _uf(`symbol=eq.${sym}`));
+  } else {
+    // Insert new
+    result = await window.sbInsert('sterling_portfolio', {
+      user_id: _uid(),
+      symbol: sym,
+      company_name: meta.name,
+      sector: meta.sector,
+      is_reit: isReit,
+      qty: shares,
+      avg_buy_price: avg,
+      current_price: 0,
+      day_change_pct: 0
+    });
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Save Position';
+
+  if (result && !result.error) {
+    showToast(`${sym} position saved ✓`, 'success');
+    closeAddPosition();
+    // Reload portfolio
+    const data = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
+    if (data) { portfolioData = data; renderPortfolio(); }
+  } else {
+    showToast('Save failed. Try again.', 'error');
+  }
+}
+
+// Trigger preview recalc when shares/price inputs change
+document.addEventListener('DOMContentLoaded', () => {
+  ['addpos-shares','addpos-avgprice'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', _updateAddPosPreview);
+  });
+});
 
 function openTradeLog() {
   document.getElementById('trade-modal-overlay').classList.add('active');
