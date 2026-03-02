@@ -7,14 +7,14 @@
 
 /* ── Variables ─────────────────────────────────────────────── */
 :root {
-  --bg: #F8FAFC;
+  --bg: #F5F5F5;
   --surface: #FFFFFF;
-  --surface-2: #F1F5F9;
-  --border: #E2E8F0;
-  --border-strong: #CBD5E1;
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
+  --surface-2: #EEEEEE;
+  --border: #C8C8C8;
+  --border-strong: #0A0A0A;
+  --text-primary: #0A0A0A;
+  --text-secondary: #1A1A1A;
+  --text-muted: #555555;
   --gold: #EA580C;
   --gold-light: #FFF7ED;
   --gold-mid: #F97316;
@@ -26,11 +26,11 @@
   --neutral-bg: #F8FAFC;
   --blue: #2563EB;
   --blue-bg: #EFF6FF;
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --radius: 12px;
-  --radius-sm: 8px;
-  --radius-xs: 6px;
+  --shadow-sm: none;
+  --shadow-md: 4px 4px 0 #0A0A0A;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-xs: 4px;
 }
 
 /* ── Reset & Base ──────────────────────────────────────────── */
@@ -66,12 +66,11 @@ body {
 }
 
 .main-content {
-  margin-left: 200px;
-  padding: 24px 28px;
+  margin-left: 200px; padding: 32px 36px;
   min-height: 100vh;
 }
 
-.page { display: none; padding: 24px 28px; }
+.page { display: none; padding: 32px 36px; }
 .page.active { display: block; }
 
 /* ── Sidebar Logo ──────────────────────────────────────────── */
@@ -1633,3 +1632,464 @@ textarea:focus {
 .mt-4 { margin-top: 16px; }
 .mb-2 { margin-bottom: 8px; }
 .mb-4 { margin-bottom: 16px; }
+
+/* =============================================================
+   STERLING v3 � Minimalist � Wireframe � GenZ Overrides
+   More black, sharp edges, offset hover shadows, outlined badges
+   ============================================================= */
+
+/* -- Base typography ------------------------------------------- */
+html { font-size: 15px; }
+
+body { background: #F5F5F5; }
+
+/* -- Page header ----------------------------------------------- */
+.page-header h1,
+.page-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0A0A0A;
+}
+
+/* -- Sidebar --------------------------------------------------- */
+.sidebar { border-right: 1.5px solid #0A0A0A; }
+
+.logo-text { color: #0A0A0A; font-size: 19px; font-weight: 800; letter-spacing: -0.03em; }
+
+.nav-item.active {
+  background: #0A0A0A;
+  color: #FFFFFF;
+  border-left: none;
+  border-radius: 6px;
+  margin-left: 0;
+  padding-left: 16px;
+}
+
+.nav-item.active .nav-icon { opacity: 1; }
+
+.nav-item:hover {
+  background: #EEEEEE;
+  color: #0A0A0A;
+}
+
+/* -- Stat cards ------------------------------------------------ */
+.summary-item,
+.stat-card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  padding: 20px 24px;
+  border-radius: 8px;
+}
+
+.summary-item:hover,
+.stat-card:hover {
+  box-shadow: 3px 3px 0 #0A0A0A;
+  transform: translateY(-2px);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.summary-value,
+.stat-value { font-size: 28px; font-weight: 800; color: #0A0A0A; letter-spacing: -0.03em; }
+
+.summary-label,
+.stat-label { font-size: 11px; font-weight: 700; color: #555555; text-transform: uppercase; letter-spacing: 0.07em; }
+
+/* -- PSEi widget ----------------------------------------------- */
+.psei-widget { border: 1.5px solid #0A0A0A; border-radius: 6px; }
+.psei-value { font-size: 17px; font-weight: 800; color: #0A0A0A; }
+
+/* -- Holding cards --------------------------------------------- */
+.holding-card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.holding-card:hover {
+  box-shadow: 4px 4px 0 #0A0A0A;
+  transform: translateY(-2px);
+}
+
+.holding-symbol { font-size: 18px; font-weight: 800; color: #0A0A0A; letter-spacing: -0.01em; }
+.holding-company { font-size: 12px; color: #555555; font-weight: 500; }
+
+.price-current { font-size: 32px; font-weight: 800; color: #0A0A0A; letter-spacing: -0.03em; }
+
+.holding-details { border-top: 1.5px solid #D0D0D0; }
+
+.pl-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #555555; }
+.pl-value { font-size: 14px; font-weight: 700; }
+
+.detail-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #555555; }
+.detail-value { font-size: 13px; font-weight: 700; color: #0A0A0A; }
+
+/* -- Sector / REIT badges -------------------------------------- */
+.badge-sector {
+  background: transparent;
+  color: #555555;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+}
+
+.badge-reit {
+  background: transparent;
+  color: #2563EB;
+  border: 1.5px solid #2563EB;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+}
+
+/* -- Action badges � wireframe outlined ------------------------ */
+.badge-buy,
+.action-badge.buy {
+  background: transparent;
+  color: #059669;
+  border: 1.5px solid #059669;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.badge-dca,
+.action-badge.dca {
+  background: transparent;
+  color: #2563EB;
+  border: 1.5px solid #2563EB;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.badge-hold,
+.action-badge.hold {
+  background: transparent;
+  color: #EA580C;
+  border: 1.5px solid #EA580C;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.badge-sell,
+.action-badge.sell {
+  background: transparent;
+  color: #DC2626;
+  border: 1.5px solid #DC2626;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.badge-wait,
+.action-badge.wait {
+  background: transparent;
+  color: #555555;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.badge-watch,
+.action-badge.watch {
+  background: transparent;
+  color: #EA580C;
+  border: 1.5px solid #EA580C;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.badge-avoid,
+.action-badge.avoid {
+  background: transparent;
+  color: #DC2626;
+  border: 1.5px solid #DC2626;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+/* -- Entry / Stop pills ---------------------------------------- */
+.entry-pill,
+.stop-pill,
+.price-pill {
+  background: transparent;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+
+/* -- Action block ---------------------------------------------- */
+.action-block {
+  background: transparent;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 6px;
+}
+
+.action-summary { font-size: 13px; line-height: 1.7; color: #1A1A1A; }
+
+/* -- Cards (generic) ------------------------------------------- */
+.card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.card:hover {
+  box-shadow: 4px 4px 0 #0A0A0A;
+  transform: translateY(-2px);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+/* -- Pillars --------------------------------------------------- */
+.pillar-block { border: 1.5px solid #C8C8C8; border-radius: 6px; }
+.pillar-header { background: #EEEEEE; }
+.pillar-header:hover { background: #E4E4E4; }
+.pillar-title { font-size: 13px; font-weight: 700; color: #0A0A0A; }
+.pillar-dot { background: #EA580C; }
+
+/* -- Mentor / brief cards -------------------------------------- */
+.mentor-note,
+.brief-card {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+}
+
+.mentor-title,
+.brief-title { font-size: 14px; font-weight: 800; color: #0A0A0A; letter-spacing: -0.01em; }
+
+/* -- News cards ------------------------------------------------ */
+.news-card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.news-card:hover {
+  box-shadow: 4px 4px 0 #0A0A0A;
+  transform: translateY(-2px);
+}
+
+.news-headline { font-size: 15px; font-weight: 700; color: #0A0A0A; }
+.news-body { font-size: 13px; color: #555555; line-height: 1.7; }
+.news-source { background: transparent; border: 1.5px solid #C8C8C8; border-radius: 4px; color: #555555; font-weight: 700; }
+
+/* -- Alerts ---------------------------------------------------- */
+.alert-card {
+  border: 1.5px solid #0A0A0A;
+  border-left: 4px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.alert-card.alert-high,
+.alert-card.urgent { border-left-color: #DC2626; }
+.alert-card.alert-positive { border-left-color: #059669; }
+.alert-card.alert-info { border-left-color: #2563EB; }
+
+.alert-symbol { font-size: 15px; font-weight: 800; color: #0A0A0A; }
+
+/* -- Watchlist / Discovery tables ------------------------------ */
+.watchlist-card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.watchlist-table th,
+.discovery-table th {
+  color: #0A0A0A;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.07em;
+  border-bottom: 1.5px solid #0A0A0A;
+}
+
+.watchlist-table td,
+.discovery-table td { font-size: 13px; font-weight: 500; }
+
+.watchlist-table tr:hover,
+.discovery-table tr:hover { background: #EEEEEE; }
+
+/* -- FAB � black with orange shadow --------------------------- */
+.fab-log-trade,
+.log-trade-fab {
+  background: #0A0A0A;
+  color: #FFFFFF;
+  box-shadow: 3px 3px 0 #EA580C;
+  border-radius: 6px;
+}
+
+.fab-log-trade:hover,
+.log-trade-fab:hover {
+  background: #1A1A1A;
+  box-shadow: 4px 4px 0 #EA580C;
+  transform: translateY(-2px);
+}
+
+/* -- Buttons --------------------------------------------------- */
+.btn-primary,
+.btn-submit {
+  background: #0A0A0A;
+  color: #FFFFFF;
+  border-radius: 6px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary:hover,
+.btn-submit:hover {
+  background: #333333;
+  box-shadow: 3px 3px 0 #EA580C;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1.5px solid #0A0A0A;
+  color: #0A0A0A;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.btn-secondary:hover { background: #EEEEEE; }
+
+/* -- Form inputs ----------------------------------------------- */
+.form-input,
+input[type="text"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  border: 1.5px solid #C8C8C8;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.form-input:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #0A0A0A;
+  box-shadow: 3px 3px 0 #EA580C;
+  outline: none;
+}
+
+/* -- View chart btn -------------------------------------------- */
+.view-chart-btn {
+  background: transparent;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 6px;
+  color: #555555;
+  font-weight: 700;
+}
+
+.view-chart-btn:hover,
+.view-chart-btn.active {
+  background: transparent;
+  border-color: #0A0A0A;
+  color: #0A0A0A;
+  box-shadow: 2px 2px 0 #0A0A0A;
+}
+
+/* -- Conclusion block ------------------------------------------ */
+.action-conclusion-block {
+  background: #F5F5F5;
+  border: 1.5px solid #C8C8C8;
+  border-left: 3px solid #0A0A0A;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #0A0A0A;
+}
+
+/* -- Gold page ------------------------------------------------- */
+.gold-price-display {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+}
+
+.gold-price-value { font-size: 40px; font-weight: 800; color: #0A0A0A; letter-spacing: -0.03em; }
+
+.gold-card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+  border-left: 4px solid #EA580C;
+}
+
+/* -- Glossary terms -------------------------------------------- */
+.glossary-term {
+  border-bottom: 1.5px solid #0A0A0A;
+  font-weight: 600;
+}
+
+/* -- Loader ---------------------------------------------------- */
+.loader { background: #F5F5F5; }
+
+/* -- Mobile nav ------------------------------------------------ */
+.mobile-header { border-bottom: 1.5px solid #0A0A0A; }
+.mobile-title { color: #0A0A0A; font-weight: 800; }
+
+/* -- Toggle buttons -------------------------------------------- */
+.toggle-btn.active {
+  background: #0A0A0A;
+  color: #FFFFFF;
+  box-shadow: none;
+}
+
+/* -- Learn page ------------------------------------------------ */
+.learn-card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.learn-card:hover { box-shadow: 4px 4px 0 #0A0A0A; transform: translateY(-2px); }
+.learn-title { font-size: 16px; font-weight: 800; color: #0A0A0A; }
+
+/* -- Discovery cards ------------------------------------------- */
+.discovery-card {
+  border: 1.5px solid #0A0A0A;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.discovery-card:hover { box-shadow: 4px 4px 0 #0A0A0A; }
+
+/* -- Dividend items -------------------------------------------- */
+.dividend-item {
+  border: 1.5px solid #C8C8C8;
+  border-radius: 6px;
+}
+
+/* end overrides */
