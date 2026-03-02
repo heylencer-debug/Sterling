@@ -390,6 +390,7 @@ async function loadPortfolio() {
     portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     renderPortfolio();
     updateLastUpdate();
+    startLivePrices();
 
     // Auto-refresh every 60s — preserves open toggle state
     setInterval(async () => {
@@ -1950,21 +1951,24 @@ function renderNews() {
     return;
   }
 
-  feed.innerHTML = filtered.map(n => `
-    <div class="news-card ${n.sentiment || 'neutral'}">
+  feed.innerHTML = filtered.map(n => {
+    const sentiment = n.sentiment || tagSentiment((n.headline || '') + ' ' + (n.summary || ''));
+    const sentimentIcon = sentiment === 'bullish' ? '▲' : sentiment === 'bearish' ? '▼' : '●';
+    return `
+    <div class="news-card ${sentiment}">
       <div class="news-header">
         <div class="news-headline">${n.headline || 'No headline'}</div>
         <div class="news-badges">
           ${n.symbol ? `<span class="news-symbol-badge">${n.symbol}</span>` : ''}
-          <span class="news-sentiment ${n.sentiment || 'neutral'}">${(n.sentiment || 'neutral').toUpperCase()}</span>
+          <span class="news-sentiment ${sentiment}">${sentimentIcon} ${sentiment.toUpperCase()}</span>
         </div>
       </div>
       <div class="news-meta">
         <span>${n.source || 'Unknown source'}</span>
         <span>${formatTime(n.created_at)}</span>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   window.applyGlossary(document.getElementById('page-news'));
 }
 
@@ -1984,6 +1988,7 @@ async function loadDividends() {
     renderCalendar();
     renderUpcomingDividends();
     renderIncomeProjection();
+    renderDividendHistory();
     window.applyGlossary(document.getElementById('page-dividends'));
   } catch (err) {
     console.error('Dividends load error:', err);
@@ -3662,4 +3667,213 @@ async function loadAccountsFromSupabase() {
     });
     _saveAccounts(local);
   } catch(e) {}
+}
+
+// ==================== POSITION SIZING CALCULATOR ====================
+
+function openPosSize() {
+  const overlay = document.getElementById('possize-modal-overlay');
+  if (overlay) overlay.classList.add('active');
+}
+function closePosSize() {
+  const overlay = document.getElementById('possize-modal-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+function calcPosSize() {
+  const capital  = parseFloat(document.getElementById('ps-capital')?.value) || 0;
+  const entry    = parseFloat(document.getElementById('ps-entry')?.value) || 0;
+  const stop     = parseFloat(document.getElementById('ps-stop')?.value) || 0;
+  const target   = parseFloat(document.getElementById('ps-target')?.value) || 0;
+  const riskPct  = parseFloat(document.getElementById('ps-risk-pct')?.value) || 2;
+  const result   = document.getElementById('possize-result');
+
+  if (!capital || !entry || !stop || entry <= stop) { if (result) result.style.display = 'none'; return; }
+
+  const riskAmount    = capital * (riskPct / 100);
+  const riskPerShare  = entry - stop;
+  const maxShares     = Math.floor(riskAmount / riskPerShare);
+  const totalCost     = maxShares * entry;
+  const actualRisk    = maxShares * riskPerShare;
+  const rrRatio       = target > entry ? ((target - entry) / riskPerShare).toFixed(1) : null;
+
+  document.getElementById('ps-shares').textContent   = maxShares.toLocaleString();
+  document.getElementById('ps-cost').textContent     = '?' + totalCost.toLocaleString('en-PH', {maximumFractionDigits:2});
+  document.getElementById('ps-risk-amt').textContent = '?' + actualRisk.toLocaleString('en-PH', {maximumFractionDigits:2});
+  document.getElementById('ps-rr').textContent       = rrRatio ? rrRatio + ':1' : '�';
+
+  const pctOfCapital  = ((totalCost / capital) * 100).toFixed(1);
+  const verdict       = document.getElementById('ps-verdict');
+  let msg = '', color = '#059669';
+  if (totalCost > capital) {
+    msg = '?? Position exceeds your capital. Reduce shares or increase capital.'; color = '#DC2626';
+  } else if (pctOfCapital > 30) {
+    msg = `?? This uses ${pctOfCapital}% of your capital. Consider splitting into tranches.`; color = '#EA580C';
+  } else if (rrRatio && parseFloat(rrRatio) < 2) {
+    msg = `?? R:R is ${rrRatio}:1. Aim for at least 2:1 � move your target or tighten your stop.`; color = '#EA580C';
+  } else {
+    msg = `? Buy max ${maxShares.toLocaleString()} shares at ?${entry} � risk ?${actualRisk.toFixed(2)} (${riskPct}% of capital).${rrRatio ? ' R:R = ' + rrRatio + ':1.' : ''}`;
+  }
+  verdict.style.cssText = `color:${color};font-size:13px;line-height:1.6;padding:12px 0 4px;font-weight:600`;
+  verdict.textContent = msg;
+  result.style.display = 'block';
+}
+
+// ==================== DIVIDEND PAYOUT TRACKER ====================
+
+function openDivModal() {
+  // Populate symbol dropdown from portfolio
+  const sel = document.getElementById('div-symbol');
+  if (sel) {
+    const syms = (portfolioData || []).map(h => h.symbol).sort();
+    sel.innerHTML = syms.map(s => `<option value="${s}">${s}</option>`).join('') ||
+      '<option value="">No portfolio loaded</option>';
+  }
+  document.getElementById('div-ex-date').valueAsDate = new Date();
+  document.getElementById('div-modal-overlay').classList.add('active');
+}
+function closeDivModal() {
+  document.getElementById('div-modal-overlay').classList.remove('active');
+}
+
+async function submitDividend(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type=submit]');
+  btn.textContent = 'Saving�'; btn.disabled = true;
+  try {
+    const symbol    = document.getElementById('div-symbol').value;
+    const exDate    = document.getElementById('div-ex-date').value;
+    const payDate   = document.getElementById('div-pay-date').value;
+    const aps       = parseFloat(document.getElementById('div-aps').value);
+    const shares    = parseInt(document.getElementById('div-shares').value);
+    const notes     = document.getElementById('div-notes').value;
+    const total     = parseFloat((aps * shares).toFixed(2));
+    await window.sbInsert('sterling_dividends', {
+      user_id: _uid(), symbol, ex_date: exDate, payment_date: payDate || null,
+      amount_per_share: aps, shares_held: shares, total_received: total, notes
+    });
+    showToast(`?${total.toFixed(2)} dividend logged for ${symbol} ?`);
+    closeDivModal();
+    renderDividendHistory();
+  } catch(err) { showToast('Error saving dividend'); }
+  btn.textContent = 'Log Dividend'; btn.disabled = false;
+}
+
+let dividendHistory = [];
+async function renderDividendHistory() {
+  try {
+    dividendHistory = await window.sbFetch('sterling_dividends', { filter: _uf(), order: 'ex_date.desc', limit: '50' }) || [];
+  } catch(e) { dividendHistory = []; }
+
+  const container = document.getElementById('dividend-history');
+  if (!container) return;
+
+  if (!dividendHistory.length) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:#888;font-size:13px">No dividends logged yet. Tap + Log Dividend when you receive one.</div>';
+    return;
+  }
+
+  const totalIncome = dividendHistory.reduce((s, d) => s + parseFloat(d.total_received || 0), 0);
+  const ytd = dividendHistory.filter(d => new Date(d.ex_date).getFullYear() === new Date().getFullYear())
+    .reduce((s, d) => s + parseFloat(d.total_received || 0), 0);
+
+  container.innerHTML = `
+    <div class="div-history-header">
+      <div class="div-stat"><span class="div-stat-val">?${ytd.toLocaleString('en-PH',{maximumFractionDigits:2})}</span><span class="div-stat-label">YTD INCOME</span></div>
+      <div class="div-stat"><span class="div-stat-val">?${totalIncome.toLocaleString('en-PH',{maximumFractionDigits:2})}</span><span class="div-stat-label">ALL-TIME TOTAL</span></div>
+      <div class="div-stat"><span class="div-stat-val">${dividendHistory.length}</span><span class="div-stat-label">PAYOUTS</span></div>
+    </div>
+    <table class="trade-history-table">
+      <thead><tr>
+        <th>Symbol</th><th>Ex-Date</th><th>Per Share</th><th>Shares</th><th>Total</th><th>Yield-on-Cost</th>
+      </tr></thead>
+      <tbody>
+        ${dividendHistory.map(d => {
+          const holding = (portfolioData || []).find(h => h.symbol === d.symbol);
+          const avgCost = holding ? parseFloat(holding.avg_buy_price || holding.average_price || 0) : 0;
+          const yoc = avgCost > 0 ? ((parseFloat(d.amount_per_share) / avgCost) * 100).toFixed(2) + '%' : '�';
+          return `<tr>
+            <td style="font-weight:800">${d.symbol}</td>
+            <td>${d.ex_date || '�'}</td>
+            <td>?${parseFloat(d.amount_per_share).toFixed(4)}</td>
+            <td>${parseInt(d.shares_held).toLocaleString()}</td>
+            <td style="color:#059669;font-weight:700">?${parseFloat(d.total_received).toFixed(2)}</td>
+            <td style="color:#2563EB;font-weight:700">${yoc}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ==================== NEWS SENTIMENT TAGGER ====================
+
+const SENTIMENT_BULLISH = [
+  'beat','surge','record','dividend','buyback','upgrade','growth','profit','revenue',
+  'expansion','acquire','merger','win','approved','raised','strong','positive','rally',
+  'gains','increase','higher','award','contract','launches','invest','milestone','recovery'
+];
+const SENTIMENT_BEARISH = [
+  'miss','decline','loss','downgrade','cut','investigation','fine','default','debt',
+  'lawsuit','drop','fall','plunge','concern','warning','delay','suspend','recall',
+  'lower','negative','weak','fraud','breach','exit','closure','layoff','charges'
+];
+
+function tagSentiment(text) {
+  if (!text) return 'neutral';
+  const t = text.toLowerCase();
+  let bull = 0, bear = 0;
+  SENTIMENT_BULLISH.forEach(w => { if (t.includes(w)) bull++; });
+  SENTIMENT_BEARISH.forEach(w => { if (t.includes(w)) bear++; });
+  if (bull > bear) return 'bullish';
+  if (bear > bull) return 'bearish';
+  return 'neutral';
+}
+
+// ==================== REAL-TIME PRICE UPDATER ====================
+
+let _priceUpdateInterval = null;
+function startLivePrices() {
+  if (_priceUpdateInterval) return; // already running
+  _priceUpdateInterval = setInterval(updatePricesInPlace, 60000);
+}
+
+async function updatePricesInPlace() {
+  if (!portfolioData || !portfolioData.length) return;
+  for (const h of portfolioData) {
+    try {
+      const res = await fetch(`https://phisix-api3.appspot.com/stocks/${h.symbol}.json`);
+      if (!res.ok) continue;
+      const json = await res.json();
+      const stock = json.stock && json.stock[0];
+      if (!stock) continue;
+      const price = parseFloat(stock.price?.amount || 0);
+      const pct   = parseFloat(stock.percentChange || 0);
+      if (!price) continue;
+
+      // Update Supabase
+      window.sbUpdate('sterling_portfolio', `symbol=eq.${h.symbol}&user_id=eq.${_uid()}`, {
+        current_price: price, day_change_pct: pct, updated_at: new Date().toISOString()
+      }).catch(() => {});
+
+      // Update DOM in-place � no full re-render needed
+      const cards = document.querySelectorAll(`.holding-card`);
+      cards.forEach(card => {
+        const symEl = card.querySelector('.holding-symbol');
+        if (!symEl || symEl.textContent !== h.symbol) return;
+        const priceEl = card.querySelector('.price-current');
+        const changeEl = card.querySelector('.price-change');
+        if (priceEl) priceEl.textContent = formatPeso(price);
+        if (changeEl) {
+          changeEl.textContent = formatPct(pct);
+          changeEl.className = 'price-change ' + (pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral');
+        }
+        // Flash effect
+        card.style.transition = 'background 0.3s';
+        card.style.background = pct > 0 ? '#ECFDF5' : pct < 0 ? '#FEF2F2' : '#F5F5F5';
+        setTimeout(() => { card.style.background = ''; }, 1500);
+      });
+      // Patch local cache
+      h.current_price = price; h.day_change_pct = pct;
+    } catch(e) {}
+  }
 }
