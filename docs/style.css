@@ -15,9 +15,9 @@
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-muted: #94A3B8;
-  --gold: #B8860B;
-  --gold-light: #FEF9EC;
-  --gold-mid: #F59E0B;
+  --gold: #EA580C;
+  --gold-light: #FFF7ED;
+  --gold-mid: #F97316;
   --positive: #059669;
   --positive-bg: #ECFDF5;
   --negative: #DC2626;
@@ -322,7 +322,7 @@ body {
 .stat-change.up { color: var(--positive); }
 .stat-change.down { color: var(--negative); }
 
-.stat-card.gold-tint { background: var(--gold-light); border-color: #FDE68A; }
+.stat-card.gold-tint { background: var(--gold-light); border-color: #FED7AA; }
 .stat-card.green-tint { background: var(--positive-bg); border-color: #A7F3D0; }
 .stat-card.blue-tint { background: var(--blue-bg); border-color: #BFDBFE; }
 
@@ -415,9 +415,9 @@ body {
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 100px;
-  background: var(--gold-light);
-  color: var(--gold);
-  border: 1px solid #FDE68A;
+  background: #EFF6FF;
+  color: var(--blue);
+  border: 1px solid #BFDBFE;
 }
 
 .holding-price {
@@ -541,7 +541,7 @@ body {
 .action-badge.hold {
   background: #FFFBEB;
   color: #B45309;
-  border: 1px solid #FDE68A;
+  border: 1px solid #FED7AA;
   padding: 4px 10px;
   border-radius: 100px;
   font-size: 11px;
@@ -580,7 +580,7 @@ body {
 .action-badge.watch {
   background: #FFFBEB;
   color: #B45309;
-  border: 1px solid #FDE68A;
+  border: 1px solid #FED7AA;
   padding: 4px 10px;
   border-radius: 100px;
   font-size: 11px;
@@ -726,9 +726,9 @@ body {
 .action-conclusion-block {
   margin-top: 12px;
   padding: 12px 14px;
-  background: var(--gold-light);
+  background: #EFF6FF;
   border-radius: var(--radius-sm);
-  border-left: 3px solid var(--gold);
+  border-left: 3px solid var(--blue);
   font-size: 13px;
   color: var(--text-primary);
   line-height: 1.6;
@@ -806,7 +806,7 @@ body {
   padding: 12px 20px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(184,134,11,0.4);
+  box-shadow: 0 4px 16px rgba(234,88,12,0.35);
   font-size: 14px;
   display: flex;
   align-items: center;
@@ -817,15 +817,15 @@ body {
 
 .fab-log-trade:hover,
 .log-trade-fab:hover {
-  background: #9A6F09;
+  background: #C2410C;
   transform: translateY(-1px);
 }
 
 /* ── Mentor/Brief Cards ────────────────────────────────────── */
 .mentor-note,
 .brief-card {
-  background: var(--gold-light);
-  border: 1px solid #FDE68A;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
   border-radius: var(--radius);
   padding: 20px;
   margin-bottom: 20px;
@@ -835,7 +835,7 @@ body {
 .brief-title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--gold);
+  color: var(--blue);
   margin-bottom: 8px;
 }
 
@@ -960,7 +960,7 @@ textarea:focus {
 
 .btn-submit:hover,
 .btn-primary:hover {
-  background: #9A6F09;
+  background: #C2410C;
 }
 
 .btn-secondary {
@@ -1258,7 +1258,7 @@ textarea:focus {
 /* ── Gold Page ─────────────────────────────────────────────── */
 .gold-price-display {
   background: var(--gold-light);
-  border: 1px solid #FDE68A;
+  border: 1px solid #FED7AA;
   border-radius: var(--radius);
   padding: 24px;
   text-align: center;
@@ -1338,7 +1338,7 @@ textarea:focus {
 
 .calendar-day.has-dividend {
   background: var(--gold-light);
-  border: 1px solid #FDE68A;
+  border: 1px solid #FED7AA;
 }
 
 .dividend-list {
