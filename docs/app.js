@@ -1799,12 +1799,18 @@ window.applyGlossary = function(container) {
   });
   el.querySelectorAll('.glossary-term').forEach(gtEl => {
     gtEl.addEventListener('mouseenter', showGlossaryTooltip);
-    gtEl.addEventListener('touchstart', showGlossaryTooltip);
-    gtEl.addEventListener('mouseleave', hideGlossaryTooltip);
+    gtEl.addEventListener('touchstart', showGlossaryTooltip, { passive: true });
+    gtEl.addEventListener('mouseleave', function(e) {
+      // Don't hide if moving to the tooltip itself
+      const tip = document.getElementById('glossary-tooltip');
+      if (tip && tip.contains(e.relatedTarget)) return;
+      hideGlossaryTooltip();
+    });
   });
 };
 
 function showGlossaryTooltip(e) {
+  e.stopPropagation();
   const term = e.currentTarget.dataset.term;
   let tip = document.getElementById('glossary-tooltip');
   if (!tip) {
@@ -1812,11 +1818,43 @@ function showGlossaryTooltip(e) {
     tip.id = 'glossary-tooltip';
     document.body.appendChild(tip);
   }
-  tip.textContent = INLINE_GLOSSARY[term];
+  // Close button + definition
+  tip.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+      <span style="font-weight:700;color:#FFD700;font-size:12px;margin-bottom:4px;display:block">${term}</span>
+      <button onclick="hideGlossaryTooltip()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:14px;cursor:pointer;border-radius:50%;width:22px;height:22px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center">✕</button>
+    </div>
+    <span>${INLINE_GLOSSARY[term]}</span>
+  `;
   tip.style.display = 'block';
-  const rect = e.currentTarget.getBoundingClientRect();
-  tip.style.top = (rect.bottom + window.scrollY + 8) + 'px';
-  tip.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+  // Position: fixed on mobile so it never gets clipped
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    tip.style.position = 'fixed';
+    tip.style.bottom = '80px';
+    tip.style.top = 'auto';
+    tip.style.left = '16px';
+    tip.style.right = '16px';
+    tip.style.maxWidth = 'calc(100vw - 32px)';
+  } else {
+    tip.style.position = 'absolute';
+    tip.style.bottom = 'auto';
+    tip.style.right = 'auto';
+    const rect = e.currentTarget.getBoundingClientRect();
+    tip.style.top = (rect.bottom + window.scrollY + 8) + 'px';
+    tip.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 320) + 'px';
+    tip.style.maxWidth = '300px';
+  }
+  // Close on tap outside
+  setTimeout(() => {
+    document.addEventListener('click', hideGlossaryOnOutside, { once: true });
+    document.addEventListener('touchstart', hideGlossaryOnOutside, { once: true, passive: true });
+  }, 100);
+}
+
+function hideGlossaryOnOutside(e) {
+  const tip = document.getElementById('glossary-tooltip');
+  if (tip && !tip.contains(e.target)) hideGlossaryTooltip();
 }
 
 function hideGlossaryTooltip() {
@@ -2081,36 +2119,23 @@ function renderStudyPortfolio() {
     </div>
   `;
 
-  // Load TradingView widgets — retry until tv.js is ready
-  function mountTVWidget(id, sym, attempt) {
-    attempt = attempt || 0;
-    if (typeof TradingView !== 'undefined') {
-      try {
-        new TradingView.widget({
-          container_id: id,
-          symbol: 'PSE:' + sym,
-          interval: 'D',
-          theme: 'dark',
-          style: '1',
-          locale: 'en',
-          toolbar_bg: '#0A0E1A',
-          enable_publishing: false,
-          hide_top_toolbar: false,
-          save_image: false,
-          height: 350,
-          width: '100%',
-          studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies']
-        });
-      } catch (e) {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '<p style="color:#64748B;padding:16px;text-align:center">Chart unavailable — open <a href="https://www.tradingview.com/chart/?symbol=PSE:' + sym + '" target="_blank" style="color:#FFD700">TradingView ↗</a></p>';
-      }
-    } else if (attempt < 20) {
-      setTimeout(() => mountTVWidget(id, sym, attempt + 1), 300);
-    } else {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = '<p style="color:#64748B;padding:16px;text-align:center">Chart unavailable — open <a href="https://www.tradingview.com/chart/?symbol=PSE:' + sym + '" target="_blank" style="color:#FFD700">TradingView ↗</a></p>';
-    }
+  // Load TradingView charts via iframe embed (most reliable, no script dependency)
+  function mountTVWidget(id, sym) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const encodedSym = encodeURIComponent('PSE:' + sym);
+    el.innerHTML = `
+      <iframe
+        src="https://s.tradingview.com/widgetembed/?symbol=${encodedSym}&interval=D&theme=dark&style=1&locale=en&toolbar_bg=%230A0E1A&studies=RSI%40tv-basicstudies%2CMACD%40tv-basicstudies&hide_top_toolbar=0&saveimage=0&allow_symbol_change=0"
+        style="width:100%;height:350px;border:none;border-radius:8px"
+        allowtransparency="true"
+        scrolling="no"
+        allowfullscreen
+      ></iframe>
+      <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
+         style="display:block;text-align:center;color:#FFD700;font-size:11px;margin-top:4px;text-decoration:none;opacity:0.7">
+        Open full chart on TradingView ↗
+      </a>`;
   }
 
   if ('IntersectionObserver' in window) {
@@ -2119,7 +2144,7 @@ function renderStudyPortfolio() {
         if (entry.isIntersecting) {
           const id = entry.target.id;
           const sym = id.replace('tv-', '');
-          mountTVWidget(id, sym, 0);
+          mountTVWidget(id, sym);
           observer.unobserve(entry.target);
         }
       });
