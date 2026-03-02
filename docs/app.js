@@ -197,6 +197,24 @@ function updateLastUpdate() {
   document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 }
 
+// ==================== INTELLIGENCE LOADER ====================
+// Cache intelligence data (loaded once per session)
+let _intelligenceCache = {};
+
+async function loadIntelligence(symbol) {
+  if (_intelligenceCache[symbol]) return _intelligenceCache[symbol];
+  try {
+    const rows = await window.sbFetch('sterling_intelligence', {
+      filter: `symbol=eq.${symbol}`,
+      select: 'pillar,verdict,ai_summary,points,sources,analyzed_at'
+    });
+    const intel = {};
+    (rows || []).forEach(r => { intel[r.pillar] = r; });
+    _intelligenceCache[symbol] = intel;
+    return intel;
+  } catch { return {}; }
+}
+
 // ==================== PORTFOLIO ====================
 
 async function loadPortfolio() {
@@ -1091,29 +1109,49 @@ function verdictColor(v) {
   return '#94A3B8';
 }
 
-function renderPillar(icon, title, pillar, id) {
-  if (!pillar) return '';
-  const vc = verdictColor(pillar.verdict);
-  const points = (pillar.points || []).map(p =>
-    `<div class="pillar-point">
+function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
+  // Prefer Supabase data (fresh) over static fallback
+  const data = supabaseData || staticPillar;
+  if (!data) return '';
+  
+  const analyzedAt = supabaseData?.analyzed_at;
+  const analyzedDate = analyzedAt ? new Date(analyzedAt).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) : null;
+  const isStale = analyzedAt ? (Date.now() - new Date(analyzedAt).getTime()) > 7 * 24 * 60 * 60 * 1000 : true;
+  
+  // points: from Supabase it's JSONB array, from static it's JS array
+  const points = (supabaseData?.points || staticPillar?.points || []);
+  const sources = (supabaseData?.sources || staticPillar?.sources || []);
+  const aiSummary = supabaseData?.ai_summary || '';
+  const verdict = supabaseData?.verdict || staticPillar?.verdict || '';
+  
+  const vc = verdictColor(verdict);
+  
+  const pointsHTML = points.map(p => `
+    <div class="pillar-point">
       <span class="pillar-dot" style="background:${vc}"></span>
       <span>${p}</span>
-    </div>`
-  ).join('');
-  const sources = (pillar.sources || []).map(s =>
+    </div>`).join('');
+  
+  const sourcesHTML = sources.map(s =>
     `<a href="${s.url}" target="_blank" class="pillar-src">${s.name} ↗</a>`
   ).join('');
+  
   return `
     <div class="pillar-block">
       <div class="pillar-header" onclick="togglePillar('${id}')">
         <span class="pillar-icon">${icon}</span>
         <span class="pillar-title">${title}</span>
-        <span class="pillar-verdict" style="color:${vc};border-color:${vc}20;background:${vc}12">${pillar.verdict}</span>
+        <span class="pillar-verdict" style="color:${vc};border-color:${vc}20;background:${vc}12">${verdict}</span>
         <span class="pillar-chevron" id="chev-${id}">▸</span>
       </div>
       <div class="pillar-body" id="body-${id}" style="display:none">
-        <div class="pillar-points">${points}</div>
-        ${sources ? `<div class="pillar-sources">${sources}</div>` : ''}
+        ${aiSummary ? `<div class="pillar-ai-summary">${aiSummary}</div>` : ''}
+        ${analyzedDate ? `<div class="pillar-meta">
+          <span class="pillar-date">🕐 Analyzed ${analyzedDate}</span>
+          ${isStale ? '<span class="pillar-stale">⚠️ Update needed</span>' : '<span class="pillar-fresh">✓ Current</span>'}
+        </div>` : ''}
+        <div class="pillar-points">${pointsHTML}</div>
+        ${sourcesHTML ? `<div class="pillar-sources">${sourcesHTML}</div>` : ''}
       </div>
     </div>`;
 }
@@ -1130,7 +1168,22 @@ function togglePillar(id) {
 function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
   if (!a) return '';
-  const uid = symbol + '_' + Date.now();
+  const uid = symbol;
+  
+  // Async-load Supabase intelligence and patch pillars after initial render
+  setTimeout(async () => {
+    const intel = await loadIntelligence(symbol);
+    if (!Object.keys(intel).length) return; // No Supabase data, keep static
+    
+    const fContainer = document.getElementById(`pillar-f-${uid}`);
+    const nContainer = document.getElementById(`pillar-n-${uid}`);
+    const tContainer = document.getElementById(`pillar-t-${uid}`);
+    
+    if (fContainer) fContainer.innerHTML = renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, intel.fundamentals, uid+'_f');
+    if (nContainer) nContainer.innerHTML = renderPillar('📰', 'News & Catalysts', 'news', a.news, intel.news, uid+'_n');
+    if (tContainer) tContainer.innerHTML = renderPillar('📈', 'Technicals', 'technicals', a.technicals, intel.technicals, uid+'_t');
+  }, 500);
+  
   return `
     <div class="action-block">
 
@@ -1155,9 +1208,9 @@ function renderStockAction(symbol) {
       </div>
 
       <div class="pillars-section">
-        ${renderPillar('📊', 'Fundamentals', a.fundamentals, uid + '_f')}
-        ${renderPillar('📰', 'News & Catalysts', a.news, uid + '_n')}
-        ${renderPillar('📈', 'Technicals', a.technicals, uid + '_t')}
+        <div id="pillar-f-${uid}">${renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, null, uid+'_f')}</div>
+        <div id="pillar-n-${uid}">${renderPillar('📰', 'News & Catalysts', 'news', a.news, null, uid+'_n')}</div>
+        <div id="pillar-t-${uid}">${renderPillar('📈', 'Technicals', 'technicals', a.technicals, null, uid+'_t')}</div>
       </div>
 
       <div class="action-conclusion-block">
