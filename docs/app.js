@@ -623,12 +623,23 @@ async function toggleCardChart(sym, btn) {
 
     if (!ohlcv || ohlcv.length < 2) {
       inner.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:12px;padding:16px;text-align:center">
-          <div style="color:#475569;font-size:12px">No chart data yet</div>
-          <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
-             style="background:#FFD700;color:#0A0E1A;font-size:12px;font-weight:700;padding:8px 16px;border-radius:6px;text-decoration:none">
-            📈 Open in TradingView ↗
-          </a>
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:10px;padding:16px;text-align:center">
+          <div style="color:#FFD700;font-size:13px;font-weight:700">📊 Open Full Chart</div>
+          <div style="color:#64748B;font-size:11px;line-height:1.5">PSE charting via official sources</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px">
+            <a href="https://equip.pse.com.ph/charts#${sym}" target="_blank"
+               style="background:#1E3A5F;color:#93C5FD;font-size:11px;font-weight:600;padding:7px 14px;border-radius:6px;text-decoration:none;border:1px solid #2563EB">
+              PSE EQUIP ↗
+            </a>
+            <a href="https://www.investagrams.com/Stock/PSE:${sym}" target="_blank"
+               style="background:#1E3A5F;color:#93C5FD;font-size:11px;font-weight:600;padding:7px 14px;border-radius:6px;text-decoration:none;border:1px solid #2563EB">
+              Investagrams ↗
+            </a>
+            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
+               style="background:#FFD700;color:#0A0E1A;font-size:11px;font-weight:700;padding:7px 14px;border-radius:6px;text-decoration:none">
+              TradingView ↗
+            </a>
+          </div>
         </div>`;
       return;
     }
