@@ -2868,47 +2868,60 @@ window.applyGlossary = function(container) {
   });
 };
 
-function showGlossaryTooltip(e) {
-  e.stopPropagation();
-  const term = e.currentTarget.dataset.term;
+// ── Shared tooltip renderer ──────────────────────────────────────────────────
+function _renderGlossaryTip(termText, defText, anchorEl) {
   let tip = document.getElementById('glossary-tooltip');
   if (!tip) {
     tip = document.createElement('div');
     tip.id = 'glossary-tooltip';
     document.body.appendChild(tip);
   }
-  // Close button + definition
   tip.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <span style="font-weight:700;color:#EA580C;font-size:12px;margin-bottom:4px;display:block">${term}</span>
-      <button onclick="hideGlossaryTooltip()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:14px;cursor:pointer;border-radius:50%;width:22px;height:22px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center">✕</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+      <span style="font-weight:800;color:#EA580C;font-size:11px;text-transform:uppercase;letter-spacing:0.08em">${termText}</span>
+      <button onclick="hideGlossaryTooltip()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;cursor:pointer;border-radius:50%;width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
     </div>
-    <span>${INLINE_GLOSSARY[term]}</span>
+    <span style="font-size:13px;line-height:1.6;color:#FFFFFF">${defText}</span>
   `;
   tip.style.display = 'block';
-  // Position: fixed on mobile so it never gets clipped
+  tip.style.right = 'auto';
+  tip.style.bottom = 'auto';
   const isMobile = window.innerWidth <= 768;
   if (isMobile) {
     tip.style.position = 'fixed';
-    tip.style.bottom = '80px';
     tip.style.top = 'auto';
+    tip.style.bottom = '80px';
     tip.style.left = '16px';
     tip.style.right = '16px';
     tip.style.maxWidth = 'calc(100vw - 32px)';
   } else {
-    tip.style.position = 'absolute';
-    tip.style.bottom = 'auto';
-    tip.style.right = 'auto';
-    const rect = e.currentTarget.getBoundingClientRect();
-    tip.style.top = (rect.bottom + window.scrollY + 8) + 'px';
-    tip.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 320) + 'px';
+    const rect = anchorEl.getBoundingClientRect();
+    tip.style.position = 'fixed';
+    tip.style.top = Math.min(rect.bottom + 8, window.innerHeight - 180) + 'px';
+    tip.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
     tip.style.maxWidth = '300px';
   }
-  // Close on tap outside
   setTimeout(() => {
     document.addEventListener('click', hideGlossaryOnOutside, { once: true });
     document.addEventListener('touchstart', hideGlossaryOnOutside, { once: true, passive: true });
   }, 100);
+}
+
+// Called by applyGlossary (mouseenter/touchstart) — uses data-term + INLINE_GLOSSARY
+function showGlossaryTooltip(e) {
+  e.stopPropagation();
+  const term = e.currentTarget.dataset.term;
+  const def = INLINE_GLOSSARY[term] || '';
+  if (!def) return;
+  _renderGlossaryTip(term, def, e.currentTarget);
+}
+
+// Called by pillar glossify (onclick) — uses data-def directly
+function showGlossaryTip(el) {
+  const def = el.dataset.def || '';
+  const term = el.textContent || '';
+  if (!def) return;
+  _renderGlossaryTip(term, def, el);
 }
 
 function hideGlossaryOnOutside(e) {
