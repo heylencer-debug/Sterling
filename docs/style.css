@@ -2051,6 +2051,21 @@ body {
 .pillar-src { font-size:10px; color:#60A5FA; background:rgba(96,165,250,0.08); padding:2px 8px; border-radius:4px; text-decoration:none; border:1px solid rgba(96,165,250,0.2); }
 .pillar-src:hover { background:rgba(96,165,250,0.15); }
 
+/* Intelligence AI Summary + Meta */
+.pillar-ai-summary {
+  font-size: 12px; color: #E2E8F0; line-height: 1.6;
+  padding: 10px 12px; background: rgba(255,215,0,0.05);
+  border-left: 3px solid #FFD700; border-radius: 0 6px 6px 0;
+  margin-bottom: 10px; font-style: italic;
+}
+.pillar-meta {
+  display: flex; gap: 8px; align-items: center;
+  margin-bottom: 10px; flex-wrap: wrap;
+}
+.pillar-date { font-size: 10px; color: #475569; }
+.pillar-stale { font-size: 10px; color: #F59E0B; background: rgba(245,158,11,0.1); padding: 2px 6px; border-radius: 4px; }
+.pillar-fresh { font-size: 10px; color: #00D4A0; background: rgba(0,212,160,0.1); padding: 2px 6px; border-radius: 4px; }
+
 @media (max-width: 768px) {
   .price-triggers { gap: 4px; }
   .trigger-pill { padding: 6px 8px; min-width: 70px; }
