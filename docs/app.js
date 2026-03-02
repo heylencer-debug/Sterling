@@ -122,6 +122,9 @@ function switchPage(page) {
 
   // Lazy load
   lazyLoadTab(page);
+
+  // Apply glossary tooltips after page switch
+  setTimeout(() => window.applyGlossary(document.getElementById('page-' + page)), 200);
 }
 
 function lazyLoadTab(page) {
@@ -369,6 +372,7 @@ function renderPortfolio() {
       </div>
     `;
   }).join('');
+  window.applyGlossary(document.getElementById('page-portfolio'));
 }
 
 // Analyst recommendation badge per stock
@@ -376,89 +380,119 @@ function renderPortfolio() {
 // Sources: Investing.com, HelloSafe PH, Asia Securities, PSE Edge, Simply Wall St, Fintel.io
 const STOCK_ACTIONS = {
   MBT: {
-    action: 'HOLD — Add on dips ₱73-74',
+    badge: '🟢 HOLD — Add on Dip',
+    badgeBg: 'rgba(0,212,160,0.15)',
     color: '#00D4A0',
-    detail: 'RSI 66.8 (strong, not overbought) | All 12 MAs = Buy | P/E 6.86x vs sector 11x | 13 analysts avg target ₱91, high ₱97.50 | Stop-loss ₱69 | Take profit 1st at ₱86',
+    entry: '₱73–74',
+    stop: '₱69',
+    reason: 'All 12 MAs bullish. 13 analysts avg target ₱91. P/E 6.86x vs sector 11x — cheap bank.',
+    detail: 'RSI 66.8 (strong, not overbought) | All 12 MAs = Buy | P/E 6.86x vs sector 11x | 13 analysts avg target ₱91, high ₱97.50 | Take profit 1st at ₱86',
     sources: [
       { name: 'Technicals', url: 'https://www.investing.com/equities/metropolitan-b-technical' },
       { name: 'Targets', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company' },
-      { name: 'Disclosures', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=573' },
+      { name: 'PSE Edge', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=573' },
     ]
   },
   KEEPR: {
-    action: 'HOLD — 40% NAV discount',
+    badge: '🟡 DCA ZONE ₱2.00–₱2.10',
+    badgeBg: 'rgba(255,215,0,0.15)',
     color: '#FFD700',
-    detail: 'NAV ₱3.80 vs price ₱2.30 = 40% discount to real estate value | ~11% dividend yield | 94% occupancy (Asia Securities PDF) | Catalyst: BSP rate cut H2 2026 → REIT rally | Stop-loss ₱1.90',
+    entry: '₱2.00–₱2.10',
+    stop: '₱1.90',
+    reason: 'Price ₱2.30 vs real asset value ₱3.80 = 40% discount. 11% dividend yield. Macro dip, not a broken company.',
+    detail: 'NAV ₱3.80 vs price ₱2.30 = 40% discount | ~11% dividend yield | 94% occupancy | BSP rate cut H2 2026 = REIT rally catalyst | DCA zone: ₱2.00–₱2.10 | Stop-loss ₱1.90',
     sources: [
-      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Asia Sec Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
       { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-KEEPR/technicals/' },
-      { name: 'DragonFi', url: 'https://www.dragonfi.ph/market/stocks/KEEPR' },
     ]
   },
   FILRT: {
-    action: 'HOLD — Ex-div ~Mar 11',
+    badge: '🟡 HOLD — Ex-Div ~Mar 11',
+    badgeBg: 'rgba(255,215,0,0.15)',
     color: '#FFD700',
-    detail: 'Ex-date ~March 11 | Dividend ₱0.06/share × 7,000 = ₱420 cash | 8.1% annual yield | NAV ₱4.21 vs price ₱3.02 = 28% discount | LT Buy (Asia Securities)',
+    entry: '₱2.90–₱3.00',
+    stop: '₱2.70',
+    reason: 'Dividend ₱0.06/share × 7,000 = ₱420 incoming ~Mar 11. NAV ₱4.21 = 28% discount.',
+    detail: 'Ex-date ~March 11 | ₱420 dividend incoming | 8.1% annual yield | NAV ₱4.21 vs ₱3.02 = 28% discount | LT Buy (Asia Securities)',
     sources: [
-      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-FILRT/technicals/' },
-      { name: 'Disclosures', url: 'https://edge.pse.com.ph' },
+      { name: 'Asia Sec Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'PSE Edge', url: 'https://edge.pse.com.ph' },
     ]
   },
   GLO: {
-    action: 'HOLD — Dividend play',
+    badge: '🟢 HOLD — Dividend Play',
+    badgeBg: 'rgba(0,212,160,0.15)',
     color: '#00D4A0',
-    detail: 'P/E 11x (vs telecom avg 21x globally) | Dividend yield 6.36% (Fintel.io) | Above 200-day MA | EPS growth 9.3% | High debt D/E 2.1x (normal for telecoms) | Target ₱1,850-1,900',
+    entry: '₱1,700–₱1,720',
+    stop: '₱1,600',
+    reason: 'P/E 11x vs global telecom avg 21x. 6.36% dividend yield. Above 200-day MA.',
+    detail: 'P/E 11x (vs telecom avg 21x globally) | 6.36% yield | EPS growth 9.3% | High debt D/E 2.1x (normal for telecoms) | Target ₱1,850–1,900',
     sources: [
-      { name: 'Fundamentals', url: 'https://fintel.io/s/ph/glo' },
-      { name: 'Valuation', url: 'https://simplywall.st/stocks/ph/telecom/pse-glo/globe-telecom-shares/valuation' },
+      { name: 'Fintel Fundamentals', url: 'https://fintel.io/s/ph/glo' },
       { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-GLO/technicals/' },
     ]
   },
   DMC: {
-    action: 'HOLD — Watch nickel prices',
+    badge: '🟡 HOLD — Watch Nickel',
+    badgeBg: 'rgba(255,215,0,0.15)',
     color: '#FFD700',
-    detail: 'RSI 44.4 — neutral/slightly oversold (Investing.com) | P/E 8x vs industry 12.2x = cheap | Dividend yield 9.73% (HelloSafe) | 4/5 analysts BUY | Target ₱11.81-14.89 | Key risk: nickel commodity price',
+    entry: '₱9.00–₱9.20',
+    stop: '₱8.50',
+    reason: 'P/E 8x vs industry 12.2x = undervalued. 9.73% dividend yield. 4/5 analysts BUY.',
+    detail: 'RSI 44.4 — neutral (Investing.com) | P/E 8x vs industry 12.2x | Yield 9.73% | 4/5 analysts BUY | Target ₱11.81–₱14.89 | Risk: nickel commodity cycle',
     sources: [
-      { name: 'Fundamentals', url: 'https://hellosafe.ph/investing/stock-market/stocks/dmc' },
+      { name: 'HelloSafe PH', url: 'https://hellosafe.ph/investing/stock-market/stocks/dmc' },
       { name: 'Technicals', url: 'https://www.investing.com/equities/dmci-holdings-technical' },
-      { name: 'PSE Edge', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=188' },
     ]
   },
   MREIT: {
-    action: 'HOLD — Ex-div ~Mar 20',
+    badge: '🟢 HOLD — Ex-Div ~Mar 20',
+    badgeBg: 'rgba(0,212,160,0.15)',
     color: '#00D4A0',
-    detail: 'NAV ₱19.69 vs price ₱14.18 = 28% discount | 7.2% dividend yield | Ex-date ~March 20 | Megaworld expanding to Iloilo + Davao CBDs | BUY rating (Asia Securities) | Target ₱17.50',
+    entry: '₱13.80–₱14.00',
+    stop: '₱13.00',
+    reason: 'NAV ₱19.69 vs price ₱14.18 = 28% discount. 7.2% yield. BUY rating from Asia Sec.',
+    detail: 'NAV ₱19.69 vs ₱14.18 = 28% discount | 7.2% yield | Ex-date ~March 20 | Megaworld expanding to Iloilo + Davao | BUY (Asia Sec) | Target ₱17.50',
     sources: [
-      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Asia Sec Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
       { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-MREIT/technicals/' },
-      { name: 'DragonFi', url: 'https://www.dragonfi.ph/market/stocks/MREIT' },
     ]
   },
   RRHI: {
-    action: 'HOLD — Neutral signals',
-    color: '#64748B',
-    detail: 'RSI 47 — neutral (Investing.com) | MACD -0.284 = mild sell signal | 8 MAs say Sell, 4 say Buy = mixed | Same-store sales +5.65% (2025) | High growth rank 9/10 (GuruFocus) | Don\'t add at current levels',
+    badge: '⚪ WAIT — Mixed Signals',
+    badgeBg: 'rgba(100,116,139,0.15)',
+    color: '#94A3B8',
+    entry: '₱35.00–₱36.00',
+    stop: '₱34.00',
+    reason: 'MACD sell signal. 8/12 MAs say sell. Same-store sales +5.65% but momentum weak — wait for clearer signal.',
+    detail: 'RSI 47 — neutral | MACD -0.284 = mild sell | 8 MAs Sell, 4 Buy = mixed | Same-store sales +5.65% | Do not add at current levels — wait for RSI < 40 or MACD cross',
     sources: [
       { name: 'Technicals', url: 'https://www.investing.com/equities/robinsons-reta-technical' },
-      { name: 'Fundamentals', url: 'https://www.gurufocus.com/stock/PHS:RRHI/summary' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-RRHI/technicals/' },
+      { name: 'GuruFocus', url: 'https://www.gurufocus.com/stock/PHS:RRHI/summary' },
     ]
   },
 };
 
-function renderStockAction(symbol) {
+function renderStockAction(symbol, plPct) {
   const a = STOCK_ACTIONS[symbol];
   if (!a) return '';
-  const sourceLinks = a.sources.map(s =>
-    `<a href="${s.url}" target="_blank" style="color:#FFD700;text-decoration:none;font-size:10px;background:rgba(255,215,0,0.1);padding:2px 6px;border-radius:3px;margin-right:4px">${s.name} ↗</a>`
+  const sourceLinks = (a.sources || []).map(s =>
+    `<a href="${s.url}" target="_blank" class="signal-source">${s.name} ↗</a>`
   ).join('');
   return `
-    <div class="stock-action" style="border-left:3px solid ${a.color};padding:8px 10px;margin-top:10px;background:rgba(255,255,255,0.03);border-radius:0 4px 4px 0;cursor:pointer" onclick="this.querySelector('.action-detail').style.display=this.querySelector('.action-detail').style.display==='none'?'block':'none'">
-      <div style="font-size:11px;font-weight:700;color:${a.color};letter-spacing:0.5px">⚔️ ${a.action}</div>
-      <div class="action-detail" style="display:none;margin-top:6px">
-        <div style="font-size:11px;color:#CBD5E1;line-height:1.6;margin-bottom:6px">${a.detail}</div>
-        <div style="margin-top:4px">📎 Sources: ${sourceLinks}</div>
+    <div class="signal-card" onclick="this.classList.toggle('expanded')">
+      <div class="signal-top">
+        <span class="signal-badge" style="background:${a.badgeBg || 'rgba(255,215,0,0.15)'};color:${a.color}">${a.badge || '⚔️ HOLD'}</span>
+        <div class="signal-prices">
+          ${a.entry ? `<span class="signal-entry">Entry ${a.entry}</span>` : ''}
+          ${a.stop ? `<span class="signal-stop">Stop ${a.stop}</span>` : ''}
+        </div>
+        <span class="signal-expand-icon">▸</span>
+      </div>
+      <div class="signal-reason">${a.reason}</div>
+      <div class="signal-detail">
+        <div class="signal-full">${a.detail}</div>
+        ${sourceLinks ? `<div class="signal-sources">${sourceLinks}</div>` : ''}
       </div>
     </div>`;
 }
@@ -536,6 +570,7 @@ function renderBriefs() {
       <div class="brief-content" style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:13px;line-height:1.7">${(b.brief_text || 'No content').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
     </div>
   `).join('');
+  window.applyGlossary(document.getElementById('page-brief'));
 }
 
 function toggleBrief(index) {
@@ -685,6 +720,7 @@ function renderWatchlist() {
     </tr>
   `;
   }).join('');
+  window.applyGlossary(document.getElementById('page-watchlist'));
 }
 
 function getSignalType(stock) {
@@ -789,6 +825,7 @@ function renderAlerts() {
       </div>
     `;
   }).join('');
+  window.applyGlossary(document.getElementById('page-alerts'));
 }
 
 async function dismissAlert(id) {
@@ -857,6 +894,7 @@ function renderNews() {
       </div>
     </div>
   `).join('');
+  window.applyGlossary(document.getElementById('page-news'));
 }
 
 // ==================== DIVIDENDS ====================
@@ -869,6 +907,7 @@ async function loadDividends() {
     renderCalendar();
     renderUpcomingDividends();
     renderIncomeProjection();
+    window.applyGlossary(document.getElementById('page-dividends'));
   } catch (err) {
     console.error('Dividends load error:', err);
   }
@@ -1120,6 +1159,7 @@ function renderDiscovery() {
       </div>
     `;
   }).join('');
+  window.applyGlossary(document.getElementById('page-discovery'));
 }
 
 function getSectorColor(sector) {
