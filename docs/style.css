@@ -1106,3 +1106,35 @@ body {
 }
 .acct-color-dot:hover { transform: scale(1.15); }
 .acct-color-dot.acct-color-sel { border-color: #0A0A0A; transform: scale(1.15); }
+
+/* -- Symbol Search Dropdown ------------------------------------- */
+.symbol-search-wrap { position: relative; }
+.symbol-search-input {
+  width: 100%; padding: 11px 14px; font-size: 14px;
+  border: 1.5px solid #0A0A0A; border-radius: 6px; outline: none;
+  font-family: 'Inter', sans-serif; box-sizing: border-box;
+  background: #FFFFFF;
+}
+.symbol-search-input:focus { border-color: #EA580C; box-shadow: 0 0 0 3px rgba(234,88,12,0.1); }
+.symbol-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 6px;
+  max-height: 220px; overflow-y: auto; z-index: 9999;
+  box-shadow: 4px 4px 0 #0A0A0A;
+}
+.symbol-dd-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  cursor: pointer; border-bottom: 1px solid #F0F0F0; transition: background 0.1s;
+}
+.symbol-dd-item:last-child { border-bottom: none; }
+.symbol-dd-item:hover { background: #F5F5F5; }
+.symbol-dd-code {
+  font-size: 13px; font-weight: 800; color: #0A0A0A; min-width: 60px;
+  font-variant-numeric: tabular-nums;
+}
+.symbol-dd-name { font-size: 12px; color: #555; flex: 1; }
+.symbol-dd-sector {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: #888; white-space: nowrap;
+}
+.symbol-dd-empty { padding: 12px 14px; font-size: 13px; color: #888; text-align: center; }
