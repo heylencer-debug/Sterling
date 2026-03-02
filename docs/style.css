@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cutive+Mono&display=swap');
 
 /* ============================================================
-   STERLING — Minimalist · Wireframe · GenZ
-   Black sidebar · Offset shadows · Outlined badges · Mono numbers
+   STERLING � Minimalist � Wireframe � GenZ
+   Black sidebar � Offset shadows � Outlined badges � Mono numbers
    ============================================================ */
 
 :root {
@@ -23,7 +23,7 @@
   --radius-xs: 4px;
 }
 
-/* ── Reset ─────────────────────────────────────────────────── */
+/* -- Reset --------------------------------------------------- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 15px; -webkit-font-smoothing: antialiased; }
 body {
@@ -34,7 +34,7 @@ body {
   min-height: 100vh;
 }
 
-/* ── Layout ─────────────────────────────────────────────────── */
+/* -- Layout --------------------------------------------------- */
 .sidebar {
   position: fixed; left: 0; top: 0;
   width: 200px; height: 100vh;
@@ -48,7 +48,7 @@ body {
 .page { display: none; padding: 32px 36px; }
 .page.active { display: block; }
 
-/* ── Sidebar Logo ───────────────────────────────────────────── */
+/* -- Sidebar Logo --------------------------------------------- */
 .sidebar-logo {
   padding: 20px;
   border-bottom: 1px solid #1A1A1A;
@@ -57,7 +57,7 @@ body {
 .logo-text { font-size: 18px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.02em; display: block; }
 .logo-sub { font-size: 11px; color: #555555; font-weight: 500; display: block; }
 
-/* ── Sidebar Nav ────────────────────────────────────────────── */
+/* -- Sidebar Nav ---------------------------------------------- */
 .sidebar-nav { padding: 12px 12px; flex: 1; }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
@@ -81,14 +81,14 @@ body {
   border-radius: 100px; min-width: 18px; text-align: center;
 }
 
-/* ── Sidebar Footer ─────────────────────────────────────────── */
+/* -- Sidebar Footer ------------------------------------------- */
 .sidebar-footer { padding: 16px 20px; border-top: 1px solid #1A1A1A; font-size: 12px; color: #555555; }
 .sterling-status { display: flex; align-items: center; gap: 6px; font-weight: 600; color: #888888; margin-bottom: 4px; }
 .status-dot { width: 6px; height: 6px; background: var(--orange); border-radius: 50%; animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 .last-update { font-size: 11px; color: #555555; }
 
-/* ── Mobile Header ──────────────────────────────────────────── */
+/* -- Mobile Header -------------------------------------------- */
 .mobile-header {
   display: none; position: fixed; top: 0; left: 0; right: 0;
   height: 56px; background: #0A0A0A; border-bottom: none;
@@ -98,12 +98,12 @@ body {
 .hamburger { width: 40px; height: 40px; background: none; border: none; font-size: 20px; cursor: pointer; color: #FFFFFF; }
 .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
 
-/* ── Page Header ────────────────────────────────────────────── */
+/* -- Page Header ---------------------------------------------- */
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
 .page-header h1, .page-title { font-size: 26px; font-weight: 800; color: #0A0A0A; letter-spacing: -0.03em; }
 .page-subtitle, .brief-note { font-size: 13px; color: var(--text-muted); font-weight: 500; }
 
-/* ── PSEi Widget ────────────────────────────────────────────── */
+/* -- PSEi Widget ---------------------------------------------- */
 .psei-widget {
   display: flex; align-items: center; gap: 10px;
   background: #FFFFFF; border: 1.5px solid #0A0A0A;
@@ -115,7 +115,7 @@ body {
 .psei-change.up { border-color: var(--positive); color: var(--positive); }
 .psei-change.down { border-color: var(--negative); color: var(--negative); }
 
-/* ── Stat Strip ─────────────────────────────────────────────── */
+/* -- Stat Strip ----------------------------------------------- */
 .stat-strip {
   display: flex; align-items: stretch;
   background: #FFFFFF; border: 1.5px solid #0A0A0A;
@@ -126,7 +126,7 @@ body {
 .stat-strip .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
 .stat-strip .stat-value { font-size: 22px; font-weight: 800; font-family: 'Cutive Mono', monospace; color: #0A0A0A; }
 
-/* ── Summary Bar (fallback for JS-rendered version) ─────────── */
+/* -- Summary Bar (fallback for JS-rendered version) ----------- */
 .summary-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
 .summary-item {
   background: #FFFFFF; border: 1.5px solid #0A0A0A;
@@ -135,7 +135,7 @@ body {
 .summary-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 6px; }
 .summary-value { font-size: 22px; font-weight: 800; font-family: 'Cutive Mono', monospace; color: #0A0A0A; }
 
-/* ── Generic Card ───────────────────────────────────────────── */
+/* -- Generic Card --------------------------------------------- */
 .card {
   background: #FFFFFF; border: 1.5px solid #0A0A0A;
   border-radius: 8px; padding: 20px; box-shadow: none;
@@ -146,7 +146,7 @@ body {
 .card-title { font-size: 14px; font-weight: 800; color: #0A0A0A; margin-bottom: 4px; }
 .card-subtitle { font-size: 12px; color: var(--text-muted); }
 
-/* ── Grids ──────────────────────────────────────────────────── */
+/* -- Grids ---------------------------------------------------- */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
@@ -155,7 +155,7 @@ body {
 .watchlist-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .watchlist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 
-/* ── Holding Cards ──────────────────────────────────────────── */
+/* -- Holding Cards -------------------------------------------- */
 .holding-card {
   background: #FFFFFF; border: 1.5px solid #0A0A0A;
   border-radius: 8px; padding: 24px; box-shadow: none;
@@ -193,7 +193,7 @@ body {
 }
 .view-chart-btn:hover, .view-chart-btn.active { border-color: #0A0A0A; color: #0A0A0A; box-shadow: 2px 2px 0 #0A0A0A; }
 
-/* ── Sector / REIT Badges ───────────────────────────────────── */
+/* -- Sector / REIT Badges ------------------------------------- */
 .badge-sector {
   font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
   background: transparent; color: var(--text-muted); border: 1.5px solid var(--border);
@@ -205,7 +205,7 @@ body {
   text-transform: uppercase; letter-spacing: 0.04em;
 }
 
-/* ── Action Badges ──────────────────────────────────────────── */
+/* -- Action Badges -------------------------------------------- */
 .badge-buy, .action-badge.buy { background:transparent; color:#059669; border:1.5px solid #059669; padding:3px 10px; border-radius:4px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; }
 .badge-dca, .action-badge.dca { background:transparent; color:#2563EB; border:1.5px solid #2563EB; padding:3px 10px; border-radius:4px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; }
 .badge-hold, .action-badge.hold { background:transparent; color:#EA580C; border:1.5px solid #EA580C; padding:3px 10px; border-radius:4px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; }
@@ -214,7 +214,7 @@ body {
 .badge-watch, .action-badge.watch { background:transparent; color:#EA580C; border:1.5px solid #EA580C; padding:3px 10px; border-radius:4px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; }
 .badge-avoid, .action-badge.avoid { background:transparent; color:#DC2626; border:1.5px solid #DC2626; padding:3px 10px; border-radius:4px; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.06em; }
 
-/* ── Entry / Stop Pills ─────────────────────────────────────── */
+/* -- Entry / Stop Pills --------------------------------------- */
 .entry-pill, .stop-pill, .price-pill {
   background: transparent; border: 1.5px solid var(--border);
   border-radius: 4px; padding: 3px 10px;
@@ -222,7 +222,7 @@ body {
   font-family: 'Cutive Mono', monospace;
 }
 
-/* ── Action Block ───────────────────────────────────────────── */
+/* -- Action Block --------------------------------------------- */
 .action-block { margin-top: 16px; padding: 14px; background: #F5F5F5; border-radius: 6px; border: 1.5px solid var(--border); }
 .action-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .action-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
@@ -236,7 +236,7 @@ body {
   border-radius: 6px; font-size: 13px; color: #0A0A0A; line-height: 1.7;
 }
 
-/* ── Pillars ────────────────────────────────────────────────── */
+/* -- Pillars -------------------------------------------------- */
 .pillars-section { margin-top: 16px; }
 .pillar-block { border: 1.5px solid var(--border); border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
 .pillar-header { padding: 10px 16px; background: #F5F5F5; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s; }
@@ -259,7 +259,7 @@ body {
 .pillar-src { font-size: 11px; color: var(--blue); margin-right: 10px; text-decoration: none; font-weight: 600; }
 .pillar-src:hover { text-decoration: underline; }
 
-/* ── Mentor / Brief Cards ───────────────────────────────────── */
+/* -- Mentor / Brief Cards ------------------------------------- */
 .mentor-note {
   background: #FFFFFF; border: 1.5px solid #0A0A0A;
   border-radius: 8px; padding: 20px; margin-bottom: 20px;
@@ -267,7 +267,7 @@ body {
 .mentor-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #0A0A0A; margin-bottom: 8px; }
 .mentor-text { font-size: 14px; line-height: 1.7; color: var(--text-secondary); }
 
-/* ── Morning Brief Page ─────────────────────────────────────── */
+/* -- Morning Brief Page --------------------------------------- */
 .briefs-list { display: flex; flex-direction: column; gap: 12px; }
 .brief-card {
   background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px;
@@ -285,7 +285,7 @@ body {
 .brief-section { margin-top: 14px; }
 .brief-section-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #0A0A0A; margin-bottom: 6px; }
 
-/* ── Watchlist Page ─────────────────────────────────────────── */
+/* -- Watchlist Page ------------------------------------------- */
 .watchlist-card {
   background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px;
   padding: 20px; box-shadow: none; transition: box-shadow 0.15s ease, transform 0.15s ease;
@@ -301,7 +301,7 @@ body {
 .watchlist-table tr:last-child td { border-bottom: none; }
 .watchlist-table tr:hover td { background: #F5F5F5; }
 
-/* ── Filters ────────────────────────────────────────────────── */
+/* -- Filters -------------------------------------------------- */
 .filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
 .filters select, .filters input {
   background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 6px;
@@ -315,7 +315,7 @@ body {
 .filter-apply-btn { background: #0A0A0A; color: #FFFFFF; border: none; border-radius: 6px; padding: 10px 20px; font-size: 13px; font-weight: 700; cursor: pointer; transition: box-shadow 0.15s; }
 .filter-apply-btn:hover { box-shadow: 3px 3px 0 var(--orange); }
 
-/* ── Alerts Page ────────────────────────────────────────────── */
+/* -- Alerts Page ---------------------------------------------- */
 .alerts-feed { display: flex; flex-direction: column; gap: 10px; }
 .alert-card {
   background: #FFFFFF; border: 1.5px solid #0A0A0A; border-left: 4px solid #0A0A0A;
@@ -331,7 +331,7 @@ body {
 .alert-message { font-size: 14px; line-height: 1.6; color: var(--text-secondary); }
 .alert-type { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; padding: 2px 8px; border-radius: 4px; background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); }
 
-/* ── News Page ──────────────────────────────────────────────── */
+/* -- News Page ------------------------------------------------ */
 .news-feed { display: flex; flex-direction: column; gap: 12px; }
 .news-card {
   background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px;
@@ -350,7 +350,7 @@ body {
 .news-sentiment.negative { border-color: var(--negative); color: var(--negative); }
 .news-sentiment.neutral { border-color: var(--border); color: var(--text-muted); }
 
-/* ── Gold Page ──────────────────────────────────────────────── */
+/* -- Gold Page ------------------------------------------------ */
 .gold-price-display { background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px; padding: 32px; text-align: center; margin-bottom: 20px; }
 .gold-price-value { font-size: 44px; font-weight: 800; font-family: 'Cutive Mono', monospace; color: #0A0A0A; letter-spacing: -0.03em; }
 .gold-price-change { font-size: 18px; font-weight: 700; font-family: 'Cutive Mono', monospace; margin-top: 6px; }
@@ -362,7 +362,7 @@ body {
 .broker-name { font-size: 16px; font-weight: 800; color: #0A0A0A; margin-bottom: 6px; }
 .broker-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; padding: 2px 8px; border-radius: 4px; background: transparent; border: 1.5px solid var(--orange); color: var(--orange); }
 
-/* ── Dividends Page ─────────────────────────────────────────── */
+/* -- Dividends Page ------------------------------------------- */
 .dividends-calendar, .dividend-calendar { background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px; padding: 24px; margin-bottom: 20px; }
 .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .calendar-header span, #calendar-month { font-size: 16px; font-weight: 800; color: #0A0A0A; }
@@ -383,7 +383,7 @@ body {
 .dividend-upcoming, .dividend-income { margin-top: 24px; }
 .dividend-upcoming h2, .dividend-income h2 { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #0A0A0A; margin-bottom: 14px; }
 
-/* ── Discovery Page ─────────────────────────────────────────── */
+/* -- Discovery Page ------------------------------------------- */
 .discovery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .discovery-card { background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px; padding: 20px; box-shadow: none; transition: box-shadow 0.15s ease, transform 0.15s ease; }
 .discovery-card:hover { box-shadow: 4px 4px 0 #0A0A0A; transform: translateY(-2px); }
@@ -394,7 +394,7 @@ body {
 .discovery-table tr:last-child td { border-bottom: none; }
 .discovery-table tr:hover td { background: #F5F5F5; }
 
-/* ── Learn Page ─────────────────────────────────────────────── */
+/* -- Learn Page ----------------------------------------------- */
 .learn-search { margin-bottom: 20px; }
 .learn-search input { width: 100%; border: 1.5px solid #0A0A0A; border-radius: 6px; padding: 12px 16px; font-size: 14px; font-weight: 500; color: #0A0A0A; background: #FFFFFF; font-family: 'Plus Jakarta Sans', sans-serif; }
 .learn-search input:focus { outline: none; box-shadow: 3px 3px 0 var(--orange); }
@@ -475,7 +475,7 @@ body {
 .resource-name { font-size: 15px; font-weight: 800; color: #0A0A0A; margin-bottom: 6px; }
 .resource-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 
-/* ── Glossary Inline Tooltips ───────────────────────────────── */
+/* -- Glossary Inline Tooltips --------------------------------- */
 .glossary-term { border-bottom: 1.5px dashed #0A0A0A; cursor: help; position: relative; font-weight: 600; display: inline; }
 .glossary-tooltip {
   position: fixed; background: #0A0A0A; color: #FFFFFF;
@@ -486,7 +486,7 @@ body {
 .glossary-tooltip .tip-term { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--orange); margin-bottom: 4px; }
 .glossary-tooltip .tip-close { display: none; }
 
-/* ── Trade Log FAB ──────────────────────────────────────────── */
+/* -- Trade Log FAB -------------------------------------------- */
 .trade-log-fab, .fab-log-trade, .log-trade-fab {
   position: fixed; bottom: 24px; right: 24px;
   background: #0A0A0A; color: #FFFFFF; font-weight: 800; font-size: 14px;
@@ -496,7 +496,7 @@ body {
 }
 .trade-log-fab:hover, .fab-log-trade:hover, .log-trade-fab:hover { box-shadow: 4px 4px 0 var(--orange); transform: translateY(-2px); }
 
-/* ── Trade Log Modal ────────────────────────────────────────── */
+/* -- Trade Log Modal ------------------------------------------ */
 .trade-modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.65);
   display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px;
@@ -527,7 +527,7 @@ body {
 .btn-secondary { background: transparent; color: #0A0A0A; border: 1.5px solid #0A0A0A; border-radius: 6px; padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
 .btn-secondary:hover { background: #EEEEEE; }
 
-/* ── Trade History ──────────────────────────────────────────── */
+/* -- Trade History -------------------------------------------- */
 .trade-history-section { margin-top: 28px; }
 .trade-history-section h2 { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #0A0A0A; margin-bottom: 14px; }
 .trade-history-table-wrap { background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px; overflow: hidden; }
@@ -543,23 +543,23 @@ body {
 .trade-btn { background: transparent; border: 1.5px solid var(--border); border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--text-muted); }
 .trade-btn:hover { border-color: #0A0A0A; color: #0A0A0A; }
 
-/* ── Toast ──────────────────────────────────────────────────── */
+/* -- Toast ---------------------------------------------------- */
 .toast { position: fixed; bottom: 80px; right: 24px; background: #0A0A0A; color: #FFFFFF; padding: 14px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; box-shadow: 3px 3px 0 var(--orange); opacity: 0; transform: translateY(20px); transition: opacity 0.3s, transform 0.3s; z-index: 300; pointer-events: none; }
 .toast.show { opacity: 1; transform: translateY(0); }
 
-/* ── Loader ─────────────────────────────────────────────────── */
+/* -- Loader --------------------------------------------------- */
 .loader { position: fixed; inset: 0; background: #F5F5F5; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 300; }
 .loader.hidden { display: none; }
 .loader-sword { font-size: 48px; animation: bounce 1s infinite; }
 @keyframes bounce { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-10px); } }
 .loader-text { margin-top: 16px; font-size: 14px; color: var(--text-muted); font-weight: 600; }
 
-/* ── Empty States ───────────────────────────────────────────── */
+/* -- Empty States --------------------------------------------- */
 .empty-state { text-align: center; padding: 48px 20px; color: var(--text-muted); }
 .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
 .empty-state-text { font-size: 14px; font-weight: 600; }
 
-/* ── Color Utils ────────────────────────────────────────────── */
+/* -- Color Utils ---------------------------------------------- */
 .positive { color: var(--positive) !important; }
 .negative { color: var(--negative) !important; }
 .neutral { color: var(--text-muted) !important; }
@@ -567,13 +567,13 @@ body {
 .down { color: var(--negative) !important; }
 .font-mono { font-family: 'Cutive Mono', monospace !important; }
 
-/* ── Scrollbar ──────────────────────────────────────────────── */
+/* -- Scrollbar ------------------------------------------------ */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #C8C8C8; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #0A0A0A; }
 
-/* ── Utilities ──────────────────────────────────────────────── */
+/* -- Utilities ------------------------------------------------ */
 .hidden { display: none !important; }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
@@ -583,7 +583,7 @@ body {
 .mb-4 { margin-bottom: 16px; }
 .section-header { font-size: 12px; font-weight: 800; color: #0A0A0A; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
 
-/* ── Sparkline Chart Container ──────────────────────────────── */
+/* -- Sparkline Chart Container -------------------------------- */
 .sparkline-container { margin-top: 14px; border-top: 1.5px solid #EEEEEE; padding-top: 14px; }
 .main-chart-section { background: #FFFFFF; border: 1.5px solid #0A0A0A; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
 .main-chart-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1.5px solid #EEEEEE; }
@@ -593,7 +593,7 @@ body {
 .chart-symbol-btn { padding: 6px 14px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; background: transparent; border: 1.5px solid #0A0A0A; border-radius: 4px; cursor: pointer; color: #0A0A0A; transition: background 0.15s; }
 .chart-symbol-btn:hover, .chart-symbol-btn.active { background: #0A0A0A; color: #FFFFFF; }
 
-/* ── Responsive ─────────────────────────────────────────────── */
+/* -- Responsive ----------------------------------------------- */
 @media (max-width: 1200px) {
   .holdings-grid { grid-template-columns: repeat(2, 1fr); }
   .watchlist-cards { grid-template-columns: repeat(2, 1fr); }
