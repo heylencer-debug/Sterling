@@ -393,36 +393,9 @@ async function loadPortfolio() {
     startLivePrices();
 
     // Auto-refresh every 60s — preserves open toggle state
-    setInterval(async () => {
-      // Save which pillars/details are open before re-render
-      const openBodies   = [...document.querySelectorAll('.pillar-body')].filter(el => el.style.display === 'block').map(el => el.id);
-      const openDetails  = [...document.querySelectorAll('.action-detail')].filter(el => el.style.display === 'block').map(el => el.closest('.action-block')?.dataset?.sym);
-      const activeCard   = document.querySelector('.view-chart-btn.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
-
-      portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
-      renderPortfolio();
-      fetchPSEi();
-      updateLastUpdate();
-
-      // Restore open states after DOM rebuild
-      requestAnimationFrame(() => {
-        openBodies.forEach(id => {
-          const el = document.getElementById(id);
-          if (el) {
-            el.style.display = 'block';
-            const chevId = id.replace('body-', 'chev-');
-            const chev = document.getElementById(chevId);
-            if (chev) chev.style.transform = 'rotate(90deg)';
-          }
-        });
-        // Restore active chart button
-        if (activeCard) {
-          document.querySelectorAll('.view-chart-btn').forEach(b => {
-            if (b.getAttribute('onclick')?.includes(`'${activeCard}'`)) b.classList.add('active');
-          });
-        }
-      });
-    }, 60000);
+    // Price updates now handled by startLivePrices() — in-place, no full re-render
+    // PSEi still refreshes every 60s
+    setInterval(() => { fetchPSEi(); updateLastUpdate(); }, 60000);
 
   } catch (err) {
     console.error('Portfolio load error:', err);
@@ -1909,6 +1882,11 @@ async function dismissAlert(id) {
 async function loadNews() {
   try {
     newsData = await window.sbFetch('sterling_news', { order: 'published_at.desc', limit: '50' });
+    // Pre-tag sentiment so filter works correctly
+    newsData = (newsData || []).map(n => ({
+      ...n,
+      sentiment: n.sentiment || tagSentiment((n.headline || '') + ' ' + (n.summary || ''))
+    }));
     populateNewsFilters();
     renderNews();
   } catch (err) {
