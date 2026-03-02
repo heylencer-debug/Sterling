@@ -275,6 +275,12 @@ function isMarketOpen() {
 function renderPortfolio() {
   const grid = document.getElementById('holdings-grid');
 
+  // Inject mentor note at top of page
+  const pageEl = document.getElementById('page-portfolio');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('portfolio'));
+  }
+
   if (!portfolioData || portfolioData.length === 0) {
     grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">No holdings found</div></div>`;
     return;
@@ -380,121 +386,112 @@ function renderPortfolio() {
 // Sources: Investing.com, HelloSafe PH, Asia Securities, PSE Edge, Simply Wall St, Fintel.io
 const STOCK_ACTIONS = {
   MBT: {
-    badge: '🟢 HOLD — Add on Dip',
-    badgeBg: 'rgba(0,212,160,0.15)',
-    color: '#00D4A0',
-    entry: '₱73–74',
-    stop: '₱69',
-    reason: 'All 12 MAs bullish. 13 analysts avg target ₱91. P/E 6.86x vs sector 11x — cheap bank.',
-    detail: 'RSI 66.8 (strong, not overbought) | All 12 MAs = Buy | P/E 6.86x vs sector 11x | 13 analysts avg target ₱91, high ₱97.50 | Take profit 1st at ₱86',
+    badge: 'ADD ON DIP', badgeClass: 'badge-buy',
+    summary: 'Strong bank, cheap valuation. Add more if it pulls back.',
+    entry: '₱73–74', target: '₱86–97', stop: '₱69',
+    detail: 'RSI 66.8 (strong momentum, not yet overbought) | All 12 moving averages = BUY | P/E 6.86x vs banking sector 11x = trading at a 38% discount to peers | 13 analyst consensus target ₱91, high ₱97.50 | EPS grew 18% last year | Catalyst: continued rate environment + consumer loan growth',
     sources: [
-      { name: 'Technicals', url: 'https://www.investing.com/equities/metropolitan-b-technical' },
-      { name: 'Targets', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company' },
-      { name: 'PSE Edge', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=573' },
+      { name: 'Technicals (Investing.com)', url: 'https://www.investing.com/equities/metropolitan-b-technical' },
+      { name: 'Analyst targets (HelloSafe)', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company' },
+      { name: 'Disclosures (PSE Edge)', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=573' },
     ]
   },
   KEEPR: {
-    badge: '🟡 DCA ZONE ₱2.00–₱2.10',
-    badgeBg: 'rgba(255,215,0,0.15)',
-    color: '#FFD700',
-    entry: '₱2.00–₱2.10',
-    stop: '₱1.90',
-    reason: 'Price ₱2.30 vs real asset value ₱3.80 = 40% discount. 11% dividend yield. Macro dip, not a broken company.',
-    detail: 'NAV ₱3.80 vs price ₱2.30 = 40% discount | ~11% dividend yield | 94% occupancy | BSP rate cut H2 2026 = REIT rally catalyst | DCA zone: ₱2.00–₱2.10 | Stop-loss ₱1.90',
+    badge: 'DCA ZONE', badgeClass: 'badge-dca',
+    summary: 'Property value is ₱3.80 but you can buy it for ₱2.30. 40% discount + 11% dividend.',
+    entry: '₱2.00–2.10', target: '₱2.80–3.20', stop: '₱1.90',
+    detail: 'NAV (Net Asset Value) = ₱3.80 per share. Current price = ₱2.30. That\'s a 40% discount to the actual real estate value. 11% dividend yield means you earn ₱2,420/year on your 11,000 shares while waiting. 94% occupancy rate = stable income. Macro risk: high interest rates hurt REITs. Catalyst: BSP rate cut in H2 2026 = REIT rally. DCA zone ₱2.00–2.10. Stop-loss ₱1.90 (if it breaks below this, macro thesis is broken).',
     sources: [
-      { name: 'Asia Sec Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-KEEPR/technicals/' },
+      { name: 'Asia Securities Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Chart (TradingView)', url: 'https://www.tradingview.com/symbols/PSE-KEEPR/technicals/' },
     ]
   },
   FILRT: {
-    badge: '🟡 HOLD — Ex-Div ~Mar 11',
-    badgeBg: 'rgba(255,215,0,0.15)',
-    color: '#FFD700',
-    entry: '₱2.90–₱3.00',
-    stop: '₱2.70',
-    reason: 'Dividend ₱0.06/share × 7,000 = ₱420 incoming ~Mar 11. NAV ₱4.21 = 28% discount.',
-    detail: 'Ex-date ~March 11 | ₱420 dividend incoming | 8.1% annual yield | NAV ₱4.21 vs ₱3.02 = 28% discount | LT Buy (Asia Securities)',
+    badge: 'HOLD + COLLECT DIV', badgeClass: 'badge-hold',
+    summary: 'Ex-dividend date ~Mar 11. You get ₱420 cash. NAV discount = 28%.',
+    entry: '₱2.90–3.00', target: '₱3.80–4.00', stop: '₱2.70',
+    detail: 'Ex-dividend date ~March 11 — you already own 7,000 shares, so you will receive ₱0.06 × 7,000 = ₱420 cash dividend. NAV ₱4.21 vs price ₱3.02 = 28% discount to real estate value. 8.1% annual yield. Long-Term Buy rating from Asia Securities. If price dips to ₱2.90–3.00 range, consider adding.',
     sources: [
-      { name: 'Asia Sec Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
-      { name: 'PSE Edge', url: 'https://edge.pse.com.ph' },
+      { name: 'Asia Securities Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Disclosures', url: 'https://edge.pse.com.ph' },
     ]
   },
   GLO: {
-    badge: '🟢 HOLD — Dividend Play',
-    badgeBg: 'rgba(0,212,160,0.15)',
-    color: '#00D4A0',
-    entry: '₱1,700–₱1,720',
-    stop: '₱1,600',
-    reason: 'P/E 11x vs global telecom avg 21x. 6.36% dividend yield. Above 200-day MA.',
-    detail: 'P/E 11x (vs telecom avg 21x globally) | 6.36% yield | EPS growth 9.3% | High debt D/E 2.1x (normal for telecoms) | Target ₱1,850–1,900',
+    badge: 'HOLD', badgeClass: 'badge-hold',
+    summary: 'Cheap telecom with 6.36% dividend. Hold above 200-day MA.',
+    entry: '₱1,700–1,720', target: '₱1,850–1,900', stop: '₱1,600',
+    detail: 'Globe trades at P/E 11x vs global telecom average 21x — significantly undervalued. Dividend yield 6.36% (Fintel.io verified). Above the 200-day moving average = healthy long-term trend. EPS growing at 9.3%. High debt (D/E 2.1x) is normal for telecoms — infrastructure is capital-intensive. Add if pulls back to ₱1,700–1,720 range.',
     sources: [
-      { name: 'Fintel Fundamentals', url: 'https://fintel.io/s/ph/glo' },
+      { name: 'Fundamentals (Fintel)', url: 'https://fintel.io/s/ph/glo' },
       { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-GLO/technicals/' },
     ]
   },
   DMC: {
-    badge: '🟡 HOLD — Watch Nickel',
-    badgeBg: 'rgba(255,215,0,0.15)',
-    color: '#FFD700',
-    entry: '₱9.00–₱9.20',
-    stop: '₱8.50',
-    reason: 'P/E 8x vs industry 12.2x = undervalued. 9.73% dividend yield. 4/5 analysts BUY.',
-    detail: 'RSI 44.4 — neutral (Investing.com) | P/E 8x vs industry 12.2x | Yield 9.73% | 4/5 analysts BUY | Target ₱11.81–₱14.89 | Risk: nickel commodity cycle',
+    badge: 'HOLD', badgeClass: 'badge-hold',
+    summary: 'Cheap conglomerate with 9.7% dividend. Watch nickel commodity prices.',
+    entry: '₱9.00–9.20', target: '₱11.81–14.89', stop: '₱8.50',
+    detail: 'RSI 44.4 = neutral, not oversold yet. P/E 8x vs industry 12.2x = 35% discount to peers. Dividend yield 9.73% = exceptional. 4 out of 5 analysts rate BUY. Analyst price targets: ₱11.81 low, ₱14.89 high. Key risk: DMCI\'s nickel mining business is sensitive to global nickel prices — if nickel prices drop, so does DMC. Watch LME Nickel price as a leading indicator.',
     sources: [
       { name: 'HelloSafe PH', url: 'https://hellosafe.ph/investing/stock-market/stocks/dmc' },
       { name: 'Technicals', url: 'https://www.investing.com/equities/dmci-holdings-technical' },
     ]
   },
   MREIT: {
-    badge: '🟢 HOLD — Ex-Div ~Mar 20',
-    badgeBg: 'rgba(0,212,160,0.15)',
-    color: '#00D4A0',
-    entry: '₱13.80–₱14.00',
-    stop: '₱13.00',
-    reason: 'NAV ₱19.69 vs price ₱14.18 = 28% discount. 7.2% yield. BUY rating from Asia Sec.',
-    detail: 'NAV ₱19.69 vs ₱14.18 = 28% discount | 7.2% yield | Ex-date ~March 20 | Megaworld expanding to Iloilo + Davao | BUY (Asia Sec) | Target ₱17.50',
+    badge: 'HOLD + COLLECT DIV', badgeClass: 'badge-hold',
+    summary: 'Ex-dividend ~Mar 20. NAV discount 28%. Megaworld expanding.',
+    entry: '₱13.80–14.00', target: '₱17.50', stop: '₱13.00',
+    detail: 'NAV ₱19.69 vs price ₱14.18 = 28% discount to Megaworld real estate portfolio. 7.2% dividend yield. Ex-date ~March 20 — hold through to collect dividend. Megaworld expanding to Iloilo and Davao CBDs = future rental income growth. BUY rating from Asia Securities. Target ₱17.50. Stop-loss ₱13.00.',
     sources: [
-      { name: 'Asia Sec Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Asia Securities Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
       { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-MREIT/technicals/' },
     ]
   },
   RRHI: {
-    badge: '⚪ WAIT — Mixed Signals',
-    badgeBg: 'rgba(100,116,139,0.15)',
-    color: '#94A3B8',
-    entry: '₱35.00–₱36.00',
-    stop: '₱34.00',
-    reason: 'MACD sell signal. 8/12 MAs say sell. Same-store sales +5.65% but momentum weak — wait for clearer signal.',
-    detail: 'RSI 47 — neutral | MACD -0.284 = mild sell | 8 MAs Sell, 4 Buy = mixed | Same-store sales +5.65% | Do not add at current levels — wait for RSI < 40 or MACD cross',
+    badge: 'WAIT', badgeClass: 'badge-wait',
+    summary: 'Mixed signals — 8 indicators say sell. Do not add until RSI drops under 40.',
+    entry: '₱35.00–36.00', target: '₱43.00', stop: '₱34.00',
+    detail: 'RSI 47 = neutral. MACD -0.284 = mild sell signal. Of 12 moving averages: 8 say Sell, only 4 say Buy. Same-store sales grew 5.65% (solid business) but technical momentum is weak. Sterling\'s rule: don\'t fight the technicals. Wait for RSI to drop below 40 (more oversold) before adding. If you see RSI < 40 + MACD cross up = that\'s your buy signal. Current stop-loss ₱34.00.',
     sources: [
-      { name: 'Technicals', url: 'https://www.investing.com/equities/robinsons-reta-technical' },
+      { name: 'Technicals (Investing.com)', url: 'https://www.investing.com/equities/robinsons-reta-technical' },
       { name: 'GuruFocus', url: 'https://www.gurufocus.com/stock/PHS:RRHI/summary' },
     ]
   },
 };
 
-function renderStockAction(symbol, plPct) {
+function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
   if (!a) return '';
   const sourceLinks = (a.sources || []).map(s =>
-    `<a href="${s.url}" target="_blank" class="signal-source">${s.name} ↗</a>`
+    `<a href="${s.url}" target="_blank" class="action-src">${s.name} ↗</a>`
   ).join('');
   return `
-    <div class="signal-card" onclick="this.classList.toggle('expanded')">
-      <div class="signal-top">
-        <span class="signal-badge" style="background:${a.badgeBg || 'rgba(255,215,0,0.15)'};color:${a.color}">${a.badge || '⚔️ HOLD'}</span>
-        <div class="signal-prices">
-          ${a.entry ? `<span class="signal-entry">Entry ${a.entry}</span>` : ''}
-          ${a.stop ? `<span class="signal-stop">Stop ${a.stop}</span>` : ''}
+    <div class="action-block">
+      <div class="action-headline">
+        <span class="action-badge ${a.badgeClass}">${a.badge}</span>
+        <span class="action-summary">${a.summary}</span>
+      </div>
+      <div class="price-triggers">
+        <div class="trigger-pill buy">
+          <span class="trigger-label">BUY IF drops to</span>
+          <span class="trigger-price">${a.entry}</span>
         </div>
-        <span class="signal-expand-icon">▸</span>
+        <div class="trigger-pill tp">
+          <span class="trigger-label">TAKE PROFIT</span>
+          <span class="trigger-price">${a.target}</span>
+        </div>
+        <div class="trigger-pill sl">
+          <span class="trigger-label">STOP LOSS</span>
+          <span class="trigger-price">${a.stop}</span>
+        </div>
       </div>
-      <div class="signal-reason">${a.reason}</div>
-      <div class="signal-detail">
-        <div class="signal-full">${a.detail}</div>
-        ${sourceLinks ? `<div class="signal-sources">${sourceLinks}</div>` : ''}
+      <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+        <span>⚔️ Full rationale + sources</span><span class="chevron">▸</span>
       </div>
-    </div>`;
+      <div class="action-detail" style="display:none">
+        <div>${a.detail}</div>
+        ${sourceLinks ? `<div class="action-sources">${sourceLinks}</div>` : ''}
+      </div>
+    </div>`
 }
 
 function renderSparkline(history) {
@@ -523,6 +520,69 @@ function renderSparkline(history) {
   `;
 }
 
+// ==================== MENTOR NOTES ====================
+
+const MENTOR_NOTES = {
+  portfolio: {
+    icon: '⚔️',
+    title: "Today's Lesson: Unrealized Loss ≠ Real Loss",
+    body: "A stock showing -10% in your portfolio hasn't actually cost you money yet — it's only a loss if you sell. If the fundamentals are intact (like KEEPR's 40% NAV discount), a red number is just a lower price tag on something still worth more. Sterling tracks both price AND value."
+  },
+  brief: {
+    icon: '📋',
+    title: "Today's Lesson: Why the Morning Brief Matters",
+    body: "Professional traders review market setup before the open. You're doing the same. Knowing what happened overnight (US market, USD movement, PSEi futures) gives you 30 minutes to decide — before the crowd does."
+  },
+  watchlist: {
+    icon: '🎯',
+    title: "Today's Lesson: The Difference Between Watchlist and Portfolio",
+    body: "Your portfolio = stocks you own. Your watchlist = stocks you're studying before you commit money. A good watchlist has an entry price and a reason. Sterling shows you both — entry price and why it's interesting."
+  },
+  alerts: {
+    icon: '🔔',
+    title: "Today's Lesson: Alerts = Your Decision Triggers",
+    body: "You can't watch prices all day. Alerts act on your behalf. When Sterling fires an alert, it's saying 'the condition you cared about just happened.' An alert without an action plan is noise — Sterling includes the action."
+  },
+  news: {
+    icon: '📰',
+    title: "Today's Lesson: How to Read News as a Trader",
+    body: "Not all news moves stocks equally. HIGH IMPACT = earnings, dividends, mergers, regulatory changes — can move price 5–20%. LOW IMPACT = analyst upgrades (already priced in), general market commentary. Sterling tags each article so you know what to act on."
+  },
+  dividends: {
+    icon: '💰',
+    title: "Today's Lesson: The Ex-Dividend Date",
+    body: "You must OWN shares BEFORE the ex-date to receive the dividend. If FILRT's ex-date is March 11, you need to hold your shares on March 10. Sterling shows your estimated cash income so you can plan around it."
+  },
+  discovery: {
+    icon: '🔍',
+    title: "Today's Lesson: How to Screen Stocks",
+    body: "Don't buy a stock because it looks cheap. Cheap stocks are cheap for a reason. Sterling screens by P/E ratio, dividend yield, and RSI together — a cheap P/E + high yield + RSI under 40 = potentially a good entry. That combination is what you're hunting."
+  },
+  gold: {
+    icon: '🥇',
+    title: "Today's Lesson: Gold vs Dollar (DXY)",
+    body: "Gold (XAU/USD) and the US Dollar Index (DXY) move in OPPOSITE directions. When the dollar weakens (DXY drops), gold rises — and vice versa. Before every gold trade, check DXY. If DXY is falling, gold tailwind is in your favor."
+  },
+  learn: {
+    icon: '📚',
+    title: "Study Note",
+    body: "The best investors spend more time studying than trading. Warren Buffett reads 500 pages per day. You don't need to — but 15 minutes here before you trade is the difference between investing and gambling."
+  }
+};
+
+function renderMentorNote(page) {
+  const note = MENTOR_NOTES[page];
+  if (!note) return '';
+  return `
+    <div class="mentor-note">
+      <div class="mentor-header">
+        <span class="mentor-icon">${note.icon}</span>
+        <span class="mentor-title">${note.title}</span>
+      </div>
+      <p class="mentor-body">${note.body}</p>
+    </div>`;
+}
+
 // ==================== MORNING BRIEF ====================
 
 async function loadBriefs() {
@@ -549,6 +609,12 @@ async function loadBriefs() {
 
 function renderBriefs() {
   const list = document.getElementById('briefs-list');
+
+  // Inject mentor note at top of page
+  const pageEl = document.getElementById('page-brief');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('brief'));
+  }
 
   if (!briefsData || briefsData.length === 0) {
     list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No morning briefs yet. Sterling runs at 7AM weekdays.</div></div>`;
@@ -614,6 +680,12 @@ function setWatchlistView(view) {
 }
 
 function renderWatchlist() {
+  // Inject mentor note at top of page (only once)
+  const pageEl = document.getElementById('page-watchlist');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('watchlist'));
+  }
+
   const sector = document.getElementById('filter-sector').value;
   const rec = document.getElementById('filter-recommendation').value;
 
@@ -794,6 +866,12 @@ function updateAlertsBadge() {
 function renderAlerts() {
   const feed = document.getElementById('alerts-feed');
 
+  // Inject mentor note at top of page
+  const pageEl = document.getElementById('page-alerts');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('alerts'));
+  }
+
   if (!alertsData || alertsData.length === 0) {
     feed.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔔</div><div class="empty-state-text">No alerts yet</div></div>`;
     return;
@@ -842,7 +920,7 @@ async function dismissAlert(id) {
 
 async function loadNews() {
   try {
-    newsData = await window.sbFetch('sterling_news', { order: 'created_at.desc', limit: '50' });
+    newsData = await window.sbFetch('sterling_news', { order: 'published_at.desc', limit: '50' });
     populateNewsFilters();
     renderNews();
   } catch (err) {
@@ -861,6 +939,12 @@ function filterNews() {
 }
 
 function renderNews() {
+  // Inject mentor note at top of page
+  const pageEl = document.getElementById('page-news');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('news'));
+  }
+
   const symbol = document.getElementById('filter-news-symbol').value;
   const sentiment = document.getElementById('filter-news-sentiment').value;
   const impact = document.getElementById('filter-news-impact').value;
@@ -901,6 +985,12 @@ function renderNews() {
 
 async function loadDividends() {
   try {
+    // Inject mentor note at top of page
+    const pageEl = document.getElementById('page-dividends');
+    if (pageEl && !pageEl.querySelector('.mentor-note')) {
+      pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('dividends'));
+    }
+
     if (!portfolioData || portfolioData.length === 0) {
       portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
     }
@@ -1096,6 +1186,12 @@ function updateDiscoveryFilter(key, value) {
 }
 
 function renderDiscovery() {
+  // Inject mentor note at top of page
+  const pageEl = document.getElementById('page-discovery');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('discovery'));
+  }
+
   const grid = document.getElementById('discovery-grid');
 
   // Filter stocks
@@ -1509,6 +1605,12 @@ Real math: 8.1% × 3 years = 24.3% of your investment returned as cash, while yo
 ];
 
 function loadLearnPage() {
+  // Inject mentor note at top of page
+  const pageEl = document.getElementById('page-learn');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('learn'));
+  }
+
   renderGlossary(GLOSSARY);
   renderConcepts(CONCEPTS);
   renderPatterns(PATTERNS);
@@ -2154,5 +2256,16 @@ function renderStudyPortfolio() {
       if (el) observer.observe(el);
     });
   }
+}
+
+// ==================== GOLD PAGE ====================
+
+function loadGoldPage() {
+  // Inject mentor note at top of page
+  const pageEl = document.getElementById('page-gold');
+  if (pageEl && !pageEl.querySelector('.mentor-note')) {
+    pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('gold'));
+  }
+  window.applyGlossary(document.getElementById('page-gold'));
 }
 
