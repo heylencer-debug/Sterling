@@ -285,30 +285,101 @@ function renderPortfolio() {
           </div>
         </div>
         ${renderSparkline(h.price_history)}
-        ${renderStockAction(h.symbol, h.unrealized_pl_pct)}
+        ${renderStockAction(h.symbol)}
       </div>
     `;
   }).join('');
 }
 
 // Analyst recommendation badge per stock
+// All data verified via web research on 2026-03-02
+// Sources: Investing.com, HelloSafe PH, Asia Securities, PSE Edge, Simply Wall St, Fintel.io
 const STOCK_ACTIONS = {
-  MBT:   { action: 'HOLD — Target ₱86-97', color: '#00D4A0', detail: 'All 12 MAs bullish. RSI 66.8. 13 analysts avg target ₱91. DO NOT sell yet.' },
-  KEEPR: { action: 'HOLD — 40% NAV Discount', color: '#FFD700', detail: 'NAV ₱3.80 vs price ₱2.30. 11% dividend yield. Wait for BSP rate cut.' },
-  FILRT: { action: 'HOLD — Dividend ~Mar 11', color: '#FFD700', detail: 'Ex-date ~March 11. 8.1% yield. 28% discount to NAV ₱4.21.' },
-  GLO:   { action: 'HOLD — Target ₱1,850', color: '#00D4A0', detail: 'Above 200-day MA. Stable dividend. Small position.' },
-  DMC:   { action: 'HOLD — Watch Nickel', color: '#FFD700', detail: 'PE 7.5x cheap. 8.5% yield. Monitor nickel commodity prices.' },
-  MREIT: { action: 'HOLD — Dividend ~Mar 20', color: '#00D4A0', detail: 'NAV ₱19.69 vs ₱14.18 price. 7.2% yield. Megaworld expanding.' },
-  RRHI:  { action: 'HOLD — Target ₱40-42', color: '#64748B', detail: 'Stable retail. PE 18.5x is higher. Don\'t add at current levels.' },
+  MBT: {
+    action: 'HOLD — Add on dips ₱73-74',
+    color: '#00D4A0',
+    detail: 'RSI 66.8 (strong, not overbought) | All 12 MAs = Buy | P/E 6.86x vs sector 11x | 13 analysts avg target ₱91, high ₱97.50 | Stop-loss ₱69 | Take profit 1st at ₱86',
+    sources: [
+      { name: 'Technicals', url: 'https://www.investing.com/equities/metropolitan-b-technical' },
+      { name: 'Targets', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company' },
+      { name: 'Disclosures', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=573' },
+    ]
+  },
+  KEEPR: {
+    action: 'HOLD — 40% NAV discount',
+    color: '#FFD700',
+    detail: 'NAV ₱3.80 vs price ₱2.30 = 40% discount to real estate value | ~11% dividend yield | 94% occupancy (Asia Securities PDF) | Catalyst: BSP rate cut H2 2026 → REIT rally | Stop-loss ₱1.90',
+    sources: [
+      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-KEEPR/technicals/' },
+      { name: 'DragonFi', url: 'https://www.dragonfi.ph/market/stocks/KEEPR' },
+    ]
+  },
+  FILRT: {
+    action: 'HOLD — Ex-div ~Mar 11',
+    color: '#FFD700',
+    detail: 'Ex-date ~March 11 | Dividend ₱0.06/share × 7,000 = ₱420 cash | 8.1% annual yield | NAV ₱4.21 vs price ₱3.02 = 28% discount | LT Buy (Asia Securities)',
+    sources: [
+      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-FILRT/technicals/' },
+      { name: 'Disclosures', url: 'https://edge.pse.com.ph' },
+    ]
+  },
+  GLO: {
+    action: 'HOLD — Dividend play',
+    color: '#00D4A0',
+    detail: 'P/E 11x (vs telecom avg 21x globally) | Dividend yield 6.36% (Fintel.io) | Above 200-day MA | EPS growth 9.3% | High debt D/E 2.1x (normal for telecoms) | Target ₱1,850-1,900',
+    sources: [
+      { name: 'Fundamentals', url: 'https://fintel.io/s/ph/glo' },
+      { name: 'Valuation', url: 'https://simplywall.st/stocks/ph/telecom/pse-glo/globe-telecom-shares/valuation' },
+      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-GLO/technicals/' },
+    ]
+  },
+  DMC: {
+    action: 'HOLD — Watch nickel prices',
+    color: '#FFD700',
+    detail: 'RSI 44.4 — neutral/slightly oversold (Investing.com) | P/E 8x vs industry 12.2x = cheap | Dividend yield 9.73% (HelloSafe) | 4/5 analysts BUY | Target ₱11.81-14.89 | Key risk: nickel commodity price',
+    sources: [
+      { name: 'Fundamentals', url: 'https://hellosafe.ph/investing/stock-market/stocks/dmc' },
+      { name: 'Technicals', url: 'https://www.investing.com/equities/dmci-holdings-technical' },
+      { name: 'PSE Edge', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=188' },
+    ]
+  },
+  MREIT: {
+    action: 'HOLD — Ex-div ~Mar 20',
+    color: '#00D4A0',
+    detail: 'NAV ₱19.69 vs price ₱14.18 = 28% discount | 7.2% dividend yield | Ex-date ~March 20 | Megaworld expanding to Iloilo + Davao CBDs | BUY rating (Asia Securities) | Target ₱17.50',
+    sources: [
+      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-MREIT/technicals/' },
+      { name: 'DragonFi', url: 'https://www.dragonfi.ph/market/stocks/MREIT' },
+    ]
+  },
+  RRHI: {
+    action: 'HOLD — Neutral signals',
+    color: '#64748B',
+    detail: 'RSI 47 — neutral (Investing.com) | MACD -0.284 = mild sell signal | 8 MAs say Sell, 4 say Buy = mixed | Same-store sales +5.65% (2025) | High growth rank 9/10 (GuruFocus) | Don\'t add at current levels',
+    sources: [
+      { name: 'Technicals', url: 'https://www.investing.com/equities/robinsons-reta-technical' },
+      { name: 'Fundamentals', url: 'https://www.gurufocus.com/stock/PHS:RRHI/summary' },
+      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-RRHI/technicals/' },
+    ]
+  },
 };
 
-function renderStockAction(symbol, plPct) {
+function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
   if (!a) return '';
+  const sourceLinks = a.sources.map(s =>
+    `<a href="${s.url}" target="_blank" style="color:#FFD700;text-decoration:none;font-size:10px;background:rgba(255,215,0,0.1);padding:2px 6px;border-radius:3px;margin-right:4px">${s.name} ↗</a>`
+  ).join('');
   return `
     <div class="stock-action" style="border-left:3px solid ${a.color};padding:8px 10px;margin-top:10px;background:rgba(255,255,255,0.03);border-radius:0 4px 4px 0;cursor:pointer" onclick="this.querySelector('.action-detail').style.display=this.querySelector('.action-detail').style.display==='none'?'block':'none'">
       <div style="font-size:11px;font-weight:700;color:${a.color};letter-spacing:0.5px">⚔️ ${a.action}</div>
-      <div class="action-detail" style="display:none;font-size:11px;color:#94A3B8;margin-top:4px;line-height:1.5">${a.detail}</div>
+      <div class="action-detail" style="display:none;margin-top:6px">
+        <div style="font-size:11px;color:#CBD5E1;line-height:1.6;margin-bottom:6px">${a.detail}</div>
+        <div style="margin-top:4px">📎 Sources: ${sourceLinks}</div>
+      </div>
     </div>`;
 }
 
