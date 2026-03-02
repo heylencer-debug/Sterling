@@ -26,53 +26,153 @@ const DIVIDEND_SCHEDULES = {
 // PSE Universe - 40 stocks for Discovery scanner
 const PSE_UNIVERSE = [
   // Banking
-  { symbol:'BDO', name:'BDO Unibank', sector:'Banking', yield:2.1, pe:10.2, price:132.50 },
-  { symbol:'MBT', name:'Metrobank', sector:'Banking', yield:6.78, pe:6.86, price:76.00 },
-  { symbol:'BPI', name:'Bank of the Philippine Islands', sector:'Banking', yield:3.2, pe:12.5, price:108.00 },
-  { symbol:'SECB', name:'Security Bank', sector:'Banking', yield:3.8, pe:8.9, price:72.00 },
-  { symbol:'EW', name:'East West Banking', sector:'Banking', yield:2.5, pe:7.2, price:8.50 },
+  { symbol:'BDO', name:'BDO Unibank', sector:'Banking' },
+  { symbol:'MBT', name:'Metrobank', sector:'Banking' },
+  { symbol:'BPI', name:'Bank of the Philippine Islands', sector:'Banking' },
+  { symbol:'SECB', name:'Security Bank', sector:'Banking' },
+  { symbol:'EW', name:'East West Banking', sector:'Banking' },
+  { symbol:'PNB', name:'Philippine National Bank', sector:'Banking' },
+  { symbol:'RCBC', name:'Rizal Commercial Banking Corp', sector:'Banking' },
+  { symbol:'CBK', name:'China Banking Corp', sector:'Banking' },
+  { symbol:'PSB', name:'Philippine Savings Bank', sector:'Banking' },
+  { symbol:'SB', name:'Security Bank', sector:'Banking' },
+  { symbol:'UBP', name:'Union Bank of the Philippines', sector:'Banking' },
+  { symbol:'PBCOM', name:'Philippine Bank of Communications', sector:'Banking' },
+  { symbol:'BOC', name:'Bank of Commerce', sector:'Banking' },
+  { symbol:'MBTC', name:'Metropolitan Bank & Trust', sector:'Banking' },
   // REIT
-  { symbol:'AREIT', name:'Ayala REIT', sector:'REIT', yield:5.8, pe:18.2, price:33.50 },
-  { symbol:'MREIT', name:'Megaworld REIT', sector:'REIT', yield:7.2, pe:14.1, price:14.18 },
-  { symbol:'FILRT', name:'Filinvest REIT', sector:'REIT', yield:8.1, pe:12.3, price:3.01 },
-  { symbol:'DDMPR', name:'DoubleDragon REIT', sector:'REIT', yield:8.9, pe:11.5, price:1.35 },
-  { symbol:'CREIT', name:'Citicore REIT', sector:'REIT', yield:7.5, pe:13.8, price:2.55 },
-  { symbol:'KEEPR', name:'Keppel Philippines REIT', sector:'REIT', yield:11.0, pe:9.2, price:2.31 },
-  { symbol:'RCR', name:'RL Commercial REIT', sector:'REIT', yield:6.9, pe:15.1, price:5.20 },
+  { symbol:'AREIT', name:'Ayala REIT', sector:'REIT' },
+  { symbol:'MREIT', name:'Megaworld REIT', sector:'REIT' },
+  { symbol:'FILRT', name:'Filinvest REIT', sector:'REIT' },
+  { symbol:'DDMPR', name:'DoubleDragon REIT', sector:'REIT' },
+  { symbol:'CREIT', name:'Citicore REIT', sector:'REIT' },
+  { symbol:'KEEPR', name:'Keppel Philippines REIT', sector:'REIT' },
+  { symbol:'RCR', name:'RL Commercial REIT', sector:'REIT' },
+  { symbol:'VREIT', name:'Vista REIT', sector:'REIT' },
+  { symbol:'PREIT', name:'Premiere Island Power REIT', sector:'REIT' },
+  { symbol:'OREIT', name:'Robinsons Land REIT', sector:'REIT' },
   // Telecom
-  { symbol:'GLO', name:'Globe Telecom', sector:'Telecom', yield:6.36, pe:11.0, price:1689.00 },
-  { symbol:'TEL', name:'PLDT Inc.', sector:'Telecom', yield:7.8, pe:9.5, price:1200.00 },
+  { symbol:'GLO', name:'Globe Telecom', sector:'Telecom' },
+  { symbol:'TEL', name:'PLDT Inc.', sector:'Telecom' },
+  { symbol:'NOW', name:'Now Corporation', sector:'Telecom' },
   // Property
-  { symbol:'ALI', name:'Ayala Land', sector:'Property', yield:1.8, pe:22.0, price:28.50 },
-  { symbol:'SMPH', name:'SM Prime Holdings', sector:'Property', yield:0.9, pe:28.5, price:35.00 },
-  { symbol:'MEG', name:'Megaworld Corp', sector:'Property', yield:3.2, pe:8.5, price:2.10 },
-  { symbol:'RLC', name:'Robinsons Land', sector:'Property', yield:2.5, pe:12.0, price:14.50 },
+  { symbol:'ALI', name:'Ayala Land', sector:'Property' },
+  { symbol:'SMPH', name:'SM Prime Holdings', sector:'Property' },
+  { symbol:'MEG', name:'Megaworld Corp', sector:'Property' },
+  { symbol:'RLC', name:'Robinsons Land', sector:'Property' },
+  { symbol:'FLI', name:'Filinvest Land', sector:'Property' },
+  { symbol:'ROCK', name:'Rockwell Land', sector:'Property' },
+  { symbol:'DDPR', name:'DoubleDragon Properties', sector:'Property' },
+  { symbol:'VLL', name:'Vista Land & Lifescapes', sector:'Property' },
+  { symbol:'CLI', name:'Cebu Landmasters', sector:'Property' },
+  { symbol:'HLCM', name:'Holcim Philippines', sector:'Property' },
+  { symbol:'SHNG', name:'Shang Properties', sector:'Property' },
+  { symbol:'CPVW', name:'Camp John Hay Development', sector:'Property' },
+  { symbol:'PHR', name:'Philippine Realty & Holdings', sector:'Property' },
+  { symbol:'MRC', name:'MRC Allied', sector:'Property' },
+  { symbol:'LAND', name:'Landco Pacific', sector:'Property' },
+  { symbol:'POPI', name:'Premiere Horizon Alliance', sector:'Property' },
   // Mining & Oil
-  { symbol:'DMC', name:'DMCI Holdings', sector:'Mining & Oil', yield:9.73, pe:8.0, price:9.65 },
-  { symbol:'SCC', name:'Semirara Mining', sector:'Mining & Oil', yield:12.5, pe:5.2, price:38.00 },
-  { symbol:'PX', name:'Philex Mining', sector:'Mining & Oil', yield:1.2, pe:15.0, price:3.80 },
+  { symbol:'DMC', name:'DMCI Holdings', sector:'Mining & Oil' },
+  { symbol:'SCC', name:'Semirara Mining', sector:'Mining & Oil' },
+  { symbol:'PX', name:'Philex Mining', sector:'Mining & Oil' },
+  { symbol:'LC', name:'Lorenzo Shipping / LC', sector:'Mining & Oil' },
+  { symbol:'AT', name:'Atlas Consolidated Mining', sector:'Mining & Oil' },
+  { symbol:'OPM', name:'OceanaGold Philippines', sector:'Mining & Oil' },
+  { symbol:'NIKL', name:'Nickel Asia', sector:'Mining & Oil' },
+  { symbol:'PHA', name:'Philippine Gold Properties', sector:'Mining & Oil' },
+  { symbol:'APM', name:'Apex Mining', sector:'Mining & Oil' },
+  { symbol:'MARC', name:'Marcventures Holdings', sector:'Mining & Oil' },
+  { symbol:'GOL', name:'Lepanto Consolidated Mining B', sector:'Mining & Oil' },
+  { symbol:'LCB', name:'Lepanto Consolidated B', sector:'Mining & Oil' },
+  { symbol:'LCI', name:'Lepanto Consolidated A', sector:'Mining & Oil' },
+  { symbol:'MEDCO', name:'MEDCO Holdings', sector:'Mining & Oil' },
   // Retail
-  { symbol:'RRHI', name:'Robinsons Retail', sector:'Retail', yield:2.8, pe:18.5, price:37.40 },
-  { symbol:'PGOLD', name:'Puregold Price Club', sector:'Retail', yield:2.1, pe:16.0, price:28.00 },
-  { symbol:'CNPF', name:'Century Pacific Food', sector:'Retail', yield:1.8, pe:20.0, price:21.50 },
+  { symbol:'RRHI', name:'Robinsons Retail', sector:'Retail' },
+  { symbol:'PGOLD', name:'Puregold Price Club', sector:'Retail' },
+  { symbol:'CNPF', name:'Century Pacific Food', sector:'Retail' },
+  { symbol:'SSI', name:'SSI Group', sector:'Retail' },
+  { symbol:'MRSGI', name:'Metro Retail Stores Group', sector:'Retail' },
+  { symbol:'COSCO', name:'Cosco Capital', sector:'Retail' },
+  { symbol:'DNL', name:'D&L Industries', sector:'Retail' },
   // Energy
-  { symbol:'ACEN', name:'ACEN Corporation', sector:'Energy', yield:0.5, pe:35.0, price:3.90 },
-  { symbol:'SEM', name:'Semirara Mining & Power', sector:'Energy', yield:11.0, pe:5.5, price:37.50 },
-  { symbol:'FGEN', name:'First Gen Corp', sector:'Energy', yield:3.5, pe:12.0, price:22.00 },
+  { symbol:'ACEN', name:'ACEN Corporation', sector:'Energy' },
+  { symbol:'FGEN', name:'First Gen Corp', sector:'Energy' },
+  { symbol:'MPI', name:'Metro Pacific Investments', sector:'Energy' },
+  { symbol:'AP', name:'Aboitiz Power', sector:'Energy' },
+  { symbol:'SPC', name:'SPC Power Corp', sector:'Energy' },
+  { symbol:'PHEN', name:'Philippine Energy Development', sector:'Energy' },
+  { symbol:'PERC', name:'Philippine Electric Corp', sector:'Energy' },
+  { symbol:'PNOC', name:'PNOC Energy Development', sector:'Energy' },
+  { symbol:'GEO', name:'Geo Energy Resources', sector:'Energy' },
+  { symbol:'PEAK', name:'Alternergy Holdings', sector:'Energy' },
   // Industrial
-  { symbol:'JFC', name:'Jollibee Foods', sector:'Industrial', yield:0.8, pe:45.0, price:210.00 },
-  { symbol:'ICT', name:'International Container Terminal', sector:'Industrial', yield:1.5, pe:14.0, price:280.00 },
-  { symbol:'MONDE', name:'Monde Nissin', sector:'Industrial', yield:1.8, pe:25.0, price:10.20 },
-  { symbol:'URC', name:'Universal Robina Corp', sector:'Industrial', yield:2.2, pe:22.0, price:105.00 },
-  { symbol:'BLOOM', name:'Bloomberry Resorts', sector:'Industrial', yield:0.5, pe:18.0, price:7.80 },
-  { symbol:'MAXS', name:'Max\'s Group', sector:'Industrial', yield:3.2, pe:16.0, price:8.50 },
-  { symbol:'EEI', name:'EEI Corporation', sector:'Industrial', yield:2.8, pe:10.0, price:6.20 },
-  { symbol:'VITA', name:'Vitarich Corp', sector:'Industrial', yield:1.5, pe:12.0, price:2.10 },
+  { symbol:'JFC', name:'Jollibee Foods Corp', sector:'Industrial' },
+  { symbol:'ICT', name:'Int\'l Container Terminal', sector:'Industrial' },
+  { symbol:'MONDE', name:'Monde Nissin', sector:'Industrial' },
+  { symbol:'URC', name:'Universal Robina Corp', sector:'Industrial' },
+  { symbol:'BLOOM', name:'Bloomberry Resorts', sector:'Industrial' },
+  { symbol:'MAXS', name:'Max\'s Group', sector:'Industrial' },
+  { symbol:'EEI', name:'EEI Corporation', sector:'Industrial' },
+  { symbol:'VITA', name:'Vitarich Corp', sector:'Industrial' },
+  { symbol:'PIZZA', name:'Shakey\'s Pizza Asia Ventures', sector:'Industrial' },
+  { symbol:'FOOD', name:'Fruitas Holdings', sector:'Industrial' },
+  { symbol:'MWIDE', name:'Megawide Construction', sector:'Industrial' },
+  { symbol:'WLCON', name:'Wilcon Depot', sector:'Industrial' },
+  { symbol:'EAGLE', name:'Eagle Cement', sector:'Industrial' },
+  { symbol:'PRMX', name:'Premiumx / Pryce Corp', sector:'Industrial' },
+  { symbol:'GSMI', name:'Ginebra San Miguel', sector:'Industrial' },
+  { symbol:'DELM', name:'Del Monte Pacific', sector:'Industrial' },
+  { symbol:'CHP', name:'Cemex Holdings Philippines', sector:'Industrial' },
+  { symbol:'AXLM', name:'Axelum Resources', sector:'Industrial' },
+  { symbol:'DGTL', name:'DigiPlus Interactive', sector:'Industrial' },
+  { symbol:'ASLAG', name:'Phinma Renewable Energy', sector:'Industrial' },
+  { symbol:'DFNN', name:'DFNN Inc', sector:'Industrial' },
+  { symbol:'SGI', name:'Steam Industries', sector:'Industrial' },
+  { symbol:'POPI', name:'Premiere Horizon Alliance', sector:'Industrial' },
+  { symbol:'PAL', name:'Philippine Airlines', sector:'Industrial' },
+  { symbol:'CEB', name:'Cebu Pacific Air', sector:'Industrial' },
+  { symbol:'2GO', name:'2GO Group', sector:'Industrial' },
   // Holding Firms
-  { symbol:'AC', name:'Ayala Corporation', sector:'Holding Firms', yield:1.5, pe:15.0, price:620.00 },
-  { symbol:'SM', name:'SM Investments', sector:'Holding Firms', yield:0.7, pe:22.0, price:880.00 },
-  { symbol:'AGI', name:'Alliance Global', sector:'Holding Firms', yield:1.2, pe:11.0, price:10.50 },
-  { symbol:'LTG', name:'LT Group Inc', sector:'Holding Firms', yield:4.5, pe:9.0, price:12.80 },
+  { symbol:'AC', name:'Ayala Corporation', sector:'Holding Firms' },
+  { symbol:'SM', name:'SM Investments', sector:'Holding Firms' },
+  { symbol:'AGI', name:'Alliance Global Group', sector:'Holding Firms' },
+  { symbol:'LTG', name:'LT Group Inc', sector:'Holding Firms' },
+  { symbol:'JGS', name:'JG Summit Holdings', sector:'Holding Firms' },
+  { symbol:'AEV', name:'Aboitiz Equity Ventures', sector:'Holding Firms' },
+  { symbol:'GTCAP', name:'GT Capital Holdings', sector:'Holding Firms' },
+  { symbol:'HOUSE', name:'8990 Holdings', sector:'Holding Firms' },
+  { symbol:'ION', name:'ION Group Holdings', sector:'Holding Firms' },
+  { symbol:'MHC', name:'Manila Hotel Corp', sector:'Holding Firms' },
+  { symbol:'POPI', name:'Premiere Horizon', sector:'Holding Firms' },
+  { symbol:'FPH', name:'First Philippine Holdings', sector:'Holding Firms' },
+  { symbol:'IMI', name:'Integrated Micro-Electronics', sector:'Holding Firms' },
+  { symbol:'PCOR', name:'Petron Corp', sector:'Holding Firms' },
+  { symbol:'SMCGP', name:'SMC Global Power', sector:'Holding Firms' },
+  { symbol:'SMC', name:'San Miguel Corp', sector:'Holding Firms' },
+  { symbol:'TOP', name:'Trans-Asia Oil & Energy', sector:'Holding Firms' },
+  { symbol:'BEL', name:'Belle Corporation', sector:'Holding Firms' },
+  { symbol:'ALLDY', name:'Alsons Consolidated Resources', sector:'Holding Firms' },
+  { symbol:'ATN', name:'ATN Holdings', sector:'Holding Firms' },
+  { symbol:'ANS', name:'A. Soriano Corp', sector:'Holding Firms' },
+  { symbol:'MRSGI', name:'Metro Retail Stores Group', sector:'Holding Firms' },
+  { symbol:'ABA', name:'ABA Holdings', sector:'Holding Firms' },
+  // Financial Services
+  { symbol:'COL', name:'COL Financial Group', sector:'Financial Services' },
+  { symbol:'FDC', name:'Filinvest Development Corp', sector:'Financial Services' },
+  { symbol:'PLC', name:'Premium Leisure Corp', sector:'Financial Services' },
+  { symbol:'SLI', name:'Sterling Equity Inc', sector:'Financial Services' },
+  { symbol:'PPI', name:'Pepsi-Cola Products Philippines', sector:'Financial Services' },
+  // Services
+  { symbol:'DITO', name:'DITO CME Holdings', sector:'Services' },
+  { symbol:'M', name:'Melco Resorts Leisure', sector:'Services' },
+  { symbol:'PCEV', name:'Philippine Seven Corp', sector:'Services' },
+  { symbol:'SFI', name:'South Force Inc', sector:'Services' },
+  { symbol:'BCOR', name:'Bayan Telecommunications', sector:'Services' },
+  { symbol:'IDC', name:'Integrated Diversified Corp', sector:'Services' },
+  // Gold / Forex (for gold trades)
+  { symbol:'XAU/USD', name:'Gold vs US Dollar', sector:'Gold' },
+  { symbol:'XAU/PHP', name:'Gold vs Philippine Peso', sector:'Gold' },
 ];
 
 // Portfolio connections for watchlist
@@ -2655,21 +2755,71 @@ function closeTradeLog() {
 }
 
 function onAssetTypeChange() {
-  const type = document.getElementById('trade-asset-type').value;
-  const symSelect = document.getElementById('trade-symbol');
+  const type = document.getElementById('trade-asset-type')?.value || 'PSE Stock';
   const qtyLabel = document.getElementById('trade-qty-label');
-  if (type === 'Gold (XAU/USD)') {
-    symSelect.innerHTML = `
-      <option value="XAU/USD">XAU/USD — Gold vs US Dollar</option>
-      <option value="XAU/PHP">XAU/PHP — Gold vs Philippine Peso</option>`;
-    qtyLabel.textContent = 'Lot Size';
-  } else {
-    const opts = PSE_UNIVERSE.map(s =>
-      `<option value="${s.symbol}">${s.symbol} — ${s.name}</option>`
-    ).join('');
-    symSelect.innerHTML = `<option value="">Select PSE stock…</option>${opts}`;
-    qtyLabel.textContent = 'Quantity (Shares)';
+  const searchInput = document.getElementById('symbol-search-input');
+  if (qtyLabel) qtyLabel.textContent = type === 'Gold (XAU/USD)' ? 'Lot Size' : 'Quantity (Shares)';
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.placeholder = type === 'Gold (XAU/USD)' ? 'XAU/USD or XAU/PHP' : 'Type symbol or name… e.g. MBT, Jollibee';
   }
+  const hidden = document.getElementById('trade-symbol');
+  if (hidden) hidden.value = '';
+  // Pre-filter dropdown based on asset type
+  _symbolFilter = type === 'Gold (XAU/USD)' ? 'Gold' : 'PSE';
+  filterSymbolDropdown();
+}
+
+let _symbolFilter = 'PSE';
+
+function _getSymbolList() {
+  if (_symbolFilter === 'Gold') return PSE_UNIVERSE.filter(s => s.sector === 'Gold');
+  return PSE_UNIVERSE.filter(s => s.sector !== 'Gold');
+}
+
+function openSymbolDropdown() {
+  filterSymbolDropdown();
+  const dd = document.getElementById('symbol-dropdown');
+  if (dd) dd.style.display = 'block';
+}
+
+function closeSymbolDropdownDelayed() {
+  setTimeout(() => {
+    const dd = document.getElementById('symbol-dropdown');
+    if (dd) dd.style.display = 'none';
+  }, 200);
+}
+
+function filterSymbolDropdown() {
+  const input = document.getElementById('symbol-search-input');
+  const dd = document.getElementById('symbol-dropdown');
+  if (!dd) return;
+  const q = (input?.value || '').toLowerCase().trim();
+  const list = _getSymbolList();
+  const matches = q
+    ? list.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)).slice(0, 30)
+    : list.slice(0, 40);
+  if (!matches.length) {
+    dd.innerHTML = '<div class="symbol-dd-empty">No results</div>';
+    dd.style.display = 'block';
+    return;
+  }
+  dd.innerHTML = matches.map(s => `
+    <div class="symbol-dd-item" onmousedown="selectSymbol('${s.symbol}','${s.name.replace(/'/g,'\\'')}')">
+      <span class="symbol-dd-code">${s.symbol}</span>
+      <span class="symbol-dd-name">${s.name}</span>
+      <span class="symbol-dd-sector">${s.sector}</span>
+    </div>`).join('');
+  dd.style.display = 'block';
+}
+
+function selectSymbol(symbol, name) {
+  const hidden = document.getElementById('trade-symbol');
+  const input = document.getElementById('symbol-search-input');
+  const dd = document.getElementById('symbol-dropdown');
+  if (hidden) hidden.value = symbol;
+  if (input) input.value = symbol + ' — ' + name;
+  if (dd) dd.style.display = 'none';
 }
 
 async function submitTrade(e) {
