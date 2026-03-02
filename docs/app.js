@@ -1218,9 +1218,9 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
           ${helpText ? `<span class="pillar-subtitle">${helpText}</span>` : ''}
         </div>
         <span class="pillar-verdict" style="color:${vc};border-color:${vc}20;background:${vc}12">${verdict}</span>
-        <span class="pillar-chevron" id="chev-${id}" style="transform:rotate(90deg)">▸</span>
+        <span class="pillar-chevron" id="chev-${id}">▸</span>
       </div>
-      <div class="pillar-body" id="body-${id}" style="display:block">
+      <div class="pillar-body" id="body-${id}" style="display:none">
         ${aiSummary ? `<div class="pillar-ai-summary">💡 ${aiSummary}</div>` : ''}
         ${analyzedDate ? `<div class="pillar-meta">
           <span class="pillar-date">🕐 Analyzed ${analyzedDate}</span>
