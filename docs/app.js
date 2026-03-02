@@ -2937,6 +2937,13 @@ async function submitTrade(e) {
     renderPortfolio();
     closeTradeLog();
     showToast(`✅ ${action} ${symbol} logged — portfolio updated`);
+    // Queue analysis for this symbol — server cron picks up within 5 min
+    if (symbol && assetType === 'PSE Stock') {
+      window.sbInsert('sterling_analysis_queue', {
+        symbol, user_id: _uid(), status: 'pending'
+      }).catch(() => {});
+      showToast(`📊 Analysis queued for ${symbol} — ready in ~5 min`);
+    }
     // Invalidate intelligence cache so next render fetches fresh analysis
     if (symbol && _intelligenceCache) delete _intelligenceCache[symbol];
     // Sync user accounts to Supabase in background
@@ -3472,17 +3479,18 @@ function getActiveUser() {
   return accounts.find(a => a.id === _getActiveId()) || accounts[0] || { id:'carlo', name:'Carlo', initials:'C', color:'#EA580C', pin:'' };
 }
 
-function initAccounts() {
-  loadAccountsFromSupabase().catch(() => {});
+async function initAccounts() {
+  // Seed Carlo if first ever load
   let accounts = _getAccounts();
-  // First ever load: seed Carlo as default
   if (!accounts.length) {
     accounts = [{ id:'carlo', name:'Carlo', initials:'CR', color:'#EA580C', pin:'' }];
     _saveAccounts(accounts);
   }
+  // AWAIT Supabase load so remote accounts (James etc) appear immediately
+  await loadAccountsFromSupabase().catch(() => {});
+  accounts = _getAccounts(); // re-read after merge
   const activeId = _getActiveId();
   const active = accounts.find(a => a.id === activeId) || accounts[0];
-  // If PIN set and not yet authenticated this browser session
   if (active.pin && !sessionStorage.getItem('sterling_auth_' + active.id)) {
     showAccountModal('login', active.id);
   }
