@@ -96,6 +96,8 @@ let portfolioSymbols = new Set();
 // Boot
 document.addEventListener('DOMContentLoaded', () => {
   initNav();
+  initAccounts();
+  onAssetTypeChange(); // populate symbol dropdown on load
   setTimeout(() => lazyLoadTab('portfolio'), 200);
 });
 
@@ -2652,16 +2654,19 @@ function closeTradeLog() {
 
 function onAssetTypeChange() {
   const type = document.getElementById('trade-asset-type').value;
-  const symInput = document.getElementById('trade-symbol');
+  const symSelect = document.getElementById('trade-symbol');
   const qtyLabel = document.getElementById('trade-qty-label');
   if (type === 'Gold (XAU/USD)') {
-    symInput.value = 'XAU/USD';
-    symInput.readOnly = true;
+    symSelect.innerHTML = `
+      <option value="XAU/USD">XAU/USD — Gold vs US Dollar</option>
+      <option value="XAU/PHP">XAU/PHP — Gold vs Philippine Peso</option>`;
     qtyLabel.textContent = 'Lot Size';
   } else {
-    symInput.value = '';
-    symInput.readOnly = false;
-    qtyLabel.textContent = 'Quantity';
+    const opts = PSE_STOCKS.map(s =>
+      `<option value="${s.symbol}">${s.symbol} — ${s.name}</option>`
+    ).join('');
+    symSelect.innerHTML = `<option value="">Select PSE stock…</option>${opts}`;
+    qtyLabel.textContent = 'Quantity (Shares)';
   }
 }
 
@@ -3301,3 +3306,164 @@ function loadGoldPage() {
   window.applyGlossary(document.getElementById('page-gold'));
 }
 
+
+// ==================== ACCOUNT SYSTEM ====================
+
+const STERLING_ACCOUNT_COLORS = ['#EA580C','#2563EB','#059669','#7C3AED','#DC2626'];
+let _selectedNewColor = '#2563EB';
+
+function _getAccounts() {
+  try { return JSON.parse(localStorage.getItem('sterling_accounts') || 'null') || []; } catch { return []; }
+}
+function _saveAccounts(a) { localStorage.setItem('sterling_accounts', JSON.stringify(a)); }
+function _getActiveId()  { return localStorage.getItem('sterling_active_user') || 'carlo'; }
+function _setActiveId(id){ localStorage.setItem('sterling_active_user', id); }
+
+function getActiveUser() {
+  const accounts = _getAccounts();
+  return accounts.find(a => a.id === _getActiveId()) || accounts[0] || { id:'carlo', name:'Carlo', initials:'C', color:'#EA580C', pin:'' };
+}
+
+function initAccounts() {
+  let accounts = _getAccounts();
+  // First ever load: seed Carlo as default
+  if (!accounts.length) {
+    accounts = [{ id:'carlo', name:'Carlo', initials:'CR', color:'#EA580C', pin:'' }];
+    _saveAccounts(accounts);
+  }
+  const activeId = _getActiveId();
+  const active = accounts.find(a => a.id === activeId) || accounts[0];
+  // If PIN set and not yet authenticated this browser session
+  if (active.pin && !sessionStorage.getItem('sterling_auth_' + active.id)) {
+    showAccountModal('login', active.id);
+  }
+  _updateSidebarAccount(active);
+}
+
+function _updateSidebarAccount(account) {
+  const av = document.getElementById('sidebar-avatar');
+  const nm = document.getElementById('sidebar-account-name');
+  if (av) { av.textContent = account.initials || account.name[0]; av.style.background = account.color || '#EA580C'; }
+  if (nm) nm.textContent = account.name;
+}
+
+function showAccountSwitcher() { showAccountModal('switch'); }
+
+function showAccountModal(mode, targetId) {
+  const overlay = document.getElementById('account-modal-overlay');
+  const body    = document.getElementById('account-modal-body');
+  if (!overlay || !body) return;
+  const accounts = _getAccounts();
+
+  if (mode === 'login') {
+    const acct = accounts.find(a => a.id === targetId) || accounts[0];
+    body.innerHTML = `
+      <div class="acct-logo">??</div>
+      <div class="acct-title">Welcome back</div>
+      <div class="acct-avatar-lg" style="background:${acct.color}">${acct.initials || acct.name[0]}</div>
+      <div class="acct-name">${acct.name}</div>
+      <input type="password" id="acct-pin" class="acct-pin-input" placeholder="Enter PIN" maxlength="6" inputmode="numeric" autocomplete="off">
+      <div id="acct-pin-err" class="acct-error"></div>
+      <button class="acct-btn-primary" onclick="verifyAccountPin('${acct.id}')">Unlock ?</button>
+      ${accounts.length > 1 ? `<button class="acct-btn-ghost" onclick="showAccountModal('switch')">Switch account</button>` : ''}
+    `;
+    setTimeout(() => document.getElementById('acct-pin')?.focus(), 120);
+    document.getElementById('acct-pin')?.addEventListener('keydown', e => { if(e.key==='Enter') verifyAccountPin(acct.id); });
+
+  } else if (mode === 'switch') {
+    body.innerHTML = `
+      <div class="acct-logo">??</div>
+      <div class="acct-title">Accounts</div>
+      <div class="acct-list">
+        ${accounts.map(a => `
+          <div class="acct-list-item${a.id===_getActiveId()?' acct-active':''}" onclick="selectAccount('${a.id}')">
+            <div class="acct-avatar-sm" style="background:${a.color}">${a.initials||a.name[0]}</div>
+            <div class="acct-list-info">
+              <div class="acct-list-name">${a.name}</div>
+              ${a.pin ? '<div class="acct-list-sub">PIN protected</div>' : '<div class="acct-list-sub">No PIN</div>'}
+            </div>
+            ${a.id===_getActiveId() ? '<span class="acct-check">?</span>' : ''}
+          </div>`).join('')}
+      </div>
+      <button class="acct-btn-secondary" onclick="showAccountModal('add')">+ Add account</button>
+      <button class="acct-btn-ghost" onclick="closeAccountModal()">Cancel</button>
+    `;
+
+  } else if (mode === 'add') {
+    body.innerHTML = `
+      <div class="acct-logo">??</div>
+      <div class="acct-title">New Account</div>
+      <input type="text" id="new-acct-name" class="acct-input" placeholder="Name (e.g. James)" maxlength="24" autocomplete="off">
+      <input type="text" id="new-acct-init" class="acct-input" placeholder="Initials (e.g. JR)" maxlength="2" style="text-transform:uppercase" autocomplete="off">
+      <input type="password" id="new-acct-pin" class="acct-pin-input" placeholder="PIN (optional, 4�6 digits)" maxlength="6" inputmode="numeric" autocomplete="new-password">
+      <div class="acct-color-row">
+        ${STERLING_ACCOUNT_COLORS.map((c,i) =>
+          `<div class="acct-color-dot${i===1?' acct-color-sel':''}" style="background:${c}" data-color="${c}" onclick="pickAcctColor(this)"></div>`
+        ).join('')}
+      </div>
+      <div id="new-acct-err" class="acct-error"></div>
+      <button class="acct-btn-primary" onclick="createAccount()">Create Account</button>
+      <button class="acct-btn-ghost" onclick="showAccountModal('switch')">? Back</button>
+    `;
+  }
+  overlay.classList.add('active');
+}
+
+function closeAccountModal() {
+  document.getElementById('account-modal-overlay')?.classList.remove('active');
+}
+
+function pickAcctColor(el) {
+  _selectedNewColor = el.dataset.color;
+  document.querySelectorAll('.acct-color-dot').forEach(d => d.classList.remove('acct-color-sel'));
+  el.classList.add('acct-color-sel');
+}
+
+function selectAccount(id) {
+  const accounts = _getAccounts();
+  const acct = accounts.find(a => a.id === id);
+  if (!acct) return;
+  if (acct.pin && !sessionStorage.getItem('sterling_auth_' + id)) {
+    showAccountModal('login', id);
+  } else {
+    _setActiveId(id);
+    sessionStorage.setItem('sterling_auth_' + id, '1');
+    _updateSidebarAccount(acct);
+    closeAccountModal();
+    location.reload();
+  }
+}
+
+function verifyAccountPin(id) {
+  const input = document.getElementById('acct-pin');
+  const err   = document.getElementById('acct-pin-err');
+  const accounts = _getAccounts();
+  const acct = accounts.find(a => a.id === id);
+  if (!acct || !input) return;
+  if (input.value === acct.pin) {
+    _setActiveId(id);
+    sessionStorage.setItem('sterling_auth_' + id, '1');
+    _updateSidebarAccount(acct);
+    closeAccountModal();
+    location.reload();
+  } else {
+    err.textContent = 'Wrong PIN � try again';
+    input.value = '';
+    input.focus();
+  }
+}
+
+function createAccount() {
+  const name = document.getElementById('new-acct-name')?.value.trim();
+  const init = document.getElementById('new-acct-init')?.value.trim().toUpperCase();
+  const pin  = document.getElementById('new-acct-pin')?.value.trim();
+  const err  = document.getElementById('new-acct-err');
+  if (!name) { err.textContent = 'Name is required'; return; }
+  if (pin && (pin.length < 4 || !/^\d+$/.test(pin))) { err.textContent = 'PIN must be 4�6 digits'; return; }
+  const accounts = _getAccounts();
+  const id = name.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now();
+  accounts.push({ id, name, initials: init || name[0].toUpperCase(), color: _selectedNewColor, pin: pin || '' });
+  _saveAccounts(accounts);
+  showToast(`Account "${name}" created ?`);
+  showAccountModal('switch');
+}
