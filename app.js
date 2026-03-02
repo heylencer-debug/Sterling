@@ -1,1341 +1,1938 @@
-// Sterling — Sterling PSE Dashboard
-// All page logic and Supabase data fetching
+// ===== DASHBOARD APP =====
+let marketData = null;
+let suppliersData = null;
+let pricingChart = null;
+let seasonChart = null;
+const _rendered = {};
 
-// State
-let loadedPages = {};
-let portfolioData = [];
-let watchlistData = [];
-let alertsData = [];
-let newsData = [];
-let briefsData = [];
-let calendarMonth = new Date().getMonth();
-let calendarYear = new Date().getFullYear();
+// ===== DYNAMIC SCRIPT LOADER =====
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
 
-// Known dividend schedules for REITs (quarterly)
-const DIVIDEND_SCHEDULES = {
-  FILRT: { yield: 6.5, frequency: 'quarterly', months: [3, 6, 9, 12] },
-  MREIT: { yield: 7.2, frequency: 'quarterly', months: [2, 5, 8, 11] },
-  AREIT: { yield: 5.8, frequency: 'quarterly', months: [3, 6, 9, 12] },
-  RCR: { yield: 6.0, frequency: 'quarterly', months: [1, 4, 7, 10] },
-  DDMPR: { yield: 6.8, frequency: 'quarterly', months: [2, 5, 8, 11] },
-  GLO: { yield: 4.5, frequency: 'annual', months: [5] },
-  DMC: { yield: 3.2, frequency: 'annual', months: [6] },
-  KEEPR: { yield: 7.0, frequency: 'quarterly', months: [3, 6, 9, 12] }
+// Lazy loading state
+const lazyState = {
+  feed:     { loaded: false, rendered: false },
+  calendar: { loaded: false, rendered: false },
+  captions: { loaded: false, rendered: false },
+  catalog:  { loaded: false, rendered: false },
+  btv:      { loaded: false, rendered: false }
 };
 
-// Boot
-document.addEventListener('DOMContentLoaded', () => {
-  initNav();
-  setTimeout(() => lazyLoadTab('portfolio'), 200);
-});
+// ===== INIT — boots immediately, loads data lazily =====
+async function init() {
+  try {
+    boot();
+  } catch(e) {
+    console.error('boot() error:', e);
+    hideLoader(); // Always unblock the UI
+  }
+  // Load data.js in background for static-data tabs
+  loadScript('data/data.js').then(function() {
+    marketData = window.MARKET_DATA || null;
+    suppliersData = window.SUPPLIERS_DATA || null;
+  }).catch(function(e) { console.warn('data.js load failed:', e); });
+}
 
-// Navigation
-function initNav() {
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const page = item.dataset.page;
-      switchPage(page);
-      closeMobileMenu();
+function boot() {
+  try { setDates(); } catch(e) {}
+  try { setupNav(); } catch(e) {}
+  try { setupMobile(); } catch(e) {}
+  try { setupSupplierTabs(); } catch(e) {}
+
+  // Always hide loader — no matter what
+  hideLoader();
+
+  // Render the default active page (market) after data.js loads
+  setTimeout(function() {
+    try { lazyLoadTab('market'); } catch(e) { console.warn('market tab init:', e); }
+  }, 200);
+
+  // Non-blocking deferred work
+  setTimeout(function() {
+    try { renderEthelFeed(); setInterval(renderEthelFeed, 60000); } catch(e) {}
+  }, 800);
+  setTimeout(function() {
+    try { initRealtime(); } catch(e) {}
+  }, 1500);
+}
+
+// ===== SUPABASE CONFIG =====
+// Config is read lazily to ensure sb.js has loaded first
+function getSbConfig() {
+  const cfg = window.SUPABASE_CONFIG || {};
+  return { url: cfg.url || '', key: cfg.key || '' };
+}
+
+async function sbFetch(table, query) {
+  const { url, key } = getSbConfig();
+  if (!url || !key) {
+    console.warn('[Supabase] Config not loaded — sb.js missing?');
+    return [];
+  }
+  const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' };
+  try {
+    const res = await fetch(`${url}/rest/v1/${table}${query ? '?' + query : ''}`, { headers });
+    return await res.json();
+  } catch(e) { console.warn('[Supabase]', table, e.message); return []; }
+}
+
+// ===== ITEM 1 — POLLING (replaces Supabase Realtime since library was removed) =====
+function initRealtime() {
+  // Supabase JS library was removed — use polling instead
+  // Poll active tabs every 60s for updates
+  setInterval(function() {
+    try {
+      const activePage = document.querySelector('.page.active');
+      if (!activePage) return;
+      const pageId = activePage.id;
+      if (pageId === 'page-btv' && typeof renderBtvCatalog === 'function') {
+        renderBtvCatalog();
+      }
+      if (pageId === 'page-competitor-feed' && typeof loadCompetitorFeed === 'function') {
+        loadCompetitorFeed();
+      }
+      if (pageId === 'page-supplier-intel' && typeof loadSupplierProducts === 'function') {
+        loadSupplierProducts();
+      }
+    } catch(e) { console.warn('[Polling]', e.message); }
+  }, 60000);
+  console.log('[Polling] Dashboard polling initialized ✅');
+}
+
+// ===== ITEM 2 — SUPABASE DATA LOADING =====
+async function loadFromSupabase() {
+  if (!SB_URL || !SB_KEY) return;
+  try {
+    // Only load market stats on boot — everything else loads per-tab
+    const stats = await sbFetch('market_stats', 'order=updated_at.desc&limit=1');
+    if (Array.isArray(stats) && stats.length > 0) {
+      // overlay market stats if available
+      console.log('[Supabase] Market stats loaded');
+    }
+  } catch(e) {
+    console.warn('[Supabase] loadFromSupabase failed:', e.message);
+  }
+}
+
+// ===== ITEM 5 — COMPETITOR PRICE TRACKER =====
+async function renderPriceTracker() {
+  const tbody = document.getElementById('price-tracker-body');
+  if (!tbody) return;
+  const cat = document.getElementById('price-cat-filter')?.value || '';
+  const platform = document.getElementById('price-platform-filter')?.value || '';
+  let q = 'order=competitor.asc,price.asc&limit=100';
+  if (cat) q += `&category=eq.${cat}`;
+  if (platform) q += `&platform=eq.${platform}`;
+  const rows = await sbFetch('competitor_prices', q);
+  if (!rows.length || rows.error) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#94A3B8">No price data yet — Ethel adds entries daily at 7AM PH</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const gap = (r.our_price && r.price) ? r.our_price - r.price : null;
+    const gapHtml = gap === null ? '—'
+      : gap >= 0 ? `<span style="color:#10B981;font-weight:600">+S$${gap.toFixed(2)}</span>`
+      : `<span style="color:#EF4444;font-weight:600">-S$${Math.abs(gap).toFixed(2)}</span>`;
+    return `<tr>
+      <td><strong>${r.competitor}</strong></td>
+      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.product}">${r.product}</td>
+      <td><span class="badge">${r.category || '—'}</span></td>
+      <td>S$${r.price?.toFixed(2) || '—'}</td>
+      <td>${r.our_price ? 'S$' + r.our_price.toFixed(2) : '—'}</td>
+      <td>${gapHtml}</td>
+      <td style="color:#64748B;font-size:11px">${r.platform || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function hideLoader() {
+  const loader = document.getElementById('loader');
+  if (loader) {
+    loader.style.opacity = '0';
+    loader.style.transition = 'opacity 0.3s';
+    setTimeout(function() { loader.style.display = 'none'; }, 300);
+  }
+}
+
+// ===== MOBILE SETUP =====
+function setupMobile() {
+  var hamburger = document.getElementById('hamburger-btn') || document.getElementById('mobile-menu-toggle');
+  var overlay = document.getElementById('sidebar-overlay') || document.getElementById('mobile-overlay');
+  if (hamburger) {
+    hamburger.addEventListener('click', function() {
+      document.body.classList.toggle('sidebar-open');
+    });
+  }
+  if (overlay) {
+    overlay.addEventListener('click', function() {
+      document.body.classList.remove('sidebar-open');
+    });
+  }
+  // Close sidebar on nav item click (mobile)
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      if (window.innerWidth <= 768) {
+        document.body.classList.remove('sidebar-open');
+        // Also close via existing toggleMobileMenu if sidebar is open
+        var sidebar = document.querySelector('.sidebar');
+        if (sidebar && sidebar.classList.contains('mobile-open')) {
+          if (typeof toggleMobileMenu === 'function') toggleMobileMenu();
+        }
+      }
     });
   });
 }
 
-function switchPage(page) {
-  // Update nav
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelector(`[data-page="${page}"]`).classList.add('active');
-
-  // Update pages
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(`page-${page}`).classList.add('active');
-
-  // Lazy load
-  lazyLoadTab(page);
+// ===== DATES =====
+function setDates() {
+  const d = marketData ? marketData.lastUpdated : new Date().toISOString();
+  const el1 = document.getElementById('sidebar-date');
+  const el2 = document.getElementById('header-date');
+  if (el1) el1.textContent = formatDate(d);
+  if (el2) el2.textContent = formatDate(d);
+}
+function formatDate(d) {
+  const date = new Date(d);
+  return date.toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-function lazyLoadTab(page) {
-  if (loadedPages[page]) return;
-  loadedPages[page] = true;
+// ===== NAV WITH LAZY LOADING =====
+function setupNav() {
+  const titles = {
+    market:         ['Market Analysis',         'Philippines Embroidery Gift Market — Live Research Data'],
+    competitors:    ['Competitor Deep-Dive',    'Know your competition — Intel that keeps you ahead'],
+    suppliers:      ['Suppliers List',          'Wholesale & retail sources for embroidery blanks — Feb 2026'],
+    'supplier-intel': ['Supplier Intelligence', 'Curated supplier data from Ethel 🕵️ — Intelligence Agent'],
+    feed:           ['Social Feed',             'Competitor posts, viral trends & market signals — updated daily'],
+    calendar:       ['Content Calendar',        'March 2026 posting schedule — 30 planned posts across all platforms'],
+    captions:       ['Captions Library',        '30 ready-to-use captions for Instagram, TikTok & Facebook'],
+    pricing:        ['Pricing Calculator',      'Calculate costs, margins & competitive pricing in real-time'],
+    catalog:        ['Product Catalog',         'Your SKUs, pricing tiers, margins & competitor comparison'],
+    btv:            ['BTV Catalog',             'Beyond The Vines — 262 products from beyondthevines.com'],
+    'competitor-feed': ['Competitor Feed',     'Live social posts from competing brands — powered by Ethel']
+  };
 
-  switch(page) {
-    case 'portfolio': loadPortfolio(); break;
-    case 'brief': loadBriefs(); break;
-    case 'watchlist': loadWatchlist(); break;
-    case 'alerts': loadAlerts(); break;
-    case 'news': loadNews(); break;
-    case 'dividends': loadDividends(); break;
-    case 'discovery': loadDiscovery(); break;
-    case 'learn': loadLearnPage(); break;
-  }
-}
-
-// Mobile menu
-function toggleMobileMenu() {
-  document.getElementById('sidebar').classList.toggle('open');
-}
-
-function closeMobileMenu() {
-  document.getElementById('sidebar').classList.remove('open');
-}
-
-// Loader
-function showLoader() {
-  document.getElementById('loader').classList.remove('hidden');
-}
-
-function hideLoader() {
-  document.getElementById('loader').classList.add('hidden');
-}
-
-// Format helpers
-function formatPeso(val) {
-  if (val == null) return '—';
-  return '₱' + Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function formatPct(val) {
-  if (val == null) return '—';
-  const sign = val >= 0 ? '+' : '';
-  return sign + Number(val).toFixed(2) + '%';
-}
-
-function formatDate(str) {
-  if (!str) return '—';
-  return new Date(str).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function formatTime(str) {
-  if (!str) return '—';
-  return new Date(str).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
-function updateLastUpdate() {
-  document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
-}
-
-// ==================== PORTFOLIO ====================
-
-async function loadPortfolio() {
-  showLoader();
-  try {
-    // Fetch PSEi
-    fetchPSEi();
-
-    // Fetch portfolio
-    portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
-    renderPortfolio();
-    updateLastUpdate();
-
-    // Auto-refresh every 60s
-    setInterval(async () => {
-      portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
-      renderPortfolio();
-      fetchPSEi();
-      updateLastUpdate();
-    }, 60000);
-
-  } catch (err) {
-    console.error('Portfolio load error:', err);
-  }
-  hideLoader();
-}
-
-async function fetchPSEi() {
-  try {
-    // Use a CORS proxy to fetch PSE index data
-    // Phisix individual stock for PSEi proxy stocks
-    const symbols = ['MBT','ALI','SM','BDO','JFC'];
-    let totalChange = 0; let count = 0;
-    for (const sym of symbols) {
-      try {
-        const r = await fetch(`https://phisix-api3.appspot.com/stocks/${sym}.json`);
-        const d = await r.json();
-        if (d.stocks && d.stocks[0]) { totalChange += parseFloat(d.stocks[0].percentChange||0); count++; }
-      } catch(e) {}
-    }
-    // Also fetch MBT as representative bank
-    const mbtRes = await fetch('https://phisix-api3.appspot.com/stocks/MBT.json');
-    const mbtData = await mbtRes.json();
-    const mbtPrice = mbtData.stocks && mbtData.stocks[0] ? parseFloat(mbtData.stocks[0].price.amount) : null;
-
-    // Show PSEi from Supabase if stored, else estimate
-    const pseiData = await window.sbFetch('sterling_portfolio', { select: 'current_price,unrealized_pl_pct', limit: '1' });
-    const avgChange = count > 0 ? (totalChange / count).toFixed(2) : 0;
-    const changeClass = avgChange >= 0 ? 'up' : 'down';
-    const changeSign = avgChange >= 0 ? '+' : '';
-
-    // Try to get stored PSEi from agent_activity
-    document.getElementById('psei-value').textContent = '6,812'; // Updated daily by Sterling
-    document.getElementById('psei-change').textContent = `${changeSign}${avgChange}% est.`;
-    document.getElementById('psei-change').className = `psei-change ${changeClass}`;
-    document.getElementById('market-status').textContent = isMarketOpen() ? '🟢 OPEN' : '🔴 CLOSED';
-  } catch (e) {
-    console.log('PSEi fetch error:', e);
-    document.getElementById('psei-value').textContent = '—';
-  }
-}
-
-function isMarketOpen() {
-  const now = new Date();
-  const manilaOffset = 8 * 60;
-  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-  const manila = new Date(utc + manilaOffset * 60000);
-  const day = manila.getDay(); // 0=Sun, 6=Sat
-  const hour = manila.getHours();
-  const min = manila.getMinutes();
-  const mins = hour * 60 + min;
-  if (day === 0 || day === 6) return false; // Weekend
-  return (mins >= 9 * 60 + 30) && (mins < 15 * 60 + 30); // 9:30AM-3:30PM
-}
-
-function renderPortfolio() {
-  const grid = document.getElementById('holdings-grid');
-
-  if (!portfolioData || portfolioData.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">No holdings found</div></div>`;
-    return;
-  }
-
-  // Normalize column names (Supabase uses qty/avg_buy_price)
-  portfolioData = portfolioData.map(h => ({
-    ...h,
-    quantity: h.qty || h.quantity || 0,
-    average_price: h.avg_buy_price || h.average_price || 0,
-    day_change_pct: h.unrealized_pl_pct !== undefined ? null : (h.day_change_pct || 0),
-  }));
-
-  // Calculate totals
-  let totalValue = 0;
-  let totalCost = 0;
-  portfolioData.forEach(h => {
-    const val = (h.current_price || 0) * (h.quantity || 0);
-    const cost = (h.average_price || 0) * (h.quantity || 0);
-    totalValue += val;
-    totalCost += cost;
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const page = item.dataset.page;
+      
+      // Update nav state
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      
+      // Update header
+      document.getElementById('page-title').textContent = titles[page][0];
+      document.getElementById('page-sub').textContent = titles[page][1];
+      if (page === 'suppliers') {
+        document.getElementById('header-date').textContent = suppliersData ? formatDate(suppliersData.lastUpdated) : '';
+      } else {
+        document.getElementById('header-date').textContent = marketData ? formatDate(marketData.lastUpdated) : '';
+      }
+      
+      // Lazy load tab data if needed
+      await lazyLoadTab(page);
+      
+      // Show the page
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+    });
   });
-  const totalPL = totalValue - totalCost;
-  const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
-
-  // Update summary
-  document.getElementById('total-value').textContent = formatPeso(totalValue);
-
-  const plEl = document.getElementById('total-pl');
-  plEl.textContent = formatPeso(totalPL);
-  plEl.className = 'summary-value ' + (totalPL >= 0 ? 'positive' : 'negative');
-
-  const plPctEl = document.getElementById('total-pl-pct');
-  plPctEl.textContent = formatPct(totalPLPct);
-  plPctEl.className = 'summary-value ' + (totalPLPct >= 0 ? 'positive' : 'negative');
-
-  document.getElementById('portfolio-updated').textContent = new Date().toLocaleTimeString('en-PH');
-
-  // Render cards
-  grid.innerHTML = portfolioData.map(h => {
-    const currentVal = (h.current_price || 0) * (h.quantity || 0);
-    const costVal = (h.average_price || 0) * (h.quantity || 0);
-    const pl = currentVal - costVal;
-    const plPct = costVal > 0 ? (pl / costVal) * 100 : 0;
-    const dayChange = h.day_change_pct || 0;
-    const changeClass = dayChange > 0 ? 'up' : dayChange < 0 ? 'down' : 'neutral';
-    const plClass = pl >= 0 ? 'positive' : 'negative';
-
-    return `
-      <div class="holding-card">
-        <div class="holding-header">
-          <div>
-            <div class="holding-symbol">${h.symbol}</div>
-            <div class="holding-company">${h.company_name || ''}</div>
-          </div>
-          <div class="holding-badges">
-            <span class="badge-sector">${h.sector || 'N/A'}</span>
-            ${h.is_reit ? '<span class="badge-reit">REIT</span>' : ''}
-          </div>
-        </div>
-        <div class="holding-price">
-          <span class="price-current">${formatPeso(h.current_price)}</span>
-          <span class="price-change ${changeClass}">${formatPct(dayChange)}</span>
-        </div>
-        <div class="holding-pl">
-          <div class="pl-item">
-            <div class="pl-label">Unrealized P&L</div>
-            <div class="pl-value ${plClass}">${formatPeso(pl)}</div>
-          </div>
-          <div class="pl-item">
-            <div class="pl-label">P&L %</div>
-            <div class="pl-value ${plClass}">${formatPct(plPct)}</div>
-          </div>
-        </div>
-        <div class="holding-details">
-          <div class="detail-row">
-            <span class="detail-label">Avg Buy</span>
-            <span class="detail-value">${formatPeso(h.average_price)}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Qty</span>
-            <span class="detail-value">${(h.quantity || 0).toLocaleString()}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Div Yield</span>
-            <span class="detail-value">${h.dividend_yield ? h.dividend_yield.toFixed(2) + '%' : '—'}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">Value</span>
-            <span class="detail-value">${formatPeso(currentVal)}</span>
-          </div>
-        </div>
-        ${renderSparkline(h.price_history)}
-        ${renderStockAction(h.symbol)}
-      </div>
-    `;
-  }).join('');
 }
 
-// Analyst recommendation badge per stock
-// All data verified via web research on 2026-03-02
-// Sources: Investing.com, HelloSafe PH, Asia Securities, PSE Edge, Simply Wall St, Fintel.io
-const STOCK_ACTIONS = {
-  MBT: {
-    action: 'HOLD — Add on dips ₱73-74',
-    color: '#00D4A0',
-    detail: 'RSI 66.8 (strong, not overbought) | All 12 MAs = Buy | P/E 6.86x vs sector 11x | 13 analysts avg target ₱91, high ₱97.50 | Stop-loss ₱69 | Take profit 1st at ₱86',
-    sources: [
-      { name: 'Technicals', url: 'https://www.investing.com/equities/metropolitan-b-technical' },
-      { name: 'Targets', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company' },
-      { name: 'Disclosures', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=573' },
-    ]
-  },
-  KEEPR: {
-    action: 'HOLD — 40% NAV discount',
-    color: '#FFD700',
-    detail: 'NAV ₱3.80 vs price ₱2.30 = 40% discount to real estate value | ~11% dividend yield | 94% occupancy (Asia Securities PDF) | Catalyst: BSP rate cut H2 2026 → REIT rally | Stop-loss ₱1.90',
-    sources: [
-      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-KEEPR/technicals/' },
-      { name: 'DragonFi', url: 'https://www.dragonfi.ph/market/stocks/KEEPR' },
-    ]
-  },
-  FILRT: {
-    action: 'HOLD — Ex-div ~Mar 11',
-    color: '#FFD700',
-    detail: 'Ex-date ~March 11 | Dividend ₱0.06/share × 7,000 = ₱420 cash | 8.1% annual yield | NAV ₱4.21 vs price ₱3.02 = 28% discount | LT Buy (Asia Securities)',
-    sources: [
-      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-FILRT/technicals/' },
-      { name: 'Disclosures', url: 'https://edge.pse.com.ph' },
-    ]
-  },
-  GLO: {
-    action: 'HOLD — Dividend play',
-    color: '#00D4A0',
-    detail: 'P/E 11x (vs telecom avg 21x globally) | Dividend yield 6.36% (Fintel.io) | Above 200-day MA | EPS growth 9.3% | High debt D/E 2.1x (normal for telecoms) | Target ₱1,850-1,900',
-    sources: [
-      { name: 'Fundamentals', url: 'https://fintel.io/s/ph/glo' },
-      { name: 'Valuation', url: 'https://simplywall.st/stocks/ph/telecom/pse-glo/globe-telecom-shares/valuation' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-GLO/technicals/' },
-    ]
-  },
-  DMC: {
-    action: 'HOLD — Watch nickel prices',
-    color: '#FFD700',
-    detail: 'RSI 44.4 — neutral/slightly oversold (Investing.com) | P/E 8x vs industry 12.2x = cheap | Dividend yield 9.73% (HelloSafe) | 4/5 analysts BUY | Target ₱11.81-14.89 | Key risk: nickel commodity price',
-    sources: [
-      { name: 'Fundamentals', url: 'https://hellosafe.ph/investing/stock-market/stocks/dmc' },
-      { name: 'Technicals', url: 'https://www.investing.com/equities/dmci-holdings-technical' },
-      { name: 'PSE Edge', url: 'https://edge.pse.com.ph/companyPage/stockData.do?cmpy_id=188' },
-    ]
-  },
-  MREIT: {
-    action: 'HOLD — Ex-div ~Mar 20',
-    color: '#00D4A0',
-    detail: 'NAV ₱19.69 vs price ₱14.18 = 28% discount | 7.2% dividend yield | Ex-date ~March 20 | Megaworld expanding to Iloilo + Davao CBDs | BUY rating (Asia Securities) | Target ₱17.50',
-    sources: [
-      { name: 'Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-MREIT/technicals/' },
-      { name: 'DragonFi', url: 'https://www.dragonfi.ph/market/stocks/MREIT' },
-    ]
-  },
-  RRHI: {
-    action: 'HOLD — Neutral signals',
-    color: '#64748B',
-    detail: 'RSI 47 — neutral (Investing.com) | MACD -0.284 = mild sell signal | 8 MAs say Sell, 4 say Buy = mixed | Same-store sales +5.65% (2025) | High growth rank 9/10 (GuruFocus) | Don\'t add at current levels',
-    sources: [
-      { name: 'Technicals', url: 'https://www.investing.com/equities/robinsons-reta-technical' },
-      { name: 'Fundamentals', url: 'https://www.gurufocus.com/stock/PHS:RRHI/summary' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-RRHI/technicals/' },
-    ]
-  },
-};
-
-function renderStockAction(symbol) {
-  const a = STOCK_ACTIONS[symbol];
-  if (!a) return '';
-  const sourceLinks = a.sources.map(s =>
-    `<a href="${s.url}" target="_blank" style="color:#FFD700;text-decoration:none;font-size:10px;background:rgba(255,215,0,0.1);padding:2px 6px;border-radius:3px;margin-right:4px">${s.name} ↗</a>`
-  ).join('');
-  return `
-    <div class="stock-action" style="border-left:3px solid ${a.color};padding:8px 10px;margin-top:10px;background:rgba(255,255,255,0.03);border-radius:0 4px 4px 0;cursor:pointer" onclick="this.querySelector('.action-detail').style.display=this.querySelector('.action-detail').style.display==='none'?'block':'none'">
-      <div style="font-size:11px;font-weight:700;color:${a.color};letter-spacing:0.5px">⚔️ ${a.action}</div>
-      <div class="action-detail" style="display:none;margin-top:6px">
-        <div style="font-size:11px;color:#CBD5E1;line-height:1.6;margin-bottom:6px">${a.detail}</div>
-        <div style="margin-top:4px">📎 Sources: ${sourceLinks}</div>
-      </div>
-    </div>`;
-}
-
-function renderSparkline(history) {
-  if (!history || history.length < 2) return '';
-  const data = history.slice(-7);
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const h = 40;
-  const w = 100;
-
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * h;
-    return `${x},${y}`;
-  }).join(' ');
-
-  const color = data[data.length - 1] >= data[0] ? '#00D4A0' : '#FF4757';
-
-  return `
-    <div class="holding-sparkline">
-      <svg class="sparkline-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
-        <polyline fill="none" stroke="${color}" stroke-width="2" points="${points}"/>
-      </svg>
-    </div>
-  `;
-}
-
-// ==================== MORNING BRIEF ====================
-
-async function loadBriefs() {
-  try {
-    briefsData = await window.sbFetch('sterling_briefs', { order: 'brief_date.desc', limit: '20' });
-    renderBriefs();
-  } catch (err) {
-    console.error('Briefs load error:', err);
-    // Try alerts table as fallback
-    try {
-      const alerts = await window.sbFetch('sterling_alerts', { filter: "type=eq.morning_brief", order: 'created_at.desc', limit: '20' });
-      briefsData = alerts.map(a => ({
-        brief_date: a.created_at,
-        brief_text: a.message,
-        portfolio_value: null,
-        total_pl: null
-      }));
-      renderBriefs();
-    } catch (e) {
-      console.error('Alerts fallback error:', e);
+// Lazy load tab data & render on first activation
+async function lazyLoadTab(page) {
+  // Already-handled lazy states (tabs with separate data files)
+  const state = lazyState[page];
+  if (state) {
+    if (state.loaded && state.rendered) return;
+    if (!state.loaded) {
+      await loadDataScript(page);
+      state.loaded = true;
     }
-  }
-}
-
-function renderBriefs() {
-  const list = document.getElementById('briefs-list');
-
-  if (!briefsData || briefsData.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No morning briefs yet. Sterling runs at 7AM weekdays.</div></div>`;
+    if (!state.rendered) {
+      renderTab(page);
+      state.rendered = true;
+    }
     return;
   }
 
-  list.innerHTML = briefsData.map((b, i) => `
-    <div class="brief-card" onclick="toggleBrief(${i})">
-      <div class="brief-header">
-        <div>
-          <div class="brief-date">${formatDate(b.brief_date)}</div>
-        </div>
-        <div class="brief-snapshot">
-          ${b.portfolio_value ? `<span>Value: ${formatPeso(b.portfolio_value)}</span>` : ''}
-          ${b.total_pl != null ? `<span style="color: ${b.total_pl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">P&L: ${formatPeso(b.total_pl)}</span>` : ''}
-        </div>
-        <span class="brief-expand">▼</span>
-      </div>
-      <div class="brief-content" style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:13px;line-height:1.7">${(b.brief_text || 'No content').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  // Pages that need data.js — load it first if not ready
+  if (_rendered[page]) return;
+  _rendered[page] = true;
+
+  // Ensure data.js is loaded for static-data tabs
+  const needsData = ['market','competitors','suppliers','pricing'];
+  if (needsData.includes(page) && !window.MARKET_DATA) {
+    await loadScript('data/data.js');
+    marketData = window.MARKET_DATA || null;
+    suppliersData = window.SUPPLIERS_DATA || null;
+  }
+
+  if (page === 'market') {
+    if (typeof renderStats === 'function') renderStats();
+    if (typeof renderSeasonalAlerts === 'function') renderSeasonalAlerts();
+    if (typeof updateGradCountdown === 'function') updateGradCountdown();
+    if (typeof renderProductsTable === 'function') renderProductsTable();
+    if (typeof renderCompetitors === 'function') renderCompetitors();
+    if (typeof renderInsights === 'function') renderInsights();
+    if (typeof renderProductOpportunities === 'function') renderProductOpportunities();
+    // Load Chart.js only when market tab opens
+    loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js').then(() => {
+      if (typeof renderCharts === 'function') renderCharts();
+    });
+  }
+  if (page === 'competitors') {
+    if (typeof renderCompetitorDeepDive === 'function') renderCompetitorDeepDive();
+    if (typeof renderThreatMatrix === 'function') renderThreatMatrix();
+    if (typeof renderAdvantages === 'function') renderAdvantages();
+  }
+  if (page === 'suppliers') {
+    if (typeof renderSuppliers === 'function') renderSuppliers();
+    if (typeof renderGroups === 'function') renderGroups();
+    if (typeof renderTemplate === 'function') renderTemplate();
+    if (typeof setupFilters === 'function') setupFilters();
+  }
+  if (page === 'supplier-intel') {
+    if (typeof renderSupplierIntelligence === 'function') renderSupplierIntelligence();
+    if (typeof loadSupplierProducts === 'function') loadSupplierProducts();
+    if (typeof renderPriceTracker === 'function') renderPriceTracker();
+  }
+  if (page === 'pricing') {
+    loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js').then(() => {
+      if (typeof initPricingCalculator === 'function') initPricingCalculator();
+    });
+  }
+  if (page === 'competitor-feed') {
+    if (typeof loadCompetitorFeed === 'function') loadCompetitorFeed();
+  }
+}
+
+// Dynamically load a data script (renamed from loadScript to avoid conflict)
+function loadDataScript(page) {
+  return new Promise((resolve, reject) => {
+    const scriptMap = {
+      feed: 'data/feed.js',
+      calendar: 'data/calendar.js',
+      captions: 'data/calendar.js',
+      catalog: 'data/catalog.js',
+      btv: 'data/btv-products.js'
+    };
+
+    const src = scriptMap[page];
+    if (!src) {
+      resolve();
+      return;
+    }
+
+    // Check if already loaded by checking for the global
+    const globalMap = {
+      feed: 'FEED_DATA',
+      calendar: 'CALENDAR_DATA',
+      captions: 'CAPTIONS_DATA',
+      catalog: 'CATALOG_DATA',
+      btv: 'BTV_PRODUCTS'
+    };
+    
+    if (window[globalMap[page]]) {
+      resolve(); // Already loaded
+      return;
+    }
+    
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      console.error(`Failed to load ${src}`);
+      reject();
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// Render tab content after data is loaded
+function renderTab(page) {
+  switch(page) {
+    case 'feed':
+      if (window.FEED_DATA) {
+        renderFeed();
+        renderCompetitorProfiles();
+        setupFeedFilters();
+      }
+      break;
+    case 'calendar':
+      if (window.CALENDAR_DATA) {
+        renderCalendar();
+        renderCalendarTable();
+      }
+      break;
+    case 'captions':
+      if (window.CAPTIONS_DATA) {
+        renderCaptions();
+        setupCaptionFilters();
+      }
+      break;
+    case 'catalog':
+      if (window.CATALOG_DATA) {
+        renderCatalog();
+        renderCompetitorPricing();
+        renderBundles();
+        renderRecommendations();
+      }
+      break;
+    case 'btv':
+      if (window.BTV_PRODUCTS) {
+        renderBtvCatalog();
+        setupBtvFilters();
+      }
+      break;
+  }
+}
+
+// ===== STATS =====
+function renderStats() {
+  const grid = document.getElementById('stats-grid');
+  if (!grid || !marketData || !marketData.stats) return;
+  grid.innerHTML = marketData.stats.map(s => `
+    <div class="stat-card">
+      <span class="stat-icon">${s.icon}</span>
+      <div class="stat-value">${s.value}</div>
+      <div class="stat-label">${s.label}</div>
+      <div class="stat-sub">${s.sub}</div>
+      <span class="stat-trend trend-${s.trend}">
+        ${s.trend === 'up' ? '↑ Growing' : s.trend === 'down' ? '↓ Declining' : '→ Stable'}
+      </span>
     </div>
   `).join('');
 }
 
-function toggleBrief(index) {
-  const cards = document.querySelectorAll('.brief-card');
-  cards[index].classList.toggle('expanded');
+// ===== PRODUCTS TABLE =====
+function renderProductsTable() {
+  const tbody = document.getElementById('products-body');
+  tbody.innerHTML = marketData.trendingProducts.map(p => {
+    const demandClass = { 'Very High': 'veryhigh', 'High': 'high', 'Growing': 'growing', 'Emerging': 'emerging' }[p.demand] || 'medium';
+    const trendClass = { rising: 'trend-rising', stable: 'trend-stable', falling: 'trend-falling' }[p.trend];
+    const trendIcon = { rising: '↑ Rising', stable: '→ Stable', falling: '↓ Falling' }[p.trend];
+    const barWidth = Math.min(p.margin, 100);
+    return `<tr>
+      <td><strong style="color:#E94560">${p.rank}</strong></td>
+      <td><strong>${p.emoji} ${p.product}</strong></td>
+      <td><span class="badge badge-${demandClass}">${p.demand}</span></td>
+      <td style="font-weight:600;color:#1A1A2E">${p.priceRange}</td>
+      <td>
+        <div class="margin-bar">
+          <div class="margin-fill" style="width:${barWidth}px"></div>
+          <span class="margin-text">${p.margin}%</span>
+        </div>
+      </td>
+      <td><span class="${trendClass}" style="font-size:12px;font-weight:600">${trendIcon}</span></td>
+    </tr>`;
+  }).join('');
 }
 
-// ==================== WATCHLIST ====================
-
-async function loadWatchlist() {
-  try {
-    watchlistData = await window.sbFetch('sterling_watchlist', { order: 'fundamental_score.desc' });
-    populateWatchlistFilters();
-    renderWatchlist();
-  } catch (err) {
-    console.error('Watchlist load error:', err);
-  }
+// ===== COMPETITORS =====
+function renderCompetitors() {
+  const grid = document.getElementById('competitors-grid');
+  const colors = { High: 'badge-veryhigh', Medium: 'badge-high', Low: 'badge-low' };
+  grid.innerHTML = marketData.competitors.map(c => `
+    <div class="competitor-card">
+      <div class="comp-name">${c.name}</div>
+      <div class="comp-platform">📍 ${c.platform}${c.followers !== '—' ? ' · ' + c.followers : ''}</div>
+      <div class="comp-focus"><strong>Focus:</strong> ${c.focus}</div>
+      <div class="comp-weakness">⚠️ ${c.weakness}</div>
+      <span class="badge ${colors[c.threat] || 'badge-medium'}">Threat: ${c.threat}</span>
+    </div>
+  `).join('');
 }
 
-function populateWatchlistFilters() {
-  const sectors = [...new Set(watchlistData.map(w => w.sector).filter(Boolean))];
-  const select = document.getElementById('filter-sector');
-  select.innerHTML = '<option value="">All Sectors</option>' + sectors.map(s => `<option value="${s}">${s}</option>`).join('');
+// ===== INSIGHTS =====
+function renderInsights() {
+  const grid = document.getElementById('insights-grid');
+  grid.innerHTML = marketData.insights.map(i => `
+    <div class="insight-card insight-${i.type}">
+      <div class="insight-icon">${i.icon}</div>
+      <div class="insight-title">${i.title}</div>
+      <div class="insight-body">${i.body}</div>
+    </div>
+  `).join('');
 }
 
-function filterWatchlist() {
-  renderWatchlist();
-}
-
-function setWatchlistView(view) {
-  document.querySelectorAll('.view-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector(`[data-view="${view}"]`).classList.add('active');
-
-  if (view === 'cards') {
-    document.getElementById('watchlist-cards').style.display = 'grid';
-    document.getElementById('watchlist-table-wrap').style.display = 'none';
-  } else {
-    document.getElementById('watchlist-cards').style.display = 'none';
-    document.getElementById('watchlist-table-wrap').style.display = 'block';
-  }
-}
-
-function renderWatchlist() {
-  const sector = document.getElementById('filter-sector').value;
-  const rec = document.getElementById('filter-recommendation').value;
-
-  let filtered = watchlistData.filter(w => {
-    if (sector && w.sector !== sector) return false;
-    if (rec && w.recommendation !== rec) return false;
-    return true;
+// ===== CHARTS =====
+function renderCharts() {
+  // Pricing Chart
+  const pb = marketData.pricingBenchmarks;
+  const pCtx = document.getElementById('pricingChart').getContext('2d');
+  if (pricingChart) pricingChart.destroy();
+  pricingChart = new Chart(pCtx, {
+    type: 'bar',
+    data: {
+      labels: pb.labels,
+      datasets: [
+        { label: 'Competitor Avg (₱)', data: pb.competitorAvg, backgroundColor: 'rgba(233,69,96,0.15)', borderColor: '#E94560', borderWidth: 2, borderRadius: 6 },
+        { label: 'Your Price (₱)', data: pb.yourSuggestedPrice, backgroundColor: 'rgba(59,130,246,0.15)', borderColor: '#3B82F6', borderWidth: 2, borderRadius: 6 },
+        { label: 'Material Cost (₱)', data: pb.materialCost, backgroundColor: 'rgba(34,197,94,0.15)', borderColor: '#22C55E', borderWidth: 2, borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, padding: 12 } } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#F0F2F5' }, ticks: { callback: v => '₱' + v, font: { family: 'Inter', size: 11 } } },
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } }
+      }
+    }
   });
 
-  const cards = document.getElementById('watchlist-cards');
-  const tbody = document.getElementById('watchlist-tbody');
+  // Seasonal Chart
+  const sd = marketData.seasonalDemand;
+  const sCtx = document.getElementById('seasonChart').getContext('2d');
+  if (seasonChart) seasonChart.destroy();
+  const bgColors = sd.map(m => {
+    if (m.level === 5) return 'rgba(233,69,96,0.85)';
+    if (m.level === 4) return 'rgba(249,115,22,0.75)';
+    if (m.level === 3) return 'rgba(234,179,8,0.7)';
+    return 'rgba(148,163,184,0.5)';
+  });
+  seasonChart = new Chart(sCtx, {
+    type: 'bar',
+    data: {
+      labels: sd.map(m => m.month),
+      datasets: [{
+        label: 'Demand Level',
+        data: sd.map(m => m.level),
+        backgroundColor: bgColors,
+        borderRadius: 6, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const item = sd[ctx.dataIndex];
+              const names = ['', 'Low', 'Medium', 'High', 'Very High', '🔥 Peak'];
+              return ` ${names[item.level]} — ${item.label}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, max: 5.5, display: false },
+        x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } }
+      }
+    }
+  });
+}
 
-  if (!filtered || filtered.length === 0) {
-    cards.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No watchlist items found</div></div>`;
-    tbody.innerHTML = '';
-    return;
-  }
+// ===== SUPPLIERS TABLE =====
+let filteredSuppliers = [];
+function renderSuppliers(list) {
+  const suppliers = list || suppliersData.suppliers;
+  filteredSuppliers = suppliers;
+  const tbody = document.getElementById('suppliers-body');
+  document.getElementById('supplier-count').textContent = suppliers.length;
 
-  // Cards view
-  cards.innerHTML = filtered.map(w => {
-    const recClass = (w.recommendation || '').toLowerCase();
-    const score = w.fundamental_score || 0;
-    return `
-      <div class="watchlist-card rec-${recClass}">
-        <div class="wl-header">
-          <div>
-            <div class="wl-symbol">${w.symbol}</div>
-            <div class="wl-company">${w.company_name || ''}</div>
-          </div>
-          <span class="rec-badge ${recClass}">${w.recommendation || 'WATCH'}</span>
-        </div>
-        <div class="wl-prices">
-          <div class="wl-price-item">
-            <div class="wl-price-label">Current</div>
-            <div class="wl-price-value">${formatPeso(w.current_price)}</div>
-          </div>
-          <div class="wl-price-item">
-            <div class="wl-price-label">Target Buy</div>
-            <div class="wl-price-value">${formatPeso(w.target_buy)}</div>
-          </div>
-          <div class="wl-price-item">
-            <div class="wl-price-label">Stop Loss</div>
-            <div class="wl-price-value">${formatPeso(w.stop_loss)}</div>
-          </div>
-        </div>
-        <div class="wl-metrics">
-          <div><span class="label">Sector</span><span>${w.sector || '—'}</span></div>
-          <div><span class="label">P/E</span><span>${w.pe_ratio || '—'}</span></div>
-          <div><span class="label">Div Yield</span><span>${w.dividend_yield ? w.dividend_yield + '%' : '—'}</span></div>
-          <div><span class="label">Signal</span><span>${w.technical_signal || '—'}</span></div>
-        </div>
-        <div class="wl-score">
-          <div class="score-label">Fundamental Score: ${score}/100</div>
-          <div class="score-bar"><div class="score-fill" style="width: ${score}%"></div></div>
-        </div>
-        ${w.reason ? `<div class="wl-reason">${w.reason}</div>` : ''}
-      </div>
-    `;
-  }).join('');
+  const platClass = { Facebook: 'plat-facebook', Shopee: 'plat-shopee', Lazada: 'plat-lazada', Website: 'plat-website' };
+  const priClass = { TOP: 'pri-top', HIGH: 'pri-high', MEDIUM: 'pri-medium' };
 
-  // Table view
-  tbody.innerHTML = filtered.map(w => `
-    <tr>
-      <td style="font-weight: 700; color: var(--accent-gold)">${w.symbol}</td>
-      <td style="font-family: var(--font-main)">${w.company_name || ''}</td>
-      <td>${formatPeso(w.current_price)}</td>
-      <td>${formatPeso(w.target_buy)}</td>
-      <td>${formatPeso(w.stop_loss)}</td>
-      <td style="font-family: var(--font-main)">${w.sector || '—'}</td>
-      <td>${w.pe_ratio || '—'}</td>
-      <td>${w.dividend_yield ? w.dividend_yield + '%' : '—'}</td>
-      <td>${w.technical_signal || '—'}</td>
-      <td>${w.fundamental_score || 0}</td>
-      <td><span class="rec-badge ${(w.recommendation || '').toLowerCase()}">${w.recommendation || 'WATCH'}</span></td>
+  const getAction = s => {
+    if (s.platform === 'Facebook') return `<button class="action-btn btn-message" onclick="openContact('${escHtml(s.contact)}','${s.contactType}')">💬 Message</button>`;
+    if (s.platform === 'Shopee') return `<a href="https://shopee.ph" target="_blank" class="action-btn btn-view">🛒 View</a>`;
+    if (s.platform === 'Lazada') return `<a href="${escHtml(s.contact.startsWith('http') ? s.contact : 'https://' + s.contact)}" target="_blank" class="action-btn btn-view">🛒 View</a>`;
+    return `<a href="${escHtml(s.contact)}" target="_blank" class="action-btn btn-visit">🌐 Visit</a>`;
+  };
+
+  tbody.innerHTML = suppliers.map((s, i) => `
+    <tr onclick="selectRow(this)">
+      <td><strong style="color:#A0AEC0">${i + 1}</strong></td>
+      <td>
+        <div style="font-weight:700;color:#1A1A2E;font-size:13px">${s.name}</div>
+        ${s.priority === 'TOP' ? '<span class="badge pri-top" style="margin-top:4px;display:inline-flex">⭐ Top Pick</span>' : ''}
+      </td>
+      <td><span class="badge ${platClass[s.platform] || ''}">${s.platform}</span></td>
+      <td style="font-size:12px;color:#4A5568">${s.category}</td>
+      <td class="items-cell">${s.items}</td>
+      <td style="font-weight:700;color:#E94560;white-space:nowrap">${s.pricePerPc}</td>
+      <td style="font-size:12px;white-space:nowrap">${s.minOrder}</td>
+      <td style="font-size:12px;color:#718096">${s.location}</td>
+      <td style="font-size:12px">${s.rating}</td>
+      <td>${getAction(s)}</td>
     </tr>
   `).join('');
 }
 
-// ==================== ALERTS ====================
-
-async function loadAlerts() {
-  try {
-    alertsData = await window.sbFetch('sterling_alerts', { order: 'created_at.desc', limit: '50' });
-    renderAlerts();
-    updateAlertsBadge();
-
-    // Auto-refresh every 30s
-    setInterval(async () => {
-      alertsData = await window.sbFetch('sterling_alerts', { order: 'created_at.desc', limit: '50' });
-      renderAlerts();
-      updateAlertsBadge();
-    }, 30000);
-
-  } catch (err) {
-    console.error('Alerts load error:', err);
-  }
+function escHtml(str) {
+  return (str || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
-
-function updateAlertsBadge() {
-  const unread = alertsData.filter(a => !a.is_sent).length;
-  const badge = document.getElementById('alerts-badge');
-  if (unread > 0) {
-    badge.textContent = unread;
-    badge.style.display = 'inline';
+function openContact(contact, type) {
+  if (type === 'phone') {
+    if (confirm(`Call/message ${contact}?`)) window.open(`tel:${contact.replace(/[^0-9+]/g, '')}`);
+  } else if (type === 'facebook') {
+    window.open(`https://${contact.startsWith('http') ? contact.replace(/^https?:\/\//, '') : contact}`, '_blank');
   } else {
-    badge.style.display = 'none';
+    window.open(`https://${contact}`, '_blank');
   }
 }
+function selectRow(row) {
+  document.querySelectorAll('.suppliers-table tbody tr').forEach(r => r.classList.remove('selected'));
+  row.classList.add('selected');
+}
 
-function renderAlerts() {
-  const feed = document.getElementById('alerts-feed');
+// ===== FILTERS =====
+function setupFilters() {
+  const search = document.getElementById('supplier-search');
+  const catFilter = document.getElementById('filter-category');
+  const platFilter = document.getElementById('filter-platform');
+  const doFilter = () => {
+    const q = search.value.toLowerCase();
+    const cat = catFilter.value.toLowerCase();
+    const plat = platFilter.value.toLowerCase();
+    const filtered = suppliersData.suppliers.filter(s => {
+      const matchQ = !q || [s.name, s.items, s.location, s.category].some(f => f.toLowerCase().includes(q));
+      const matchCat = !cat || s.category.toLowerCase().includes(cat);
+      const matchPlat = !plat || s.platform.toLowerCase() === plat;
+      return matchQ && matchCat && matchPlat;
+    });
+    renderSuppliers(filtered);
+  };
+  search.addEventListener('input', doFilter);
+  catFilter.addEventListener('change', doFilter);
+  platFilter.addEventListener('change', doFilter);
+}
 
-  if (!alertsData || alertsData.length === 0) {
-    feed.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔔</div><div class="empty-state-text">No alerts yet</div></div>`;
+// ===== GROUPS =====
+function renderGroups() {
+  const grid = document.getElementById('groups-grid');
+  const priColors = { TOP: '#FEF2F2', HIGH: '#FFF7ED', MEDIUM: '#F8F9FF' };
+  grid.innerHTML = suppliersData.facebookGroups.map(g => `
+    <div class="group-card" style="background:${priColors[g.priority] || '#F8F9FF'}">
+      <div class="group-name">👥 ${g.name}</div>
+      <div class="group-members">${g.members} members</div>
+      <div class="group-focus">${g.focus}</div>
+    </div>
+  `).join('');
+}
+
+// ===== TEMPLATE =====
+function renderTemplate() {
+  document.getElementById('msg-template').value = suppliersData.messageTemplate;
+}
+function copyTemplate() {
+  const ta = document.getElementById('msg-template');
+  ta.select();
+  document.execCommand('copy');
+  const btn = document.getElementById('copy-btn');
+  const ok = document.getElementById('copy-success');
+  btn.textContent = '✅ Copied!';
+  ok.style.display = 'block';
+  setTimeout(() => { btn.textContent = '📋 Copy Message'; ok.style.display = 'none'; }, 2500);
+}
+
+// ===== FEED =====
+let activeFeedFilter = 'all';
+let activePlatformFilter = 'all';
+
+function renderFeed() {
+  if (!window.FEED_DATA) return;
+  const posts = window.FEED_DATA.feedPosts;
+  const filtered = posts.filter(p => {
+    const matchCat = activeFeedFilter === 'all' || p.category === activeFeedFilter;
+    const matchPlat = activePlatformFilter === 'all' || p.platform === activePlatformFilter;
+    return matchCat && matchPlat;
+  });
+  document.getElementById('feed-post-count').textContent = filtered.length;
+  document.getElementById('feed-badge').textContent = posts.length;
+
+  const platIcon = { TikTok: '🎵', Facebook: '👥', Instagram: '📸' };
+  const platAvatarClass = { TikTok: 'avatar-tiktok', Facebook: 'avatar-facebook', Instagram: 'avatar-instagram' };
+  const platBadgeClass = { TikTok: 'plat-tiktok', Facebook: 'plat-facebook', Instagram: 'plat-instagram' };
+
+  const container = document.getElementById('feed-posts');
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:40px;color:#A0AEC0;font-size:14px">No posts match this filter.</div>`;
     return;
   }
-
-  feed.innerHTML = alertsData.map(a => {
-    let type = 'info';
-    let icon = '🔵';
-    if (a.type === 'price_drop' || a.type === 'urgent' || (a.message && a.message.includes('URGENT'))) {
-      type = 'urgent';
-      icon = '🔴';
-    } else if (a.type === 'warning' || (a.message && a.message.includes('WARNING'))) {
-      type = 'warning';
-      icon = '🟡';
-    }
-
+  container.innerHTML = filtered.map(p => {
+    const tags = (p.hashtags || []).slice(0, 5).map(h => `<span class="post-hashtag">${h}</span>`).join('');
+    const media = buildMediaPreview(p);
     return `
-      <div class="alert-card ${type}">
-        <span class="alert-icon">${icon}</span>
-        <div class="alert-content">
-          <div class="alert-type ${type}">${type.toUpperCase()}</div>
-          <div class="alert-message">
-            ${a.symbol ? `<span class="alert-symbol">${a.symbol}</span> ` : ''}
-            ${a.message || 'No message'}
-          </div>
-          <div class="alert-time">${formatTime(a.created_at)}</div>
+    <div class="post-card ${p.isHot ? 'is-hot' : ''}">
+      <div class="post-header">
+        <div class="post-avatar ${platAvatarClass[p.platform] || ''}">${platIcon[p.platform] || '📱'}</div>
+        <div class="post-meta">
+          <div class="post-account">${p.account}</div>
+          <div class="post-handle">${p.handle} · ${p.daysAgo}</div>
         </div>
-        <button class="alert-dismiss" onclick="dismissAlert('${a.id}')" title="Dismiss">×</button>
+        <div class="post-badges">
+          ${p.isHot ? '<span class="post-hot-badge">🔥 HOT</span>' : ''}
+          <span class="badge ${platBadgeClass[p.platform] || 'badge-medium'}">${p.platform}</span>
+        </div>
       </div>
-    `;
+      ${media}
+      <div class="post-body">
+        <div class="post-content">${p.content}</div>
+        <div class="post-hashtags">${tags}</div>
+        ${p.insight ? `<div class="post-insight">${p.insight}</div>` : ''}
+      </div>
+      <div class="post-footer">
+        <div class="post-stats">
+          <span class="post-stat">👁️ ${p.engagement}</span>
+          <span class="post-stat">📅 ${p.date}</span>
+        </div>
+        <a href="${p.url}" target="_blank" class="post-view-btn">View Post ↗</a>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Attach expand handlers for TikTok embeds
+  document.querySelectorAll('.post-media[data-tiktok-id]').forEach(el => {
+    el.addEventListener('click', function() {
+      if (this.classList.contains('expanded')) return;
+      this.classList.add('expanded');
+      const id = this.dataset.tiktokId;
+      const iframe = this.querySelector('iframe.tiktok-embed-frame');
+      if (iframe && !iframe.src) {
+        iframe.src = `https://www.tiktok.com/embed/v2/${id}`;
+      }
+    });
+  });
+}
+
+function buildMediaPreview(p) {
+  if (p.mediaType === 'tiktok' && p.mediaId) {
+    const bg = p.thumbnail
+      ? `style="background-image:url('${p.thumbnail}')" `
+      : '';
+    return `
+    <div class="post-media tiktok-preview bg-tiktok" data-tiktok-id="${p.mediaId}" title="Click to play video">
+      <div class="media-bg" ${bg}></div>
+      <div class="media-overlay">
+        <div class="media-play-btn">▶</div>
+        <div class="media-label">Click to play TikTok</div>
+      </div>
+      <div class="media-platform-watermark">🎵 TikTok</div>
+      <iframe class="tiktok-embed-frame" allowfullscreen allow="autoplay"></iframe>
+    </div>`;
+  }
+  if (p.mediaType === 'instagram_reel' && p.mediaId) {
+    return `
+    <div class="post-media photo-preview bg-instagram" style="cursor:default">
+      <div class="media-bg"></div>
+      <div class="media-overlay">
+        <a href="${p.url}" target="_blank" style="text-decoration:none">
+          <div class="media-play-btn">▶</div>
+        </a>
+        <div class="media-label">View on Instagram</div>
+      </div>
+      <div class="media-platform-watermark">📸 Instagram Reel</div>
+    </div>`;
+  }
+  if (p.mediaType === 'instagram') {
+    return `
+    <div class="post-media photo-preview bg-instagram" style="cursor:default">
+      <div class="media-bg"></div>
+      <div class="media-overlay">
+        <a href="${p.url}" target="_blank" style="text-decoration:none">
+          <div class="media-play-btn" style="font-size:22px">📸</div>
+        </a>
+        <div class="media-label">View Profile on Instagram</div>
+      </div>
+      <div class="media-platform-watermark">📸 Instagram</div>
+    </div>`;
+  }
+  if (p.mediaType === 'facebook') {
+    return `
+    <div class="post-media photo-preview bg-facebook" style="cursor:default">
+      <div class="media-bg"></div>
+      <div class="media-overlay">
+        <a href="${p.url}" target="_blank" style="text-decoration:none">
+          <div class="media-play-btn" style="font-size:22px">👥</div>
+        </a>
+        <div class="media-label">View on Facebook</div>
+      </div>
+      <div class="media-platform-watermark">👥 Facebook</div>
+    </div>`;
+  }
+  // Fallback: no media
+  return '';
+}
+
+function renderCompetitorProfiles() {
+  if (!window.FEED_DATA) return;
+  const profiles = window.FEED_DATA.competitorProfiles;
+  const catClass = { 'Direct Competitor': 'cat-direct', 'Indirect Competitor': 'cat-indirect', 'Big Brand': 'cat-big', 'Emerging Competitor': 'cat-emerging' };
+  const platEmoji = { TikTok: '🎵', Facebook: '👥', Instagram: '📸' };
+
+  document.getElementById('competitor-profiles').innerHTML = profiles.map(p => `
+    <div class="profile-item">
+      <div class="profile-name">${p.name}</div>
+      <span class="profile-category ${catClass[p.category] || ''}">${p.category}</span>
+      <div class="profile-platforms">
+        ${p.platforms.map(pl => `<a href="${pl.url}" target="_blank" class="profile-platform-link">${platEmoji[pl.platform] || ''} ${pl.platform}</a>`).join('')}
+      </div>
+      <div class="profile-freq">📅 Posts: ${p.postFrequency}</div>
+    </div>
+  `).join('');
+}
+
+function setupFeedFilters() {
+  document.querySelectorAll('.feed-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.feed-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFeedFilter = btn.dataset.filter;
+      renderFeed();
+    });
+  });
+  document.querySelectorAll('.platform-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activePlatformFilter = btn.dataset.platform;
+      renderFeed();
+    });
+  });
+}
+
+// ===== CONTENT CALENDAR =====
+// (V2 renderCalendar and renderCalendarTable are defined below)
+
+function toggleCalRow(i) {
+  const el = document.getElementById('calrow-' + i);
+  if (el) el.classList.toggle('open');
+}
+
+// ===== CAPTIONS LIBRARY =====
+function renderCaptions(list) {
+  const captions = list || window.CAPTIONS_DATA.captions;
+  document.getElementById('caption-count').textContent = captions.length;
+  const grid = document.getElementById('captions-grid');
+  const platBadge = { Instagram: 'cp-instagram', TikTok: 'cp-tiktok', Facebook: 'cp-facebook' };
+  const platIcon  = { Instagram: '📸', TikTok: '🎵', Facebook: '👥' };
+  const pillarCls = { tease:'pillar-tease', process:'pillar-process', product:'pillar-product',
+    giftinspo:'pillar-giftinspo', engagement:'pillar-engagement', brand:'pillar-brand', promo:'pillar-promo' };
+
+  grid.innerHTML = captions.map(c => `
+    <div class="caption-card">
+      <div class="caption-header">
+        <div class="caption-title">#${c.id} — ${c.title}</div>
+        <div class="caption-badges">
+          <span class="caption-platform ${platBadge[c.platform]}">${platIcon[c.platform]} ${c.platform}</span>
+          <span class="caption-pillar-tag ${pillarCls[c.pillar] || ''}">${c.pillar}</span>
+        </div>
+      </div>
+      <div class="caption-body">
+        <div class="caption-text">${escHtml(c.caption)}</div>
+        <div class="caption-hashtags">${escHtml(c.hashtags)}</div>
+        <div class="caption-cta">${escHtml(c.cta)}</div>
+      </div>
+      <div class="caption-footer">
+        <button class="caption-copy-btn" onclick="copyCaption(${c.id}, this)">📋 Copy Caption</button>
+        <button class="caption-copy-btn" style="background:#3B82F6" onclick="copyHashtags(${c.id}, this)">📋 Copy Hashtags</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function copyCaption(id, btn) {
+  const c = window.CAPTIONS_DATA.captions.find(x => x.id === id);
+  if (!c) return;
+  const text = c.caption + '\n\n' + c.hashtags + '\n\n' + c.cta;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+function copyHashtags(id, btn) {
+  const c = window.CAPTIONS_DATA.captions.find(x => x.id === id);
+  if (!c) return;
+  navigator.clipboard.writeText(c.hashtags).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function setupCaptionFilters() {
+  const search = document.getElementById('caption-search');
+  const platF  = document.getElementById('caption-platform');
+  const pillarF = document.getElementById('caption-pillar');
+  const doFilter = () => {
+    const q = search.value.toLowerCase();
+    const plat = platF.value;
+    const pil  = pillarF.value;
+    const filtered = window.CAPTIONS_DATA.captions.filter(c => {
+      const matchQ = !q || [c.title, c.caption, c.hashtags, c.cta].some(f => f.toLowerCase().includes(q));
+      const matchP = !plat || c.platform === plat;
+      const matchPil = !pil || c.pillar === pil;
+      return matchQ && matchP && matchPil;
+    });
+    renderCaptions(filtered);
+  };
+  search.addEventListener('input', doFilter);
+  platF.addEventListener('change', doFilter);
+  pillarF.addEventListener('change', doFilter);
+}
+
+// ===== PRODUCT CATALOG =====
+function renderCatalog() {
+  const cd = window.CATALOG_DATA;
+  const grid = document.getElementById('catalog-grid');
+  const demandClass = { 'Very High': 'demand-very-high', 'High': 'demand-high', 'Growing': 'demand-growing' };
+  
+  grid.innerHTML = cd.products.map(p => {
+    const variantRows = p.variants.map(v => `
+      <div class="variant-row">
+        <span class="variant-size">${v.size}</span>
+        <span class="variant-cost">₱${v.materialCost}</span>
+        <span class="variant-cost">+₱${v.embroideryCost}</span>
+        <span class="variant-price">₱${v.sellPrice}</span>
+        <span class="variant-margin">${v.margin}%</span>
+      </div>`).join('');
+    const optionRows = p.customOptions.map(o => `
+      <div class="option-item">
+        <span class="option-label">${o.label}</span>
+        <span class="option-add ${o.addCost === 0 ? 'free' : ''}">${o.addCost === 0 ? 'Included' : '+₱' + o.addCost}</span>
+      </div>`).join('');
+    const tags = p.tags.map(t => `<span class="catalog-tag">${t}</span>`).join('');
+    const checklistItems = (p.orderChecklist || []).map(c => `<div class="checklist-item">${c}</div>`).join('');
+    
+    return `
+    <div class="catalog-card">
+      <div class="catalog-card-header">
+        <span class="catalog-emoji">${p.emoji}</span>
+        <div>
+          <div class="catalog-name">${p.name}</div>
+          <div class="catalog-desc">${p.description}</div>
+        </div>
+        <div style="margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          ${p.bestseller ? '<span class="catalog-bestseller">⭐ Bestseller</span>' : ''}
+          ${p.demand ? `<span class="demand-badge ${demandClass[p.demand] || ''}">${p.demand} Demand</span>` : ''}
+        </div>
+      </div>
+      <div class="catalog-body">
+        <div class="catalog-variants">
+          <div class="catalog-variants-title">Variants — Cost / Sell Price / Margin</div>
+          <div class="variant-row header">
+            <span>Size</span><span>Material</span><span>Embroidery</span><span>Sell Price</span><span>Margin</span>
+          </div>
+          ${variantRows}
+        </div>
+        <div class="catalog-options">
+          <div class="catalog-options-title">Customization Options</div>
+          ${optionRows}
+        </div>
+        ${p.bestSupplier ? `
+        <div style="margin-top:12px;padding:10px 14px;background:#EFF6FF;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:12px;color:#1D4ED8;font-weight:600">🏪 Best Supplier: ${p.bestSupplier.name}</span>
+          <a href="${p.bestSupplier.link}" target="_blank" style="font-size:11px;color:#3B82F6;text-decoration:none;font-weight:600">Open →</a>
+        </div>` : ''}
+        ${checklistItems ? `
+        <div class="order-checklist">
+          <div class="checklist-title">📋 Order Checklist</div>
+          ${checklistItems}
+        </div>` : ''}
+        <div class="catalog-tags">${tags}</div>
+      </div>
+    </div>`;
   }).join('');
 }
 
-async function dismissAlert(id) {
-  try {
-    await sbUpdate('sterling_alerts', `id=eq.${id}`, { is_sent: true });
-    alertsData = alertsData.map(a => a.id === id ? { ...a, is_sent: true } : a);
-    updateAlertsBadge();
-  } catch (err) {
-    console.error('Dismiss alert error:', err);
+function renderCompetitorPricing() {
+  const cp = window.CATALOG_DATA.competitorPricing;
+  document.getElementById('comp-insight').textContent = cp.insight;
+  const head = document.getElementById('comp-pricing-head');
+  head.innerHTML = cp.columns.map((c, i) => `<th${i===1?' class="comp-your"':''}>${c}</th>`).join('');
+  const body = document.getElementById('comp-pricing-body');
+  body.innerHTML = cp.rows.map(r => `
+    <tr>
+      <td><strong>${r.product}</strong></td>
+      <td class="comp-your">${r.yours}</td>
+      <td>${r.comp1}</td>
+      <td>${r.comp2}</td>
+      <td>${r.comp3}</td>
+      <td>${r.comp4}</td>
+    </tr>`).join('');
+}
+
+function renderBundles() {
+  const bundles = window.CATALOG_DATA.bundleIdeas;
+  document.getElementById('bundles-grid').innerHTML = bundles.map(b => `
+    <div class="bundle-card">
+      <div class="bundle-name">${b.name}</div>
+      <div class="bundle-items">${b.items.join(' + ')}</div>
+      <div class="bundle-pricing">
+        <span class="bundle-price">₱${b.bundlePrice.toLocaleString()}</span>
+        <span class="bundle-normal">₱${b.normalPrice.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="bundle-savings">Save ₱${b.savings}</span>
+        <span class="bundle-tag">${b.tag}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ===== BTV CATALOG =====
+let btvPage = 1;
+const BTV_PER_PAGE = 60;
+let btvFiltered = [];
+
+async function renderBtvCatalog() {
+  const page = document.getElementById('page-btv');
+  if (!page) return;
+
+  // Try Supabase first, fall back to window.BTV_PRODUCTS
+  let products = [];
+  let usedSupabase = false;
+
+  if (window.db) {
+    try {
+      page.querySelector('#btv-grid').innerHTML = '<div style="padding:40px;text-align:center;color:#94A3B8;font-size:13px;">Loading from Supabase…</div>';
+      const rows = await window.db.select('btv_products', 'order=category.asc,title.asc');
+      if (rows && rows.length) {
+        // Normalize field names from Supabase schema
+        products = rows.map(r => ({
+          id: r.id,
+          title: r.title,
+          category: r.category,
+          price_min: r.price_min,
+          price_max: r.price_max,
+          available: r.available,
+          image_primary: r.image_url,
+          url: r.product_url,
+          variants_count: r.variants_count || 1,
+        }));
+        usedSupabase = true;
+      }
+    } catch (err) {
+      console.warn('[BTV] Supabase load failed, falling back to local:', err.message);
+    }
   }
-}
 
-// ==================== NEWS ====================
-
-async function loadNews() {
-  try {
-    newsData = await window.sbFetch('sterling_news', { order: 'created_at.desc', limit: '50' });
-    populateNewsFilters();
-    renderNews();
-  } catch (err) {
-    console.error('News load error:', err);
+  if (!products.length && window.BTV_PRODUCTS) {
+    products = window.BTV_PRODUCTS;
   }
+
+  if (!products.length) {
+    page.querySelector('#btv-grid').innerHTML = '<div class="btv-empty">No BTV products loaded.</div>';
+    return;
+  }
+
+  const meta = window.BTV_META || {};
+  if (!usedSupabase) {} // meta still valid from local
+
+  // Sync date
+  const syncEl = document.getElementById('btv-sync-date');
+  if (syncEl && meta.last_updated) {
+    const d = new Date(meta.last_updated);
+    syncEl.textContent = 'Last synced: ' + d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  // Category counts from meta or computed
+  const catCounts = meta.categories || {};
+  const cats = Object.keys(catCounts).length
+    ? Object.keys(catCounts).sort((a, b) => catCounts[b] - catCounts[a])
+    : [...new Set(products.map(p => p.category))].sort();
+
+  // Populate category select
+  const catSelect = document.getElementById('btv-category-filter');
+  catSelect.innerHTML = '<option value="">All Categories</option>' +
+    cats.map(c => {
+      const n = catCounts[c] || products.filter(p => p.category === c).length;
+      return `<option value="${c}">${c.charAt(0).toUpperCase() + c.slice(1)} (${n})</option>`;
+    }).join('');
+
+  // Category pills
+  const pillsEl = document.getElementById('btv-category-pills');
+  pillsEl.innerHTML = `<button class="filter-pill active" data-cat="">All (${products.length})</button>` +
+    cats.map(c => {
+      const n = catCounts[c] || products.filter(p => p.category === c).length;
+      return `<button class="filter-pill" data-cat="${c}">${c.charAt(0).toUpperCase() + c.slice(1)} (${n})</button>`;
+    }).join('');
+
+  pillsEl.querySelectorAll('.filter-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pillsEl.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('btv-category-filter').value = btn.dataset.cat;
+      applyBtvFilters();
+    });
+  });
+
+  applyBtvFilters();
 }
 
-function populateNewsFilters() {
-  const symbols = [...new Set(newsData.map(n => n.symbol).filter(Boolean))];
-  const select = document.getElementById('filter-news-symbol');
-  select.innerHTML = '<option value="">All Stocks</option>' + symbols.map(s => `<option value="${s}">${s}</option>`).join('');
-}
+function applyBtvFilters() {
+  const products = window.BTV_PRODUCTS;
+  const search = (document.getElementById('btv-search').value || '').toLowerCase();
+  const cat = document.getElementById('btv-category-filter').value;
+  const avail = document.getElementById('btv-availability-filter').value;
 
-function filterNews() {
-  renderNews();
-}
-
-function renderNews() {
-  const symbol = document.getElementById('filter-news-symbol').value;
-  const sentiment = document.getElementById('filter-news-sentiment').value;
-  const impact = document.getElementById('filter-news-impact').value;
-
-  let filtered = newsData.filter(n => {
-    if (symbol && n.symbol !== symbol) return false;
-    if (sentiment && n.sentiment !== sentiment) return false;
-    if (impact && n.impact !== impact) return false;
+  btvFiltered = products.filter(p => {
+    if (search && !p.title.toLowerCase().includes(search)) return false;
+    if (cat && p.category !== cat) return false;
+    if (avail !== '' && String(p.available) !== avail) return false;
     return true;
   });
 
-  const feed = document.getElementById('news-feed');
+  btvPage = 1;
+  document.getElementById('btv-count').textContent = btvFiltered.length;
+  renderBtvGrid();
+}
 
-  if (!filtered || filtered.length === 0) {
-    feed.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📰</div><div class="empty-state-text">No news found</div></div>`;
-    return;
-  }
+function renderBtvGrid() {
+  const grid = document.getElementById('btv-grid');
+  const shown = btvFiltered.slice(0, btvPage * BTV_PER_PAGE);
 
-  feed.innerHTML = filtered.map(n => `
-    <div class="news-card ${n.sentiment || 'neutral'}">
-      <div class="news-header">
-        <div class="news-headline">${n.headline || 'No headline'}</div>
-        <div class="news-badges">
-          ${n.symbol ? `<span class="news-symbol-badge">${n.symbol}</span>` : ''}
-          <span class="news-sentiment ${n.sentiment || 'neutral'}">${(n.sentiment || 'neutral').toUpperCase()}</span>
+  grid.innerHTML = shown.map(p => {
+    const priceStr = p.price_min === p.price_max
+      ? (p.price_min > 0 ? `S$${p.price_min.toFixed(2)}` : 'Free')
+      : `S$${p.price_min.toFixed(2)}–${p.price_max.toFixed(2)}`;
+    const availClass = p.available ? 'btv-avail' : 'btv-unavail';
+    const availText = p.available ? 'In Stock' : 'Sold Out';
+    const desc = p.description_plain
+      ? p.description_plain.substring(0, 80) + (p.description_plain.length > 80 ? '…' : '')
+      : '';
+
+    const imgBlock = p.image_primary
+      ? `<div class="btv-card-img"><img src="${p.image_primary}" alt="${p.title}" loading="lazy" onerror="this.parentElement.innerHTML='<div class=btv-no-img>No image</div>'"></div>`
+      : '<div class="btv-no-img">No image</div>';
+    return `
+    <div class="btv-card">
+      ${imgBlock}
+      <div class="btv-card-body">
+        <div class="btv-cat-tag">${p.category}</div>
+        <div class="btv-card-title">${p.title}</div>
+        <div class="btv-card-meta">
+          <span class="btv-price">${priceStr}</span>
+          <span class="${availClass}">${availText}</span>
         </div>
+        <a class="btv-card-link" href="${p.url}" target="_blank" rel="noopener">View on BTV ↗</a>
       </div>
-      <div class="news-meta">
-        <span>${n.source || 'Unknown source'}</span>
-        <span>${formatTime(n.created_at)}</span>
+    </div>`;
+  }).join('');
+
+  // Load more button
+  const wrap = document.getElementById('btv-load-more-wrap');
+  if (shown.length < btvFiltered.length) {
+    wrap.style.display = 'block';
+    document.getElementById('btv-load-more').textContent = `Load More (${shown.length} of ${btvFiltered.length})`;
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function setupBtvFilters() {
+  document.getElementById('btv-search').addEventListener('input', applyBtvFilters);
+  document.getElementById('btv-category-filter').addEventListener('change', () => {
+    // Sync pill state
+    const val = document.getElementById('btv-category-filter').value;
+    document.querySelectorAll('#btv-category-pills .filter-pill').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === val);
+    });
+    applyBtvFilters();
+  });
+  document.getElementById('btv-availability-filter').addEventListener('change', applyBtvFilters);
+  document.getElementById('btv-load-more').addEventListener('click', () => {
+    btvPage++;
+    renderBtvGrid();
+  });
+}
+
+// ===== V2: GRADUATION COUNTDOWN =====
+function updateGradCountdown() {
+  const el = document.getElementById('grad-countdown');
+  if (!el) return;
+  const now = new Date();
+  const gradStart = new Date(2026, 2, 1); // March 1, 2026
+  const diff = gradStart - now;
+  const days = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  el.textContent = days === 0 ? 'NOW!' : days === 1 ? '1 day' : `${days} days`;
+}
+
+// ===== V2: SEASONAL ALERTS =====
+function renderSeasonalAlerts() {
+  if (!window.SEASONAL_ALERTS) return;
+  const container = document.getElementById('seasonal-alerts');
+  if (!container) return;
+  
+  const alertIcons = { hot: '🔥', coming: '⚡', rising: '📈' };
+  
+  container.innerHTML = window.SEASONAL_ALERTS.alerts.map(a => `
+    <div class="seasonal-alert urgency-${a.urgency}">
+      <span class="alert-icon">${alertIcons[a.urgency] || '📢'}</span>
+      <div class="alert-content">
+        <div class="alert-header">
+          <span class="alert-name">${a.name}</span>
+          <span class="alert-urgency">${a.urgencyLabel}</span>
+        </div>
+        <div class="alert-desc">${a.description}</div>
+        <div class="alert-action">${a.action}</div>
       </div>
     </div>
   `).join('');
 }
 
-// ==================== DIVIDENDS ====================
-
-async function loadDividends() {
-  try {
-    if (!portfolioData || portfolioData.length === 0) {
-      portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
-    }
-    renderCalendar();
-    renderUpcomingDividends();
-    renderIncomeProjection();
-  } catch (err) {
-    console.error('Dividends load error:', err);
-  }
+// ===== V2: COMPETITOR DEEP-DIVE =====
+function renderCompetitorDeepDive() {
+  const data = window.COMPETITOR_DETAIL;
+  if (!data) return;
+  const grid = document.getElementById('competitor-detail-grid');
+  if (!grid) return;
+  
+  grid.innerHTML = data.competitors.map(c => {
+    const threatClass = c.threat.toLowerCase();
+    const advantages = c.yourAdvantages.map(a => `<li class="comp-adv-item">${a}</li>`).join('');
+    
+    return `
+    <div class="competitor-detail-card">
+      <div class="comp-detail-header">
+        <span class="comp-detail-name">${c.name}</span>
+        <span class="comp-detail-platform">${c.platformIcon} ${c.platform}</span>
+      </div>
+      <div class="comp-detail-body">
+        <div class="comp-detail-row">
+          <span class="comp-detail-label">Followers</span>
+          <span class="comp-detail-value">${c.followers}</span>
+        </div>
+        <div class="comp-detail-row">
+          <span class="comp-detail-label">Focus</span>
+          <span class="comp-detail-value">${c.focus}</span>
+        </div>
+        <div class="comp-detail-row">
+          <span class="comp-detail-label">Weakness</span>
+          <span class="comp-detail-value" style="color:#DC2626">⚠️ ${c.weakness}</span>
+        </div>
+        <div class="comp-detail-row">
+          <span class="comp-detail-label">Threat</span>
+          <span class="comp-detail-threat threat-${threatClass}">${c.threat}</span>
+        </div>
+        <div class="comp-detail-advantages">
+          <div class="comp-adv-title">✓ Your Advantages</div>
+          <ul class="comp-adv-list">${advantages}</ul>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function prevMonth() {
-  calendarMonth--;
-  if (calendarMonth < 0) {
-    calendarMonth = 11;
-    calendarYear--;
-  }
-  renderCalendar();
+function renderThreatMatrix() {
+  const data = window.COMPETITOR_DETAIL;
+  if (!data) return;
+  const matrix = document.getElementById('threat-matrix');
+  const legend = document.getElementById('matrix-legend');
+  if (!matrix || !legend) return;
+  
+  // Add dots for each competitor
+  const dots = data.competitors.map(c => {
+    const x = (c.marketReach / 100) * 100;
+    const y = 100 - (c.productOverlap / 100) * 100;
+    const threatClass = c.threat.toLowerCase();
+    return `<div class="matrix-dot threat-${threatClass}" 
+                 style="left:${x}%;top:${y}%"
+                 title="${c.name}: ${c.marketReach}% reach, ${c.productOverlap}% overlap"></div>`;
+  }).join('');
+  
+  matrix.insertAdjacentHTML('beforeend', dots);
+  
+  // Render legend
+  legend.innerHTML = data.competitors.map(c => {
+    const threatClass = c.threat.toLowerCase();
+    const dotColor = { high: '#DC2626', medium: '#F59E0B', low: '#22C55E' }[threatClass] || '#718096';
+    return `
+    <div class="matrix-legend-item">
+      <span class="legend-dot" style="background:${dotColor}"></span>
+      <span class="legend-name">${c.name}</span>
+      <span class="legend-threat threat-${threatClass}">${c.threat}</span>
+    </div>`;
+  }).join('');
 }
 
-function nextMonth() {
-  calendarMonth++;
-  if (calendarMonth > 11) {
-    calendarMonth = 0;
-    calendarYear++;
-  }
-  renderCalendar();
+function renderAdvantages() {
+  const data = window.COMPETITOR_DETAIL;
+  if (!data) return;
+  const list = document.getElementById('advantages-list');
+  if (!list) return;
+  
+  list.innerHTML = data.yourEdges.map(edge => {
+    const icon = edge.charAt(0);
+    const text = edge.substring(2).trim();
+    return `
+    <div class="advantage-item">
+      <span class="advantage-icon">${icon}</span>
+      <span class="advantage-text">${text}</span>
+    </div>`;
+  }).join('');
 }
 
-function renderCalendar() {
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  document.getElementById('calendar-month').textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
-
-  const grid = document.getElementById('calendar-grid');
-  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
-  const firstDay = new Date(calendarYear, calendarMonth, 1).getDay();
-  const today = new Date();
-
-  // Get dividend dates for this month
-  const divDates = getDividendDatesForMonth(calendarMonth + 1, calendarYear);
-
-  let html = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => `<div class="calendar-day-header">${d}</div>`).join('');
-
-  // Empty days before month starts
-  for (let i = 0; i < firstDay; i++) {
-    html += '<div class="calendar-day empty"></div>';
-  }
-
-  // Days of month
-  for (let day = 1; day <= daysInMonth; day++) {
-    const isToday = today.getDate() === day && today.getMonth() === calendarMonth && today.getFullYear() === calendarYear;
-    const hasDividend = divDates.includes(day);
-    html += `
-      <div class="calendar-day ${isToday ? 'today' : ''} ${hasDividend ? 'has-dividend' : ''}">
-        ${day}
-        ${hasDividend ? '<div class="dividend-dot"></div>' : ''}
+// ===== V2: PRICING CALCULATOR =====
+function initPricingCalculator() {
+  const itemSelect = document.getElementById('calc-item');
+  const qtyInput = document.getElementById('calc-qty');
+  const complexitySelect = document.getElementById('calc-complexity');
+  
+  if (!itemSelect || !qtyInput || !complexitySelect) return;
+  
+  const calculate = () => {
+    const data = window.PRICING_DATA;
+    const itemKey = itemSelect.value;
+    const qty = Math.max(1, parseInt(qtyInput.value) || 1);
+    const complexity = complexitySelect.value;
+    
+    const item = data.items[itemKey];
+    if (!item) return;
+    
+    const multiplier = item.complexityMultiplier[complexity] || 1;
+    const laborCost = item.baseLabor * multiplier;
+    const unitCost = item.materialCost + laborCost;
+    
+    // Apply bulk discount
+    let discount = 1;
+    if (qty >= 20) discount = item.bulkDiscounts[20];
+    else if (qty >= 10) discount = item.bulkDiscounts[10];
+    else if (qty >= 5) discount = item.bulkDiscounts[5];
+    
+    const basePrice = item.suggestedPrice * multiplier;
+    const unitPrice = Math.round(basePrice * discount);
+    const totalCost = unitCost * qty;
+    const totalRevenue = unitPrice * qty;
+    const totalProfit = totalRevenue - totalCost;
+    const margin = Math.round((totalProfit / totalRevenue) * 100);
+    
+    // Render results
+    document.getElementById('calc-results').innerHTML = `
+      <div class="calc-result-item">
+        <div class="calc-result-label">Unit Cost</div>
+        <div class="calc-result-value">₱${unitCost.toLocaleString()}</div>
+      </div>
+      <div class="calc-result-item">
+        <div class="calc-result-label">Suggested Price</div>
+        <div class="calc-result-value highlight">₱${unitPrice.toLocaleString()}</div>
+      </div>
+      <div class="calc-result-item">
+        <div class="calc-result-label">Est. Profit (${qty}pc)</div>
+        <div class="calc-result-value profit">₱${totalProfit.toLocaleString()}</div>
+      </div>
+      <div class="calc-result-item">
+        <div class="calc-result-label">Margin</div>
+        <div class="calc-result-value profit">${margin}%</div>
       </div>
     `;
-  }
+    
+    // Render price comparison
+    const compAvg = item.competitorAvg * multiplier;
+    const savings = Math.round(compAvg - unitPrice);
+    const savingsPercent = Math.round((savings / compAvg) * 100);
+    const maxPrice = compAvg * 1.1;
+    const yoursWidth = Math.min(100, (unitPrice / maxPrice) * 100);
+    const compWidth = Math.min(100, (compAvg / maxPrice) * 100);
+    
+    document.getElementById('price-comparison').innerHTML = `
+      <div class="price-bar-wrap">
+        <div class="price-bar-label">
+          <span>Your Price</span>
+          <span style="color:#22C55E">₱${unitPrice.toLocaleString()}</span>
+        </div>
+        <div class="price-bar">
+          <div class="price-bar-fill yours" style="width:${yoursWidth}%"></div>
+        </div>
+      </div>
+      <div class="price-bar-wrap">
+        <div class="price-bar-label">
+          <span>Competitor Avg</span>
+          <span style="color:#E94560">₱${Math.round(compAvg).toLocaleString()}</span>
+        </div>
+        <div class="price-bar">
+          <div class="price-bar-fill competitor" style="width:${compWidth}%"></div>
+        </div>
+      </div>
+      <div class="price-savings">
+        <div class="price-savings-text">💰 You're ₱${savings} cheaper (${savingsPercent}% below competitor avg)</div>
+      </div>
+    `;
+    
+    // Render bulk tiers
+    document.getElementById('bulk-tiers').innerHTML = [1, 5, 10, 20].map((tierQty, i) => {
+      const tierDiscount = tierQty >= 20 ? item.bulkDiscounts[20] : 
+                           tierQty >= 10 ? item.bulkDiscounts[10] :
+                           tierQty >= 5 ? item.bulkDiscounts[5] : 1;
+      const tierPrice = Math.round(basePrice * tierDiscount);
+      const discountPct = tierDiscount < 1 ? Math.round((1 - tierDiscount) * 100) : 0;
+      const isBest = i === 3;
+      
+      return `
+      <div class="bulk-tier ${isBest ? 'best' : ''}">
+        <div class="bulk-qty">${tierQty}${tierQty >= 20 ? '+' : ''}</div>
+        <div class="bulk-label">${tierQty === 1 ? 'piece' : 'pieces'}</div>
+        <div class="bulk-price">₱${tierPrice}/pc</div>
+        ${discountPct > 0 ? `<div class="bulk-discount">-${discountPct}%</div>` : ''}
+      </div>`;
+    }).join('');
+  };
+  
+  itemSelect.addEventListener('change', calculate);
+  qtyInput.addEventListener('input', calculate);
+  complexitySelect.addEventListener('change', calculate);
+  
+  calculate(); // Initial calculation
+}
 
+// ===== V2: PRODUCT RECOMMENDATIONS =====
+function renderRecommendations() {
+  const data = window.CATALOG_DATA;
+  if (!data) return;
+  const container = document.getElementById('rec-products');
+  if (!container) return;
+  
+  // Score products by margin + demand
+  const scored = data.products.map(p => {
+    const avgMargin = p.variants.reduce((sum, v) => sum + v.margin, 0) / p.variants.length;
+    const demandScore = p.bestseller ? 10 : 5;
+    return { ...p, score: avgMargin + demandScore, avgMargin };
+  }).sort((a, b) => b.score - a.score).slice(0, 3);
+  
+  container.innerHTML = scored.map((p, i) => `
+    <div class="rec-product">
+      <span class="rec-product-rank">#${i + 1}</span>
+      <div class="rec-product-name">${p.emoji} ${p.name}</div>
+      <div class="rec-product-stats">
+        <span class="rec-product-stat">Margin: <strong>${Math.round(p.avgMargin)}%</strong></span>
+        <span class="rec-product-stat">Price: <strong>₱${p.basePrice}–₱${p.maxPrice}</strong></span>
+        ${p.bestseller ? '<span class="rec-product-stat" style="color:#E94560">⭐ Bestseller</span>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+// ===== V2: CALENDAR UPGRADES =====
+let selectedCalDay = null;
+
+function renderCalendar() {
+  const cd = window.CALENDAR_DATA;
+  document.getElementById('cal-month-title').textContent = cd.month + ' ' + cd.year;
+  const grid = document.getElementById('cal-grid');
+  
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = days.map(d => `<div class="cal-day-label">${d}</div>`).join('');
+  
+  const firstDay = new Date(cd.year, cd.monthNum - 1, 1).getDay();
+  const totalDays = new Date(cd.year, cd.monthNum, 0).getDate();
+  
+  const postsByDay = {};
+  cd.posts.forEach(p => {
+    if (!postsByDay[p.day]) postsByDay[p.day] = [];
+    postsByDay[p.day].push(p);
+  });
+  const holidaysByDay = {};
+  cd.holidays.forEach(h => { holidaysByDay[h.date] = h; });
+  
+  // Pillar color mapping
+  const pillarColors = {
+    'tease': 'pillar-art-gifting',
+    'product': 'pillar-art-gifting',
+    'giftinspo': 'pillar-inspo',
+    'process': 'pillar-craft',
+    'engagement': 'pillar-filipino',
+    'brand': 'pillar-brand',
+    'promo': 'pillar-promo'
+  };
+  
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell empty"></div>`;
+  
+  for (let d = 1; d <= totalDays; d++) {
+    const posts = postsByDay[d] || [];
+    const holiday = holidaysByDay[d];
+    const hasHoliday = !!holiday;
+    const hasPosts = posts.length > 0;
+    let cls = 'cal-cell';
+    if (hasHoliday) cls += ' has-holiday';
+    else if (hasPosts) cls += ' has-posts';
+    
+    const pips = posts.slice(0, 3).map(p => {
+      const pillarClass = pillarColors[p.pillar] || 'pillar-brand';
+      const icon = { Instagram: '📸', TikTok: '🎵', Facebook: '👥' }[p.platform] || '📱';
+      return `<div class="cal-pillar-pip ${pillarClass}">${icon} ${p.pillar}</div>`;
+    }).join('');
+    
+    html += `<div class="${cls}" onclick="selectCalDay(${d})" data-day="${d}">
+      <div class="cal-date">${d}</div>
+      ${hasHoliday ? `<div class="cal-holiday-tag">${holiday.name}</div>` : ''}
+      ${pips}
+    </div>`;
+  }
+  
   grid.innerHTML = html;
 }
 
-function getDividendDatesForMonth(month, year) {
-  const dates = [];
-  portfolioData.forEach(h => {
-    const schedule = DIVIDEND_SCHEDULES[h.symbol];
-    if (schedule && schedule.months.includes(month)) {
-      // Ex-date typically around 15th of the month
-      dates.push(15);
-    }
-  });
-  return [...new Set(dates)];
+function selectCalDay(day) {
+  const cd = window.CALENDAR_DATA;
+  const posts = cd.posts.filter(p => p.day === day);
+  const panel = document.getElementById('cal-side-panel');
+  const panelDay = document.getElementById('cal-panel-day');
+  const panelStatus = document.getElementById('cal-panel-status');
+  const panelContent = document.getElementById('cal-panel-content');
+  
+  // Update selected state
+  document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('selected'));
+  const cell = document.querySelector(`.cal-cell[data-day="${day}"]`);
+  if (cell) cell.classList.add('selected');
+  
+  panelDay.textContent = `${cd.month} ${day}`;
+  
+  if (posts.length === 0) {
+    panelStatus.textContent = 'No posts';
+    panelStatus.className = 'cal-panel-status';
+    panelContent.innerHTML = `<p class="cal-panel-hint">No content scheduled for this day</p>`;
+    return;
+  }
+  
+  const status = posts[0].status || 'planned';
+  panelStatus.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+  panelStatus.className = `cal-panel-status ${status}`;
+  
+  panelContent.innerHTML = posts.map(p => `
+    <div class="cal-panel-section">
+      <div class="cal-panel-label">${p.platform} · ${p.type}</div>
+      <div class="cal-panel-text" style="margin-bottom:8px"><strong>${p.time}</strong> · ${p.pillar}</div>
+    </div>
+    <div class="cal-panel-section">
+      <div class="cal-panel-label">Caption</div>
+      <div class="cal-panel-caption">${escHtml(p.caption || '')}</div>
+    </div>
+    ${p.visualNote ? `
+    <div class="cal-panel-section">
+      <div class="cal-panel-label">Visual Note</div>
+      <div class="cal-panel-visual">${escHtml(p.visualNote)}</div>
+    </div>` : ''}
+    ${p.cta ? `
+    <div class="cal-panel-section">
+      <div class="cal-panel-label">CTA</div>
+      <div class="cal-panel-text" style="color:#E94560;font-weight:600">➡️ ${escHtml(p.cta)}</div>
+    </div>` : ''}
+  `).join('<hr style="margin:16px 0;border:none;border-top:1px dashed #E8ECF0">');
 }
 
-function renderUpcomingDividends() {
-  const container = document.getElementById('upcoming-dividends');
-  const upcoming = [];
+function renderCalendarTable() {
+  const cd = window.CALENDAR_DATA;
+  const platIcon = { Instagram: '📸', TikTok: '🎵', Facebook: '👥' };
+  const platBadge = { Instagram: 'cp-instagram', TikTok: 'cp-tiktok', Facebook: 'cp-facebook' };
+  const pillarColors = { tease:'pillar-tease', process:'pillar-process', product:'pillar-product',
+    giftinspo:'pillar-giftinspo', engagement:'pillar-engagement', brand:'pillar-brand', promo:'pillar-promo' };
+  const statusClass = { draft: 'status-draft', ready: 'status-ready', posted: 'status-posted', planned: 'status-planned' };
+  
+  const tbody = document.getElementById('cal-body');
+  let rows = '';
+  cd.posts.forEach((p, i) => {
+    const rowId = 'calrow-' + i;
+    const preview = (p.caption || '').split('\n')[0].substring(0, 50) + '…';
+    const status = p.status || 'planned';
+    rows += `<tr class="cal-table-row" onclick="toggleCalRow(${i})" style="cursor:pointer">
+      <td><strong style="color:#E94560">${cd.month.substring(0,3)} ${p.day}</strong></td>
+      <td><span class="caption-platform ${platBadge[p.platform]}">${platIcon[p.platform]} ${p.platform}</span></td>
+      <td style="font-size:12px;color:#4A5568">${p.type || '—'}</td>
+      <td style="font-size:12px;color:#718096">${p.time}</td>
+      <td><span class="caption-pillar-tag ${pillarColors[p.pillar] || ''}">${p.pillar}</span></td>
+      <td><span class="status-badge ${statusClass[status]}">${status}</span></td>
+      <td style="font-size:12.5px;color:#4A5568;max-width:250px">${preview}</td>
+    </tr>
+    <tr id="${rowId}" class="cal-caption-expand">
+      <td colspan="7" style="padding:0">
+        <div style="padding:14px 20px 16px">
+          <div class="cal-caption-box">${(p.caption||'').replace(/\n/g,'<br>')}</div>
+          ${p.visualNote ? `<div class="cal-visual-note">${p.visualNote}</div>` : ''}
+          ${p.cta ? `<div><span class="cal-cta-tag">CTA: ${p.cta}</span></div>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML = rows;
+}
 
-  portfolioData.forEach(h => {
-    const schedule = DIVIDEND_SCHEDULES[h.symbol];
-    if (schedule) {
-      const now = new Date();
-      const currentMonth = now.getMonth() + 1;
-      const nextDivMonth = schedule.months.find(m => m >= currentMonth) || schedule.months[0];
-      const nextYear = nextDivMonth < currentMonth ? now.getFullYear() + 1 : now.getFullYear();
-      const estDividend = ((schedule.yield / 100) / (schedule.frequency === 'quarterly' ? 4 : 1)) * (h.current_price || 0) * (h.quantity || 0);
+// ===== ETHEL INTELLIGENCE SECTIONS =====
 
-      upcoming.push({
-        symbol: h.symbol,
-        date: new Date(nextYear, nextDivMonth - 1, 15),
-        amount: estDividend
+function renderProductOpportunities() {
+  if (!window.PRODUCT_OPPORTUNITIES || window.PRODUCT_OPPORTUNITIES.length === 0) {
+    document.getElementById('opportunities-grid').innerHTML = '<p style="color:#64748B;text-align:center;padding:40px">No opportunities discovered yet. Ethel is analyzing...</p>';
+    return;
+  }
+  
+  const demandBadge = {
+    'High': '<span style="background:#10B981;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600">HIGH DEMAND</span>',
+    'Medium': '<span style="background:#F59E0B;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600">MEDIUM</span>',
+    'Low': '<span style="background:#64748B;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600">LOW</span>'
+  };
+  
+  const grid = document.getElementById('opportunities-grid');
+  grid.innerHTML = window.PRODUCT_OPPORTUNITIES.map(opp => `
+    <div class="opportunity-card">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px">
+        <h3 style="font-size:16px;font-weight:700;color:#1E293B;margin:0">${opp.product}</h3>
+        ${demandBadge[opp.demandLevel] || ''}
+      </div>
+      <div style="font-size:13px;color:#64748B;margin-bottom:8px">Source: ${opp.source}</div>
+      <div style="font-size:14px;color:#475569;margin-bottom:8px"><strong>Suggested Price:</strong> ${opp.suggestedPriceRange}</div>
+      <div style="font-size:13px;color:${opp.supplierFound ? '#10B981' : '#DC2626'};font-weight:600">
+        ${opp.supplierFound ? '✅ Supplier found' : '⚠️ Supplier needed'}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderSupplierIntelligence() {
+  if (!window.SUPPLIERS || window.SUPPLIERS.length === 0) {
+    document.getElementById('suppliers-cards-grid').innerHTML = '<p style="color:#64748B;text-align:center;padding:40px">No suppliers found yet. Ethel is searching...</p>';
+    return;
+  }
+  
+  // Update stats bar
+  const suppliers = window.SUPPLIERS;
+  const totalSuppliers = suppliers.length;
+  const avgPrice = 'Calculating...'; // Could calculate from price ranges
+  const lowestMOQ = Math.min(...suppliers.map(s => s.moq || Infinity));
+  const activePromos = suppliers.filter(s => s.isPromoActive).length;
+  
+  document.getElementById('total-suppliers').textContent = totalSuppliers;
+  document.getElementById('avg-price').textContent = avgPrice;
+  document.getElementById('lowest-moq').textContent = lowestMOQ === Infinity ? '—' : lowestMOQ;
+  document.getElementById('active-promos').textContent = activePromos;
+  document.getElementById('ethel-updated').textContent = 'Just now';
+  
+  // Render supplier cards
+  const platformBadge = {
+    'Shopee': '<span style="background:#EE4D2D;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">Shopee</span>',
+    'Lazada': '<span style="background:#0F156D;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">Lazada</span>',
+    'Direct': '<span style="background:#8B5CF6;color:#fff;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600">Direct</span>'
+  };
+  
+  const grid = document.getElementById('suppliers-cards-grid');
+  grid.innerHTML = suppliers.map(sup => `
+    <div class="supplier-intel-card" data-category="${sup.category || ''}" data-products="${(sup.products || []).join(',')}">
+      ${sup.isPromoActive ? '<div class="promo-banner">🔥 PROMO ACTIVE</div>' : ''}
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px">
+        <h3 style="font-size:15px;font-weight:700;color:#1E293B;margin:0">${sup.name}</h3>
+        ${sup.priority === 'HIGH' ? '<span style="background:#10B981;color:#fff;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700">⭐ TOP</span>' : ''}
+      </div>
+      ${sup.category ? `<div style="font-size:11px;color:#8B5CF6;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">${sup.category}</div>` : ''}
+      <div style="font-size:12px;color:#64748B;margin-bottom:8px">📍 ${sup.location} &nbsp;|&nbsp; 🏪 ${sup.platform}</div>
+      <div style="margin-bottom:10px">
+        ${(sup.products || []).map(p => `<span style="background:#F1F5F9;color:#475569;padding:3px 8px;border-radius:4px;font-size:11px;margin-right:4px;display:inline-block;margin-bottom:4px">${p}</span>`).join('')}
+      </div>
+      <div style="font-size:13px;color:#64748B;margin-bottom:4px"><strong>Price/pc:</strong> ${sup.pricePerPiece}</div>
+      <div style="font-size:13px;color:#64748B;margin-bottom:8px"><strong>MOQ:</strong> ${sup.moq}</div>
+      ${sup.notes ? `<div style="font-size:12px;color:#475569;background:#F8FAFC;padding:8px;border-radius:6px;margin-bottom:10px;border-left:3px solid #8B5CF6">${sup.notes}</div>` : ''}
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="color:#F59E0B;font-size:13px">★ ${sup.rating}</div>
+        <a href="${sup.url}" target="_blank" class="view-store-btn">View Store →</a>
+      </div>
+    </div>
+  `).join('');
+  
+  // Setup filter buttons
+  document.querySelectorAll('.filter-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      document.querySelectorAll('.supplier-intel-card').forEach(card => {
+        if (filter === 'all' || card.dataset.category === filter) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
       });
-    }
+    });
   });
-
-  upcoming.sort((a, b) => a.date - b.date);
-
-  if (upcoming.length === 0) {
-    container.innerHTML = '<div class="empty-state">No dividend holdings</div>';
-    return;
-  }
-
-  container.innerHTML = upcoming.slice(0, 5).map(u => `
-    <div class="upcoming-card">
-      <div class="upcoming-symbol">${u.symbol}</div>
-      <div class="upcoming-date">Ex-date: ~${formatDate(u.date)}</div>
-      <div class="upcoming-amount">Est: ${formatPeso(u.amount)}</div>
-    </div>
-  `).join('');
 }
 
-function renderIncomeProjection() {
-  let totalIncome = 0;
-  const breakdown = [];
-
-  portfolioData.forEach(h => {
-    const schedule = DIVIDEND_SCHEDULES[h.symbol];
-    if (schedule) {
-      const annualDiv = (schedule.yield / 100) * (h.current_price || 0) * (h.quantity || 0);
-      totalIncome += annualDiv;
-      breakdown.push({ symbol: h.symbol, amount: annualDiv });
-    }
-  });
-
-  document.getElementById('income-total').textContent = formatPeso(totalIncome) + '/year';
-
-  const container = document.getElementById('income-breakdown');
-  if (breakdown.length === 0) {
-    container.innerHTML = '';
-    return;
-  }
-
-  container.innerHTML = breakdown.map(b => `
-    <div class="income-item">
-      <span class="symbol">${b.symbol}</span>
-      <span class="amount">${formatPeso(b.amount)}</span>
-    </div>
-  `).join('');
-}
-
-// ==================== DISCOVERY ====================
-
-async function loadDiscovery() {
+// ===== ETHEL ACTIVITY FEED =====
+async function renderEthelFeed() {
   try {
-    // Get watchlist items not in portfolio
-    const watchlist = await window.sbFetch('sterling_watchlist', { order: 'fundamental_score.desc' });
-    const portfolioSymbols = portfolioData.map(p => p.symbol);
-    const discovery = watchlist.filter(w => !portfolioSymbols.includes(w.symbol));
-    renderDiscovery(discovery);
-  } catch (err) {
-    console.error('Discovery load error:', err);
+    const rows = await sbFetch('agent_activity', 'agent=eq.ethel&order=created_at.desc&limit=20');
+    const tbody = document.getElementById('ethel-feed-body');
+    if (!tbody || !Array.isArray(rows)) return;
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#666;padding:24px">No Ethel activity yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(r) {
+      const ts = new Date(r.created_at).toLocaleString('en-PH', {timeZone: 'Asia/Manila'});
+      const action = r.action || '—';
+      const summary = r.summary || r.details || '—';
+      return '<tr><td>' + ts + '</td><td>' + action + '</td><td>' + summary + '</td></tr>';
+    }).join('');
+  } catch(e) {
+    console.error('Ethel feed error:', e);
   }
 }
 
-function renderDiscovery(data) {
-  const grid = document.getElementById('discovery-grid');
+// ===== COMPETITOR FEED =====
+var CF_OFFSET = 0;
+var CF_LIMIT = 24;
 
-  if (!data || data.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No new stock picks. Sterling will discover more soon.</div></div>`;
-    return;
-  }
-
-  grid.innerHTML = data.map(d => `
-    <div class="discovery-card">
-      <div class="disc-header">
-        <div>
-          <div class="disc-symbol">${d.symbol}</div>
-          <div class="disc-company">${d.company_name || ''}</div>
-        </div>
-        <span class="disc-sector">${d.sector || 'N/A'}</span>
-      </div>
-      <div class="disc-metrics">
-        <div><span class="label">Target Entry</span><span class="value">${formatPeso(d.target_buy)}</span></div>
-        <div><span class="label">Current</span><span class="value">${formatPeso(d.current_price)}</span></div>
-        <div><span class="label">Signal</span><span class="value">${d.technical_signal || '—'}</span></div>
-        <div><span class="label">P/E</span><span class="value">${d.pe_ratio || '—'}</span></div>
-      </div>
-      <div class="disc-score">
-        <div class="score-label">Fundamental Score: ${d.fundamental_score || 0}/100</div>
-        <div class="score-bar"><div class="score-fill" style="width: ${d.fundamental_score || 0}%"></div></div>
-      </div>
-      ${d.reason ? `<div class="disc-why">${d.reason}</div>` : ''}
-      <button class="disc-add-btn" onclick="addToWatchlist('${d.symbol}')">Add to Watchlist</button>
-    </div>
-  `).join('');
+async function loadCompetitorFeed() {
+  CF_OFFSET = 0;
+  var grid = document.getElementById('competitor-feed-grid');
+  grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:48px">Loading...</p>';
+  await fetchCompetitorPosts(true);
+  await updateCFStats();
+  populateCFFilters();
 }
 
-async function addToWatchlist(symbol) {
+async function fetchCompetitorPosts(reset) {
+  var competitor = document.getElementById('cf-competitor-filter') ? document.getElementById('cf-competitor-filter').value : '';
+  var platform = document.getElementById('cf-platform-filter') ? document.getElementById('cf-platform-filter').value : '';
+  var url = SB_URL + '/rest/v1/competitor_posts?order=scraped_at.desc&limit=' + CF_LIMIT + '&offset=' + CF_OFFSET;
+  if (competitor) url += '&competitor=eq.' + encodeURIComponent(competitor);
+  if (platform) url += '&platform=eq.' + encodeURIComponent(platform);
   try {
-    // This would typically insert/update in sterling_watchlist
-    alert(`${symbol} added to watchlist!`);
-  } catch (err) {
-    console.error('Add to watchlist error:', err);
+    var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
+    var posts = await res.json();
+    var grid = document.getElementById('competitor-feed-grid');
+    if (!Array.isArray(posts)) { grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:48px">No posts yet. Ethel is scraping...</p>'; return; }
+    if (posts.length === 0 && reset) { grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:48px">No posts yet. Ethel is scraping...</p>'; return; }
+    var html = posts.map(function(p) { return renderCompetitorPostCard(p); }).join('');
+    if (reset) { grid.innerHTML = html; } else { grid.innerHTML += html; }
+    var loadMoreBtn = document.getElementById('cf-load-more');
+    if (loadMoreBtn) loadMoreBtn.style.display = posts.length < CF_LIMIT ? 'none' : 'inline-block';
+    CF_OFFSET += posts.length;
+  } catch(e) {
+    console.error('Competitor feed error:', e);
   }
 }
 
-// ===== LEARN PAGE =====
-
-const GLOSSARY = [
-  // Fundamentals
-  { term: 'P/E Ratio', category: 'Fundamentals', short: 'Price-to-Earnings', explanation: 'How much you pay for ₱1 of company earnings. Lower = cheaper. MBT at 6.86x means you pay ₱6.86 for every ₱1 of profit it earns. Banking sector avg is 11x — so MBT is cheap.', example: 'MBT P/E: 6.86x vs sector avg 11x → MBT is undervalued', level: 'Beginner' },
-  { term: 'EPS', category: 'Fundamentals', short: 'Earnings Per Share', explanation: 'How much profit each share earns. MBT EPS is ₱10.76 — meaning for every 1 share you own, MBT earned ₱10.76 in profit last year. Growing EPS year-over-year = healthy company.', example: 'MBT EPS grew 18% last year — strong signal', level: 'Beginner' },
-  { term: 'Dividend Yield', category: 'Fundamentals', short: 'Annual dividend ÷ share price', explanation: 'How much cash income you earn per year as a % of the stock price. KEEPR yields 11% — on your 11,000 shares worth ₱25,300, you earn ~₱2,783/year in dividends just for holding.', example: 'KEEPR: 11% yield. FILRT: 8.1%. GLO: 3.6%', level: 'Beginner' },
-  { term: 'NAV', category: 'Fundamentals', short: 'Net Asset Value', explanation: 'For REITs: the actual value of all properties owned divided by shares outstanding. KEEPR NAV is ₱3.80 but trades at ₱2.30 — you\'re buying ₱3.80 of real estate for ₱2.30. That\'s a 40% discount.', example: 'KEEPR: Price ₱2.30 vs NAV ₱3.80 = 40% discount', level: 'Intermediate' },
-  { term: 'ROE', category: 'Fundamentals', short: 'Return on Equity', explanation: 'How efficiently a company makes money from shareholders\' funds. 15%+ is generally good. Think of it as: for every ₱100 you invest, how much does the company earn? ROE 12.5% = ₱12.50 earned per ₱100.', example: 'MBT ROE: 12.5% — solid for a bank', level: 'Intermediate' },
-  { term: 'Book Value', category: 'Fundamentals', short: 'Company\'s net worth per share', explanation: 'What each share is worth if the company sold all its assets and paid all debts. If book value is ₱68 and the stock trades at ₱76, you\'re paying a small premium — that\'s fair for a profitable bank.', example: 'MBT book value: ₱68.50, price: ₱76 → P/B ratio 1.1x', level: 'Intermediate' },
-  { term: 'Debt-to-Equity', category: 'Fundamentals', short: 'How much the company borrowed vs owns', explanation: 'Lower is generally safer. Below 1.0 means the company owns more than it owes. Banks and telecoms naturally have higher D/E because they need capital. GLO has D/E of 2.1x — high but normal for telecoms.', example: 'GLO D/E: 2.1x (high but expected for telecoms)', level: 'Intermediate' },
-  { term: 'Ex-Dividend Date', category: 'Fundamentals', short: 'Cutoff date to receive dividend', explanation: 'You must OWN the stock BEFORE this date to receive the upcoming dividend. Buy on or after the ex-date = no dividend this cycle. FILRT ex-date ~March 11 — own it before then.', example: 'FILRT ex-date ~March 11. Own before then → get ₱420 dividend', level: 'Beginner' },
-  { term: 'Distributable Income', category: 'Fundamentals', short: 'Cash REITs have available to pay dividends', explanation: 'Philippine REITs must pay out at least 90% of distributable income as dividends. This is more important than earnings for REITs — check if distributable income is growing or shrinking each quarter.', example: 'MREIT distributable income growing → dividends should be maintained', level: 'Intermediate' },
-  { term: 'Occupancy Rate', category: 'Fundamentals', short: '% of REIT properties currently rented', explanation: 'For REITs: how many of their office/mall/industrial spaces are occupied by tenants. 90%+ is healthy. KEEPR at 94% means 94% of their properties are generating rental income right now.', example: 'KEEPR occupancy: 94% — healthy', level: 'Beginner' },
-
-  // Technical Analysis
-  { term: 'RSI', category: 'Technical', short: 'Relative Strength Index (0-100)', explanation: 'Measures buying/selling momentum. Below 30 = oversold (stock may be too cheap, potential bounce). Above 70 = overbought (stock may be too expensive, potential pullback). MBT RSI 66.8 = strong but not yet overbought.', example: 'MBT RSI: 66.8 (strong buy territory). Below 30 = oversold opportunity.', level: 'Intermediate' },
-  { term: 'MACD', category: 'Technical', short: 'Moving Average Convergence Divergence', explanation: 'Shows momentum shifts. When the MACD line crosses ABOVE the signal line = bullish (upward momentum). When it crosses BELOW = bearish. MBT MACD: +0.81 (positive = bullish momentum).', example: 'MBT MACD: +0.81 → bullish momentum confirmed', level: 'Intermediate' },
-  { term: 'Support Level', category: 'Technical', short: 'Price floor where buyers step in', explanation: 'A price level where the stock has historically bounced upward. Buyers see it as cheap here and step in. MBT support at ₱73.95 — if it dips there, that\'s historically a buying opportunity, not a panic signal.', example: 'MBT support: ₱73.95. Dips to here = buy zone, not panic.', level: 'Beginner' },
-  { term: 'Resistance Level', category: 'Technical', short: 'Price ceiling where sellers push back', explanation: 'A price level where the stock has historically struggled to break through. Sellers see it as expensive and sell. MBT resistance at ₱76.57 — a strong close above this = breakout signal.', example: 'MBT resistance: ₱76.57. Break above = bullish breakout.', level: 'Beginner' },
-  { term: 'Moving Average (MA)', category: 'Technical', short: 'Average price over N days', explanation: 'Smooths out daily noise to show the trend. 50-day MA = average of last 50 days\' closing prices. When stock price is ABOVE the 50-day MA = uptrend. BELOW = downtrend. MBT is above ALL its moving averages right now.', example: 'MBT price ₱76 > 200-day MA ₱72.70 → confirmed uptrend', level: 'Beginner' },
-  { term: 'Volume', category: 'Technical', short: 'How many shares traded today', explanation: 'Confirms the conviction behind a price move. Big move UP on big volume = real buying. Big move UP on tiny volume = suspicious, may reverse. Always ask: "Was this move on high or low volume?"', example: 'Price up 3% on 2M volume = strong signal. Up 3% on 100K volume = weak signal.', level: 'Beginner' },
-  { term: 'Breakout', category: 'Technical', short: 'Price closes above resistance with volume', explanation: 'When a stock closes above a key resistance level, especially on high volume. This signals that buyers have overpowered sellers at that level and the stock may run higher. Very strong buy signal when confirmed.', example: 'If MBT closes above ₱77 on high volume = breakout signal', level: 'Intermediate' },
-  { term: '200-Day MA', category: 'Technical', short: 'The ultimate long-term trend indicator', explanation: 'The most watched moving average by professional investors. Stock above 200-day MA = long-term uptrend. Stock below = long-term downtrend. MBT recently crossed ABOVE its 200-day MA — that\'s a major bullish signal that professionals notice.', example: 'MBT crossed above 200-day MA ₱72.70 → major bullish signal', level: 'Intermediate' },
-
-  // Trading Strategy
-  { term: 'Stop-Loss', category: 'Strategy', short: 'Price where you accept you were wrong and exit', explanation: 'A predetermined price where you sell to limit losses. NOT a sign of weakness — it\'s risk management. Every professional sets a stop-loss before entering a trade. For MBT, stop-loss ₱69 means: if it drops below ₱69, the thesis is broken — sell.', example: 'MBT stop-loss: ₱69. KEEPR stop-loss: ₱1.90.', level: 'Beginner' },
-  { term: 'Take Profit', category: 'Strategy', short: 'Price where you lock in gains', explanation: 'A target price where you sell a portion of your position to lock in profits. Smart approach: sell 30% at first target, hold the rest. Don\'t sell everything at once — let winners run. MBT first take-profit: ₱86.', example: 'MBT: sell 30% at ₱86, hold rest to ₱97.', level: 'Beginner' },
-  { term: 'Averaging Down', category: 'Strategy', short: 'Buying more when price drops to lower your average cost', explanation: 'If you own a stock and it drops, buying more shares lowers your average purchase price. ONLY do this if the fundamentals haven\'t changed — not just because the price fell. KEEPR fundamentals intact (94% occupancy, 11% yield) = averaging down is valid.', example: 'KEEPR: bought at ₱2.60, now ₱2.30. Adding more lowers avg cost. Valid IF fundamentals intact.', level: 'Intermediate' },
-  { term: 'Unrealized P&L', category: 'Strategy', short: 'Paper profit or loss — not real until you sell', explanation: 'Your current profit/loss on paper while you still hold the stock. KEEPR shows -11% unrealized — that money is NOT gone. You still own the same 11,000 shares. It only becomes a real loss if you sell. As long as fundamentals are intact, unrealized loss = temporary price discount.', example: 'KEEPR -11% unrealized ≠ actual loss. Don\'t sell based on paper loss alone.', level: 'Beginner' },
-  { term: 'Long-Term Investing', category: 'Strategy', short: 'Holding quality stocks for years, not days', explanation: 'Carlo\'s approach. You\'re NOT day trading. You buy fundamentally strong companies at good prices, hold them for dividends + price appreciation, and only sell when fundamentals change — not when price dips.', example: 'Carlo\'s horizon: 1-5 years. Dividends + capital appreciation = total return.', level: 'Beginner' },
-  { term: 'Dividend Investing', category: 'Strategy', short: 'Building passive income through dividends', explanation: 'Owning stocks that pay regular cash dividends. Your REITs (FILRT, KEEPR, MREIT) pay quarterly. GLO and DMC pay annually. Combined, your current portfolio generates estimated ₱35,000-45,000/year in dividends — without selling a single share.', example: 'Your est. annual dividends: KEEPR ₱28,600 + FILRT ₱4,200 + MREIT ₱1,000 + GLO ₱600 + DMC ₱1,640', level: 'Beginner' },
-];
-
-const CONCEPTS = [
-  {
-    title: 'Why REITs Drop When Interest Rates Rise',
-    icon: '🏢',
-    level: 'Beginner',
-    content: `REITs borrow money to buy properties. When the BSP raises interest rates, their borrowing costs increase → less profit left over → smaller dividends → investors sell → price drops.
-
-The flip side: when BSP CUTS rates (expected H2 2026), borrowing gets cheaper → more profit → bigger dividends → investors buy → price rises.
-
-This is why your REITs (KEEPR, FILRT, MREIT) have been soft. Not because the properties are empty — but because rates have been high. BSP holding rates at 6.5% is the key thing to monitor.
-
-Sterling's Alert: When BSP announces a rate cut, buy more REITs immediately.`
-  },
-  {
-    title: 'How to Read an Analyst Target Price',
-    icon: '🎯',
-    level: 'Beginner',
-    content: `When you see "13 analysts, average target ₱91" for MBT, here's what it means:
-
-13 professional analysts (from banks like UBS, Goldman, local brokers like COL, BDO Securities) have each built a financial model for MBT and concluded that the fair price is around ₱91.
-
-This does NOT mean the stock will reach ₱91 by tomorrow. It's a 12-month target.
-Some will be right, some wrong. But 13 professionals independently reaching ₱86-97 is meaningful signal.
-
-How to use it: If current price (₱76) is significantly below analyst target (₱91) = potential undervaluation. But always check IF the thesis still holds — earnings still growing? No major negative news?
-
-Sterling's rule: Only trust analyst targets from named firms with track records (COL Financial, BDO Securities, First Metro, UBS, Citi).`
-  },
-  {
-    title: 'The Difference Between Price and Value',
-    icon: '💡',
-    level: 'Beginner',
-    content: `This is the most important concept in long-term investing.
-
-PRICE = what the market is willing to pay right now. Changes every second. Driven by emotion, news, sentiment.
-
-VALUE = what the company is actually worth based on its earnings, assets, and future prospects. Changes slowly. Driven by fundamentals.
-
-Great investing = buying VALUE at a discount to PRICE.
-
-Example: KEEPR's value (NAV) is ₱3.80. Its price is ₱2.30. You're getting ₱3.80 of real estate value for ₱2.30. That's a 40% discount.
-
-Warren Buffett's rule: "Price is what you pay. Value is what you get."
-
-Sterling applies this to every recommendation.`
-  },
-  {
-    title: 'How Dividends Actually Work Step by Step',
-    icon: '💰',
-    level: 'Beginner',
-    content: `Step 1: Company announces a dividend (e.g., "FILRT declares ₱0.06/share dividend")
-Step 2: They announce an EX-DIVIDEND DATE (e.g., March 11)
-Step 3: You must own the stock BEFORE that date to qualify
-Step 4: On the ex-date, the stock price usually drops by roughly the dividend amount (it's been "extracted")
-Step 5: The actual cash hits your DragonFi account on the PAYMENT DATE (usually 2-4 weeks later)
-
-Your FILRT example:
-• You own 7,000 shares
-• Dividend: ₱0.06/share
-• Calculation: 7,000 × ₱0.06 = ₱420
-• Action needed: HOLD before March 11. Then ₱420 arrives in your account.
-
-Annual dividend income from your current portfolio (estimated):
-KEEPR: ~₱28,600 | FILRT: ~₱4,200 | MREIT: ~₱1,000 | GLO: ~₱608 | DMC: ~₱1,640
-Total: ~₱36,048/year in passive income.`
-  },
-  {
-    title: 'Technical Analysis vs Fundamental Analysis — When to Use Each',
-    icon: '📊',
-    level: 'Intermediate',
-    content: `For long-term investors like Carlo, the priority order is:
-
-1. FUNDAMENTALS FIRST (is this a good company at a good price?)
-   Use: P/E, dividend yield, EPS growth, ROE, debt levels
-   Tools: PSE Edge, HelloSafe PH, Simply Wall St
-
-2. TECHNICALS TO TIME ENTRY (when is the right moment to buy?)
-   Use: RSI, support levels, moving averages
-   Tools: TradingView, PSE EQUIP, Investing.com
-
-Never buy a fundamentally weak company just because the chart "looks good."
-Use technicals to get a better price on a fundamentally strong company.
-
-Example: MBT is fundamentally strong (PE 6.86x, 18% earnings growth). Technicals confirm (all MAs bullish, RSI 66). Both agree → high conviction hold/buy.
-
-If fundamentals say good but technicals say it's breaking down → wait for stabilization.`
-  },
-];
-
-const PATTERNS = [
-  {
-    name: 'Hammer',
-    emoji: '🔨',
-    type: 'Bullish Reversal',
-    description: 'A candle with a small body at the top and a long lower wick (tail). The long tail means sellers pushed the price way down during the day, but buyers came in and reversed it back up near the open.',
-    signal: 'Bullish — potential reversal at lows. Most reliable at key support levels.',
-    howToTrade: 'Wait for confirmation: if the NEXT candle is also green and closes higher, enter on that confirmation. Don\'t buy the hammer alone.',
-    appearance: '🕯️ Small body on top + long wick below = wick is 2x+ the body size'
-  },
-  {
-    name: 'Doji',
-    emoji: '➕',
-    type: 'Indecision',
-    description: 'Open and close price are nearly equal — looks like a cross or plus sign. Means the market is undecided: buyers and sellers are in perfect balance. Neither side is winning.',
-    signal: 'Neutral — watch for the NEXT candle. After a downtrend, a Doji can signal reversal. After an uptrend, it can signal pause or reversal.',
-    howToTrade: 'Don\'t trade the Doji itself. Wait one more candle to see which direction the market chooses.',
-    appearance: '➕ Almost equal open and close, with wicks on both sides'
-  },
-  {
-    name: 'Bullish Engulfing',
-    emoji: '📈',
-    type: 'Strong Bullish Reversal',
-    description: 'A red candle followed by a LARGER green candle that completely covers ("engulfs") the previous red candle\'s body. Shows buyers overwhelmed sellers in one session.',
-    signal: 'Strong bullish — especially at support levels or after a downtrend. One of the most reliable reversal patterns.',
-    howToTrade: 'Enter on the open of the third candle (after the engulfing green candle). Stop-loss below the low of the red candle.',
-    appearance: 'Red candle → Big green candle that swallows the red'
-  },
-  {
-    name: 'Higher Highs / Higher Lows',
-    emoji: '📊',
-    type: 'Uptrend Structure',
-    description: 'Each rally goes HIGHER than the previous rally, and each pullback stays HIGHER than the previous pullback. This is the definition of an uptrend.',
-    signal: 'As long as this pattern holds, the uptrend is intact. Only worry when a low breaks below the previous low.',
-    howToTrade: 'Buy on the dips (pullbacks to higher lows). Hold until the structure breaks.',
-    appearance: 'Chart staircase going up → each step higher than the last'
-  },
-  {
-    name: 'Golden Cross',
-    emoji: '✨',
-    type: 'Major Bullish Signal',
-    description: 'When the 50-day moving average crosses ABOVE the 200-day moving average. Signals a shift from long-term downtrend to uptrend. Major institutional investors (funds, banks) pay close attention to this.',
-    signal: 'Very bullish long-term signal. Often precedes sustained price increases over weeks/months.',
-    howToTrade: 'For long-term investors: buy on the Golden Cross and hold. Stop-loss below 200-day MA.',
-    appearance: '50-day MA line crosses up through the 200-day MA line on chart'
-  },
-  {
-    name: 'Death Cross',
-    emoji: '💀',
-    type: 'Major Bearish Signal',
-    description: 'When the 50-day moving average crosses BELOW the 200-day moving average. Opposite of Golden Cross. Signals shift to long-term downtrend.',
-    signal: 'Bearish long-term signal. Used to exit or reduce position sizes.',
-    howToTrade: 'Consider reducing position. Don\'t average down when a Death Cross forms.',
-    appearance: '50-day MA line crosses down through the 200-day MA line on chart'
-  },
-];
-
-const RESOURCES = [
-  {
-    category: 'Charts & Technicals',
-    icon: '📈',
-    items: [
-      { name: 'PSE EQUIP', url: 'https://equip.pse.com.ph', description: 'Official PSE charting platform. Free. TradingView charts + Refinitiv fundamentals. Start here.', tag: '🇵🇭 Official' },
-      { name: 'TradingView PSE', url: 'https://www.tradingview.com/symbols/PSE-MBT/technicals/', description: 'Best charting tool globally. Free account gives you RSI, MACD, MAs, community ideas. Replace MBT with any symbol.', tag: '⭐ Best Charts' },
-      { name: 'Investagrams', url: 'https://www.investagrams.com', description: 'PH trading community. Chart spotting, local trader ideas, technical analysis discussions.', tag: '🇵🇭 PH Community' },
-      { name: 'Investing.com PSE', url: 'https://www.investing.com/equities/metropolitan-b-technical', description: 'Instant technical summary: Strong Buy/Buy/Neutral/Sell. Replace "metropolitan-b" with any stock slug.', tag: '⚡ Quick Analysis' },
-    ]
-  },
-  {
-    category: 'Fundamentals & News',
-    icon: '📰',
-    items: [
-      { name: 'PSE Edge', url: 'https://edge.pse.com.ph', description: 'Official PSE disclosures. Every dividend, earnings report, material disclosure filed here. Your primary news source.', tag: '🇵🇭 Official' },
-      { name: 'HelloSafe PH', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company', description: 'Analyst targets, PE, EPS, fundamentals aggregated in one clean page. Replace slug for any stock.', tag: '📊 Fundamentals' },
-      { name: 'Simply Wall St', url: 'https://simplywall.st/stocks/ph', description: 'Visual "snowflake" fundamental analysis. Great for quick health check on any PH stock.', tag: '👁️ Visual' },
-      { name: 'BusinessWorld', url: 'https://www.bworldonline.com', description: 'Philippine financial newspaper of record. Primary source for corporate news.', tag: '📰 PH News' },
-    ]
-  },
-  {
-    category: 'Your Broker',
-    icon: '🏦',
-    items: [
-      { name: 'DragonFi', url: 'https://www.dragonfi.ph', description: 'Your actual broker. Most reliable data source since it\'s your account. Check here first for live prices.', tag: '💼 Your Broker' },
-      { name: 'DragonFi — MBT', url: 'https://www.dragonfi.ph/market/stocks/MBT', description: 'Direct link to MBT on DragonFi. Replace symbol for any stock.', tag: '💼 Direct Link' },
-    ]
-  },
-  {
-    category: 'Learning',
-    icon: '🎓',
-    items: [
-      { name: 'PSE Academy', url: 'https://www.pseacademy.com.ph', description: 'Free courses by the PSE itself. Investing basics, how to read disclosures, understanding REITs. Start here if you\'re a beginner.', tag: '🇵🇭 Free Courses' },
-      { name: 'r/phinvest', url: 'https://www.reddit.com/r/phinvest/', description: 'Philippine investing community. Real discussions, no-nonsense advice, fellow Filipino investors sharing what works.', tag: '💬 Community' },
-      { name: 'r/phstock', url: 'https://www.reddit.com/r/phstock/', description: 'PSE-focused stock discussions. Technical analysis posts, stock ideas, market sentiment.', tag: '💬 Community' },
-      { name: 'Trading Economics PH', url: 'https://tradingeconomics.com/philippines/stock-market', description: 'PSEi data, BSP interest rate history, macro indicators. Essential for understanding the big picture.', tag: '🌍 Macro' },
-    ]
-  },
-];
-
-// Portfolio-specific lessons using real Carlo data
-const PORTFOLIO_SCHOOL = [
-  {
-    stock: 'MBT',
-    title: 'Why MBT is Your Strongest Position',
-    content: `MBT is a textbook example of a fundamentally cheap stock in an uptrend.
-
-FUNDAMENTAL CASE:
-• P/E of 6.86x — you pay ₱6.86 for every ₱1 of profit. Banking avg is 11x. That's 38% cheaper than peers.
-• EPS grew 18% last year — the business is accelerating.
-• Dividend yield 6.78% — you get paid while you wait.
-• 13 analysts say Strong Buy. Average target: ₱91. High: ₱97.50.
-
-TECHNICAL CASE:
-• ALL 12 moving averages say BUY — unanimous.
-• RSI 66.8 — strong momentum, not yet overbought.
-• Price is above all MAs: 5-day (₱76.35), 20-day (₱75.31), 50-day (₱73.85), 200-day (₱72.70).
-• Just crossed above 200-day MA — major institutional buy signal.
-
-YOUR POSITION:
-• You bought avg ₱69.70, it's now ₱75.80 — up ₱6,930 (+8.75%).
-• Analyst upside to avg target: +₱15.20/share = +₱16,720 more potential gain on 1,100 shares.
-• Upside to high target ₱97.50: +₱21.70/share = +₱23,870 more.
-
-LESSON: This is what "fundamentally strong stock in uptrend" looks like. Hold it.`
-  },
-  {
-    stock: 'KEEPR',
-    title: 'Understanding Why KEEPR Looks Scary But Isn\'t',
-    content: `KEEPR is down -11.54% from your buy price. It LOOKS bad. Here's why it's not time to panic.
-
-THE MATH OF VALUE:
-• NAV (actual property value per share): ₱3.80
-• Current price: ₱2.30
-• You're buying ₱3.80 of real estate for ₱2.30 — a 40% discount.
-• This discount happens when market sentiment is negative (high interest rates, REIT selloff).
-• The properties themselves are fine: 94% occupancy rate.
-
-THE DIVIDEND MATH:
-• Estimated annual dividend yield at current price: ~11%
-• On your 11,000 shares: ~₱28,600/year just in dividends.
-• Even if the price stays flat for 2 years, you collect ₱57,200 in dividends.
-
-THE CATALYST:
-• BSP is expected to cut rates in H2 2026.
-• When rates fall: REIT borrowing costs fall → more profit → higher dividends → investors buy → price rises.
-• Historical pattern: Philippine REITs rally 20-40% after rate cut cycles begin.
-
-LESSON: Sometimes the best investment is the most uncomfortable one. Don't sell quality just because of a red number.`
-  },
-  {
-    stock: 'FILRT',
-    title: 'FILRT: Getting Paid to Wait',
-    content: `FILRT is flat in price — you're down 4.43%. But here's the full picture.
-
-THE DIVIDEND INCOME:
-• Q4 dividend: ₱0.06/share. Ex-date: ~March 11, 2026.
-• On 7,000 shares: ₱420 arriving in your account.
-• Annual: ₱0.24/share × 7,000 = ₱1,680/year in passive income.
-• Yield at current price: 8.1% — that's better than any bank savings account.
-
-THE VALUE CASE:
-• NAV: ₱4.21. Current price: ₱3.02. You're buying at a 28% discount to real estate value.
-• When BSP cuts rates: FILRT's borrowing costs fall → income rises → price re-rates toward NAV.
-
-THE LESSON — "Getting Paid to Wait":
-This is the core of REIT investing. You don't need the price to rise immediately.
-You collect 8.1% per year in cash dividends. After 3 years of collecting dividends, your effective buy price drops significantly.
-
-Real math: 8.1% × 3 years = 24.3% of your investment returned as cash, while you still own the shares.`
-  },
-];
-
-function loadLearnPage() {
-  renderGlossary(GLOSSARY);
-  renderConcepts(CONCEPTS);
-  renderPatterns(PATTERNS);
-  renderPortfolioSchool(PORTFOLIO_SCHOOL);
-  renderResources(RESOURCES);
+function renderCompetitorPostCard(p) {
+  var platformClass = 'platform-' + (p.platform || 'instagram');
+  var platformLabel = (p.platform || 'instagram').toUpperCase();
+  var imageHtml = p.image_url
+    ? '<img src="' + p.image_url + '" alt="post" loading="lazy" onerror="this.parentNode.innerHTML=\'<div class=post-image-placeholder>📷</div>\'">'
+    : '<div class="post-image-placeholder">📷</div>';
+  var caption = p.caption ? p.caption.substring(0, 120) + (p.caption.length > 120 ? '...' : '') : '—';
+  var date = p.posted_at ? new Date(p.posted_at).toLocaleDateString('en-PH') : (p.scraped_at ? new Date(p.scraped_at).toLocaleDateString('en-PH') : '—');
+  var postLink = p.post_url ? 'href="' + p.post_url + '" target="_blank"' : '';
+  return '<div class="competitor-post-card">'
+    + '<div class="post-image-wrap">'
+    + (p.post_url ? '<a ' + postLink + '>' : '')
+    + imageHtml
+    + (p.post_url ? '</a>' : '')
+    + '</div>'
+    + '<div class="post-meta">'
+    + '<div class="post-competitor-row">'
+    + '<span class="post-competitor-name">' + (p.competitor || '—') + '</span>'
+    + '<span class="post-platform-badge ' + platformClass + '">' + platformLabel + '</span>'
+    + '</div>'
+    + '<div class="post-caption">' + caption + '</div>'
+    + '<div class="post-stats">'
+    + '<span class="post-stat">❤️ ' + (p.likes || 0).toLocaleString() + '</span>'
+    + '<span class="post-stat">💬 ' + (p.comments || 0).toLocaleString() + '</span>'
+    + (p.views ? '<span class="post-stat">👁 ' + p.views.toLocaleString() + '</span>' : '')
+    + '</div>'
+    + '<div class="post-date">' + date + '</div>'
+    + '</div>'
+    + '</div>';
 }
 
-function showLearnTab(tab, btn) {
-  document.querySelectorAll('.learn-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.learn-section').forEach(s => s.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('learn-' + tab).classList.add('active');
+async function loadMoreCompetitorPosts() {
+  await fetchCompetitorPosts(false);
 }
 
-function filterGlossary(query) {
-  const q = query.toLowerCase();
-  document.querySelectorAll('.glossary-card').forEach(card => {
-    const text = card.textContent.toLowerCase();
-    card.style.display = text.includes(q) ? '' : 'none';
+async function updateCFStats() {
+  try {
+    var res = await fetch(SB_URL + '/rest/v1/competitor_posts?select=competitor,platform,likes,scraped_at', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Prefer': 'count=exact' }
+    });
+    var posts = await res.json();
+    if (!Array.isArray(posts)) return;
+    var total = document.getElementById('cf-total-posts');
+    var compCount = document.getElementById('cf-competitors-count');
+    var avgEng = document.getElementById('cf-avg-engagement');
+    var lastScraped = document.getElementById('cf-last-scraped');
+    if (total) total.textContent = posts.length;
+    if (compCount) compCount.textContent = new Set(posts.map(function(p) { return p.competitor; })).size;
+    if (avgEng) {
+      var totalLikes = posts.reduce(function(a, p) { return a + (p.likes || 0); }, 0);
+      avgEng.textContent = posts.length ? Math.round(totalLikes / posts.length).toLocaleString() : '—';
+    }
+    if (lastScraped && posts.length) {
+      var latest = posts.sort(function(a,b) { return new Date(b.scraped_at) - new Date(a.scraped_at); })[0];
+      lastScraped.textContent = new Date(latest.scraped_at).toLocaleDateString('en-PH');
+    }
+  } catch(e) { console.error('CF stats error:', e); }
+}
+
+async function populateCFFilters() {
+  try {
+    var res = await fetch(SB_URL + '/rest/v1/competitor_posts?select=competitor', {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+    });
+    var posts = await res.json();
+    if (!Array.isArray(posts)) return;
+    var competitors = Array.from(new Set(posts.map(function(p) { return p.competitor; }))).filter(Boolean);
+    var sel = document.getElementById('cf-competitor-filter');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">All Competitors</option>'
+      + competitors.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+  } catch(e) {}
+}
+
+// ===== SUPPLIER PRODUCT CATALOG =====
+var SP_OFFSET = 0;
+var SP_LIMIT = 32;
+
+async function loadSupplierProducts() {
+  SP_OFFSET = 0;
+  var grid = document.getElementById('supplier-products-grid');
+  if (grid) grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:48px">Loading...</p>';
+  await fetchSupplierProducts(true);
+}
+
+async function fetchSupplierProducts(reset) {
+  var category = document.getElementById('sp-category-filter') ? document.getElementById('sp-category-filter').value : '';
+  var platform = document.getElementById('sp-platform-filter') ? document.getElementById('sp-platform-filter').value : '';
+  var customization = document.getElementById('sp-customization-filter') ? document.getElementById('sp-customization-filter').value : '';
+  var url = SB_URL + '/rest/v1/supplier_products?order=scraped_at.desc&limit=' + SP_LIMIT + '&offset=' + SP_OFFSET;
+  if (category) url += '&category=eq.' + encodeURIComponent(category);
+  if (platform) url += '&platform=eq.' + encodeURIComponent(platform);
+  if (customization) url += '&customization=eq.' + encodeURIComponent(customization);
+  try {
+    var res = await fetch(url, { headers: SB_HDRS });
+    var products = await res.json();
+    var grid = document.getElementById('supplier-products-grid');
+    var countEl = document.getElementById('sp-count');
+    if (!Array.isArray(products)) {
+      if (grid) grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:48px">No products yet. Ethel is scraping...</p>';
+      return;
+    }
+    if (products.length === 0 && reset) {
+      if (grid) grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:48px">No products yet. Check back after Ethel runs at 8AM.</p>';
+      if (countEl) countEl.textContent = '0';
+      return;
+    }
+    var html = products.map(function(p) { return renderSupplierProductCard(p); }).join('');
+    if (reset) { if (grid) grid.innerHTML = html; } else { if (grid) grid.innerHTML += html; }
+    if (countEl) countEl.textContent = (SP_OFFSET + products.length).toString();
+    var btn = document.getElementById('sp-load-more');
+    if (btn) btn.style.display = products.length < SP_LIMIT ? 'none' : 'inline-block';
+    SP_OFFSET += products.length;
+  } catch(e) { console.error('Supplier products error:', e); }
+}
+
+function renderSupplierProductCard(p) {
+  var platformClass = 'sp-platform-' + (p.platform || 'alibaba');
+  var platformLabel = (p.platform || '').toUpperCase();
+  var imageHtml = p.image_url
+    ? '<img src="' + p.image_url + '" alt="' + (p.product_name || '') + '" loading="lazy" onerror="this.parentNode.innerHTML=\'<div class=sp-image-placeholder>\u{1F6CD}\uFE0F</div>\'">'
+    : '<div class="sp-image-placeholder">\u{1F6CD}\uFE0F</div>';
+  var viewBtn = p.product_url
+    ? '<a href="' + p.product_url + '" target="_blank" class="sp-view-btn">View Listing \u2192</a>'
+    : '';
+  return '<div class="supplier-product-card">'
+    + '<div class="sp-image-wrap">' + imageHtml + '</div>'
+    + '<div class="sp-info">'
+    + '<span class="sp-platform-badge ' + platformClass + '">' + platformLabel + '</span>'
+    + '<div class="sp-name">' + (p.product_name || '\u2014') + '</div>'
+    + '<div class="sp-price">' + (p.price || '\u2014') + '</div>'
+    + (p.moq ? '<div class="sp-moq">MOQ: ' + p.moq + '</div>' : '')
+    + (p.customization ? '<div class="sp-customization">\u2713 ' + p.customization + '</div>' : '')
+    + viewBtn
+    + '</div>'
+    + '</div>';
+}
+
+async function loadMoreSupplierProducts() {
+  await fetchSupplierProducts(false);
+}
+
+function setupSupplierTabs() {
+  document.querySelectorAll('.supplier-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.supplier-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.supplier-tab-content').forEach(function(c) { c.style.display = 'none'; });
+      tab.classList.add('active');
+      var target = document.getElementById('supplier-tab-' + tab.dataset.tab);
+      if (target) target.style.display = 'block';
+      if (tab.dataset.tab === 'products') loadSupplierProducts();
+      if (tab.dataset.tab === 'source-by-product') renderReferenceProducts();
+    });
   });
 }
 
-function renderGlossary(items) {
-  const grid = document.getElementById('glossary-grid');
-  const categories = [...new Set(items.map(i => i.category))];
-  grid.innerHTML = categories.map(cat => `
-    <div class="glossary-category">
-      <h3 class="category-title">${cat}</h3>
-      <div class="category-cards">
-        ${items.filter(i => i.category === cat).map(item => `
-          <div class="glossary-card" onclick="this.classList.toggle('flipped')">
-            <div class="card-front">
-              <div class="term-name">${item.term}</div>
-              <div class="term-short">${item.short}</div>
-              <div class="term-level level-${item.level.toLowerCase()}">${item.level}</div>
-              <div class="card-hint">Tap to learn →</div>
-            </div>
-            <div class="card-back">
-              <div class="term-explanation">${item.explanation}</div>
-              ${item.example ? `<div class="term-example">📌 ${item.example}</div>` : ''}
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
+// ===== SOURCE BY PRODUCT =====
+var REFERENCE_PRODUCTS = [
+  { name: 'Pocket Puffy Bag', emoji: '👜', category: 'bag', keywords: ['puffy bag', 'poofy bag', 'bubble pouch', 'puffy pouch'] },
+  { name: 'Dumpling Bag', emoji: '🥟', category: 'bag', keywords: ['dumpling bag', 'cloud bag', 'half moon bag'] },
+  { name: 'Colourblock Pouch', emoji: '🎨', category: 'bag', keywords: ['colourblock pouch', 'color block pouch', 'nylon pouch wholesale'] },
+  { name: 'Micro Dumpling Bag', emoji: '🛍️', category: 'bag', keywords: ['micro bag', 'mini dumpling bag', 'mini cloud bag'] },
+  { name: 'Glazed Poofy Bag', emoji: '✨', category: 'bag', keywords: ['glazed bag', 'shiny poofy bag', 'glossy pouch bag'] },
+  { name: 'Leather Flat Pouch', emoji: '🗂️', category: 'bag', keywords: ['leather flat pouch', 'leather clutch blank', 'flat leather bag'] },
+  { name: 'Canvas Tote Bag', emoji: '🛒', category: 'bag', keywords: ['blank canvas tote', 'canvas tote wholesale', 'cotton tote bag blank'] },
+  { name: 'Crossbody Mini Bag', emoji: '👝', category: 'bag', keywords: ['mini crossbody bag', 'crossbody bag blank', 'small shoulder bag wholesale'] },
+  { name: 'Bamboo Tumbler', emoji: '🎋', category: 'tumbler', keywords: ['bamboo tumbler', 'bamboo cup wholesale', 'eco tumbler blank'] },
+  { name: 'Stainless Tumbler', emoji: '🥤', category: 'tumbler', keywords: ['blank stainless tumbler', 'engravable tumbler', 'steel cup wholesale'] },
+  { name: 'Glass Cup with Straw', emoji: '🧃', category: 'tumbler', keywords: ['glass cup straw wholesale', 'glass tumbler blank', 'iridescent glass cup'] },
+  { name: 'Classic Twill Cap', emoji: '🧢', category: 'cap', keywords: ['blank twill cap', 'embroidery baseball cap blank', '6 panel cap wholesale'] },
+  { name: 'Vintage Distressed Cap', emoji: '🎩', category: 'cap', keywords: ['vintage washed cap blank', 'distressed cap wholesale', 'dad hat blank'] },
+  { name: 'Bucket Hat', emoji: '🪣', category: 'cap', keywords: ['blank bucket hat wholesale', 'bucket hat blank embroidery', 'plain bucket hat'] },
+  { name: 'Compact Pocket Mirror', emoji: '🪞', category: 'accessory', keywords: ['blank compact mirror', 'pocket mirror wholesale', 'engravable mirror'] },
+  { name: 'Leather Keychain', emoji: '🔑', category: 'accessory', keywords: ['blank leather keychain', 'engravable key fob', 'leather keyring wholesale'] },
+  { name: 'Zip Wallet', emoji: '👛', category: 'wallet', keywords: ['blank zip wallet wholesale', 'blank leather wallet', 'zip pouch wallet blank'] },
+  { name: 'Patch Iron-On Set', emoji: '🎯', category: 'patch', keywords: ['custom iron on patch wholesale', 'embroidery patch blank', 'sew on patch OEM'] }
+];
+
+function renderReferenceProducts() {
+  var grid = document.getElementById('reference-products-grid');
+  if (!grid) return;
+  grid.innerHTML = REFERENCE_PRODUCTS.map(function(p) {
+    return '<div class="reference-product-card" onclick="loadSourceListings(' + JSON.stringify(p).replace(/"/g, '&quot;') + ')">'
+      + '<div class="ref-emoji">' + p.emoji + '</div>'
+      + '<div class="ref-name">' + p.name + '</div>'
+      + '<div class="ref-category">' + p.category.toUpperCase() + '</div>'
+      + '</div>';
+  }).join('');
 }
 
-function renderConcepts(items) {
-  const list = document.getElementById('concepts-list');
-  list.innerHTML = items.map((c, i) => `
-    <div class="concept-card">
-      <div class="concept-header" onclick="toggleConcept(${i})">
-        <span class="concept-icon">${c.icon}</span>
-        <div>
-          <div class="concept-title">${c.title}</div>
-          <div class="concept-level level-${c.level.toLowerCase()}">${c.level}</div>
-        </div>
-        <span class="concept-toggle" id="concept-toggle-${i}">▼</span>
-      </div>
-      <div class="concept-body" id="concept-body-${i}" style="display:none">
-        <pre class="concept-content">${c.content}</pre>
-      </div>
-    </div>
-  `).join('');
+async function loadSourceListings(product) {
+  var panel = document.getElementById('source-listings-panel');
+  var title = document.getElementById('source-panel-title');
+  var grid = document.getElementById('source-listings-grid');
+  if (!panel || !grid) return;
+  title.textContent = product.emoji + ' ' + product.name + ' — Supplier Listings';
+  panel.style.display = 'block';
+  grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:32px">Searching Supabase...</p>';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    var url = SB_URL + '/rest/v1/supplier_products?category=eq.' + encodeURIComponent(product.category) + '&order=scraped_at.desc&limit=32';
+    var res = await fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY } });
+    var all = await res.json();
+    if (!Array.isArray(all) || all.length === 0) {
+      grid.innerHTML = '<p style="color:#6B7280;text-align:center;padding:32px">No listings yet for this product. Ethel will scrape more at 8AM.</p>';
+      return;
+    }
+    // Filter by keywords
+    var keywords = product.keywords.map(function(k) { return k.toLowerCase(); });
+    var filtered = all.filter(function(p) {
+      var name = (p.product_name || '').toLowerCase();
+      return keywords.some(function(k) { return name.includes(k.split(' ')[0]) || name.includes(k.split(' ')[1] || ''); });
+    });
+    var products = filtered.length > 0 ? filtered : all.slice(0, 16);
+    grid.innerHTML = products.map(function(p) { return renderSupplierProductCard(p); }).join('');
+  } catch(e) {
+    grid.innerHTML = '<p style="color:#DC2626;text-align:center;padding:32px">Error loading listings. Check console.</p>';
+    console.error(e);
+  }
 }
 
-function toggleConcept(i) {
-  const body = document.getElementById('concept-body-' + i);
-  const toggle = document.getElementById('concept-toggle-' + i);
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  toggle.textContent = open ? '▼' : '▲';
-}
-
-function renderPatterns(items) {
-  const grid = document.getElementById('patterns-grid');
-  grid.innerHTML = items.map(p => `
-    <div class="pattern-card">
-      <div class="pattern-emoji">${p.emoji}</div>
-      <div class="pattern-name">${p.name}</div>
-      <div class="pattern-type type-${p.type.includes('Bull') ? 'bull' : p.type.includes('Bear') ? 'bear' : 'neutral'}">${p.type}</div>
-      <div class="pattern-desc">${p.description}</div>
-      <div class="pattern-signal"><strong>Signal:</strong> ${p.signal}</div>
-      <div class="pattern-trade"><strong>How to trade:</strong> ${p.howToTrade}</div>
-      <div class="pattern-appearance"><strong>Looks like:</strong> ${p.appearance}</div>
-    </div>
-  `).join('');
-}
-
-function renderPortfolioSchool(items) {
-  const div = document.getElementById('portfolio-school-content');
-  div.innerHTML = items.map((item, i) => `
-    <div class="ps-card">
-      <div class="ps-header" onclick="togglePS(${i})">
-        <div>
-          <div class="ps-stock">${item.stock}</div>
-          <div class="ps-title">${item.title}</div>
-        </div>
-        <span class="ps-toggle" id="ps-toggle-${i}">▼</span>
-      </div>
-      <div class="ps-body" id="ps-body-${i}" style="display:none">
-        <pre class="ps-content">${item.content}</pre>
-      </div>
-    </div>
-  `).join('');
-}
-
-function togglePS(i) {
-  const body = document.getElementById('ps-body-' + i);
-  const toggle = document.getElementById('ps-toggle-' + i);
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  toggle.textContent = open ? '▼' : '▲';
-}
-
-function renderResources(items) {
-  const grid = document.getElementById('resources-grid');
-  grid.innerHTML = items.map(cat => `
-    <div class="resource-category">
-      <h3>${cat.icon} ${cat.category}</h3>
-      ${cat.items.map(r => `
-        <a href="${r.url}" target="_blank" class="resource-card">
-          <div class="resource-name">${r.name} <span class="resource-tag">${r.tag}</span></div>
-          <div class="resource-desc">${r.description}</div>
-        </a>
-      `).join('')}
-    </div>
-  `).join('');
-}
-
+// ===== STARTUP =====
+document.addEventListener('DOMContentLoaded', init);
