@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sterling — Sterling PSE Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Sidebar nav -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⚔️</span>
+      <span class="logo-text">Sterling</span>
+      <span class="logo-sub">by Sterling</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="portfolio">
+        <span class="nav-icon">📊</span> Portfolio
+      </a>
+      <a href="#" class="nav-item" data-page="brief">
+        <span class="nav-icon">📋</span> Morning Brief
+      </a>
+      <a href="#" class="nav-item" data-page="watchlist">
+        <span class="nav-icon">🎯</span> Watchlist
+      </a>
+      <a href="#" class="nav-item" data-page="alerts">
+        <span class="nav-icon">🔔</span> Alerts
+        <span class="badge" id="alerts-badge" style="display:none">0</span>
+      </a>
+      <a href="#" class="nav-item" data-page="news">
+        <span class="nav-icon">📰</span> News
+      </a>
+      <a href="#" class="nav-item" data-page="dividends">
+        <span class="nav-icon">💰</span> Dividends
+      </a>
+      <a href="#" class="nav-item" data-page="discovery">
+        <span class="nav-icon">🔍</span> Discovery
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sterling-status">
+        <span class="status-dot"></span>
+        Sterling Active
+      </div>
+      <div class="last-update" id="last-update">—</div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <!-- Mobile header -->
+    <header class="mobile-header">
+      <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
+      <span class="mobile-title">⚔️ Sterling</span>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader" id="loader">
+      <div class="loader-sword">⚔️</div>
+      <div class="loader-text">Sterling is watching the market...</div>
+    </div>
+
+    <!-- Page: Portfolio -->
+    <section class="page active" id="page-portfolio">
+      <div class="page-header">
+        <h1>Portfolio Overview</h1>
+        <div class="psei-widget" id="psei-widget">
+          <span class="psei-label">PSEi</span>
+          <span class="psei-value" id="psei-value">—</span>
+          <span class="psei-change" id="psei-change">—</span>
+        </div>
+      </div>
+
+      <div class="summary-bar" id="portfolio-summary">
+        <div class="summary-item">
+          <span class="summary-label">Total Value</span>
+          <span class="summary-value" id="total-value">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total P&L</span>
+          <span class="summary-value" id="total-pl">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">P&L %</span>
+          <span class="summary-value" id="total-pl-pct">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Last Updated</span>
+          <span class="summary-value" id="portfolio-updated">—</span>
+        </div>
+      </div>
+
+      <div class="holdings-grid" id="holdings-grid">
+        <!-- Holdings cards rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Morning Brief -->
+    <section class="page" id="page-brief">
+      <div class="page-header">
+        <h1>Morning Brief</h1>
+        <div class="brief-note">Sterling runs at 7AM weekdays</div>
+      </div>
+      <div class="briefs-list" id="briefs-list">
+        <!-- Briefs rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Watchlist -->
+    <section class="page" id="page-watchlist">
+      <div class="page-header">
+        <h1>Watchlist</h1>
+        <div class="view-toggle">
+          <button class="toggle-btn active" data-view="cards" onclick="setWatchlistView('cards')">Cards</button>
+          <button class="toggle-btn" data-view="table" onclick="setWatchlistView('table')">Table</button>
+        </div>
+      </div>
+      <div class="filters" id="watchlist-filters">
+        <select id="filter-sector" onchange="filterWatchlist()">
+          <option value="">All Sectors</option>
+        </select>
+        <select id="filter-recommendation" onchange="filterWatchlist()">
+          <option value="">All Recommendations</option>
+          <option value="BUY">BUY</option>
+          <option value="WATCH">WATCH</option>
+          <option value="AVOID">AVOID</option>
+        </select>
+      </div>
+      <div class="watchlist-cards" id="watchlist-cards">
+        <!-- Watchlist cards rendered by JS -->
+      </div>
+      <div class="watchlist-table-wrap" id="watchlist-table-wrap" style="display:none">
+        <table class="watchlist-table" id="watchlist-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th>Price</th>
+              <th>Target Buy</th>
+              <th>Stop Loss</th>
+              <th>Sector</th>
+              <th>P/E</th>
+              <th>Div Yield</th>
+              <th>Signal</th>
+              <th>Score</th>
+              <th>Rec</th>
+            </tr>
+          </thead>
+          <tbody id="watchlist-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Page: Alerts -->
+    <section class="page" id="page-alerts">
+      <div class="page-header">
+        <h1>Alerts</h1>
+      </div>
+      <div class="alerts-feed" id="alerts-feed">
+        <!-- Alerts rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: News -->
+    <section class="page" id="page-news">
+      <div class="page-header">
+        <h1>Market News</h1>
+      </div>
+      <div class="filters" id="news-filters">
+        <select id="filter-news-symbol" onchange="filterNews()">
+          <option value="">All Stocks</option>
+        </select>
+        <select id="filter-news-sentiment" onchange="filterNews()">
+          <option value="">All Sentiment</option>
+          <option value="positive">Positive</option>
+          <option value="negative">Negative</option>
+          <option value="neutral">Neutral</option>
+        </select>
+        <select id="filter-news-impact" onchange="filterNews()">
+          <option value="">All Impact</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="news-feed" id="news-feed">
+        <!-- News rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Dividends -->
+    <section class="page" id="page-dividends">
+      <div class="page-header">
+        <h1>Dividends</h1>
+      </div>
+      <div class="dividend-calendar" id="dividend-calendar">
+        <div class="calendar-header">
+          <button onclick="prevMonth()">‹</button>
+          <span id="calendar-month">March 2026</span>
+          <button onclick="nextMonth()">›</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- Calendar rendered by JS -->
+        </div>
+      </div>
+      <div class="dividend-upcoming" id="dividend-upcoming">
+        <h2>Upcoming Dividends</h2>
+        <div class="upcoming-cards" id="upcoming-dividends">
+          <!-- Upcoming dividends rendered by JS -->
+        </div>
+      </div>
+      <div class="dividend-income" id="dividend-income">
+        <h2>Estimated Annual Income</h2>
+        <div class="income-total" id="income-total">—</div>
+        <div class="income-breakdown" id="income-breakdown">
+          <!-- Income breakdown rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Discovery -->
+    <section class="page" id="page-discovery">
+      <div class="page-header">
+        <h1>Stock Discovery</h1>
+      </div>
+      <div class="discovery-grid" id="discovery-grid">
+        <!-- Discovery cards rendered by JS -->
+      </div>
+    </section>
+  </main>
+
+  <script src="data/sb.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
