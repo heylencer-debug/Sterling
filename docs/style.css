@@ -2079,3 +2079,11 @@ body {
   .trade-history-table th:nth-child(7), .trade-history-table td:nth-child(7),
   .trade-history-table th:nth-child(8), .trade-history-table td:nth-child(8) { display:none; }
 }
+
+/* Trade CRUD buttons */
+.trade-actions { display:flex; gap:4px; white-space:nowrap; }
+.trade-btn { background:none; border:1px solid #1E2A3A; border-radius:5px; padding:4px 7px; cursor:pointer; font-size:13px; line-height:1; transition:all 0.15s; }
+.trade-btn.edit:hover { border-color:#60A5FA; background:rgba(96,165,250,0.1); }
+.trade-btn.dupe:hover { border-color:#FFD700; background:rgba(255,215,0,0.1); }
+.trade-btn.del:hover { border-color:#FF4757; background:rgba(255,71,87,0.1); }
+@media (max-width:768px) { .trade-btn { padding:5px 6px; font-size:12px; } }
