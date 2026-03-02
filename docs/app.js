@@ -96,9 +96,10 @@ let portfolioSymbols = new Set();
 // Boot
 document.addEventListener('DOMContentLoaded', () => {
   initNav();
-  initAccounts();
-  onAssetTypeChange(); // populate symbol dropdown on load
+  try { initAccounts(); } catch(e) { console.warn('initAccounts failed:', e); }
   setTimeout(() => lazyLoadTab('portfolio'), 200);
+  // Safety: force-hide loader after 8s no matter what
+  setTimeout(() => hideLoader(), 8000);
 });
 
 // Navigation
@@ -2637,6 +2638,7 @@ function renderResources(items) {
 function openTradeLog() {
   document.getElementById('trade-modal-overlay').classList.add('active');
   document.getElementById('trade-date').valueAsDate = new Date();
+  try { onAssetTypeChange(); } catch(e) {}
 }
 
 function closeTradeLog() {
