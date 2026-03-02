@@ -345,15 +345,15 @@ function renderPortfolio() {
       <div id="main-chart-section" style="margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:#FFD700;font-size:18px;font-weight:800;letter-spacing:1px" id="main-chart-label">${firstSym}</span>
-            <span style="color:#475569;font-size:11px">DragonFi Live Chart</span>
+            <span style="color:#C9960C;font-size:18px;font-weight:800;letter-spacing:1px" id="main-chart-label">${firstSym}</span>
+            <span style="color:#64748B;font-size:11px">DragonFi Live Chart</span>
           </div>
           <a id="main-chart-open" href="https://www.dragonfi.ph/market/stocks/${firstSym}" target="_blank"
-             style="color:#475569;font-size:11px;text-decoration:none;border:1px solid #1E2A3A;padding:4px 10px;border-radius:4px">
+             style="color:#64748B;font-size:11px;text-decoration:none;border:1px solid #E2E8F0;padding:4px 10px;border-radius:4px">
             Open full ↗
           </a>
         </div>
-        <div style="border-radius:12px;overflow:hidden;border:1px solid #1E2A3A;background:#0D1320;height:780px;position:relative">
+        <div style="border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;background:#F8FAFC;height:780px;position:relative">
           <iframe id="main-chart-iframe"
             src="https://www.dragonfi.ph/market/stocks/${firstSym}"
             width="100%"
@@ -680,7 +680,7 @@ async function toggleCardChart(sym, btn) {
     inner.style.height = '420px';
     inner.style.position = 'relative';
     inner.innerHTML = `
-      <div style="position:absolute;top:0;left:0;right:0;bottom:32px;border-radius:8px;overflow:hidden;background:#0D1320">
+      <div style="position:absolute;top:0;left:0;right:0;bottom:32px;border-radius:8px;overflow:hidden;background:#F8FAFC">
         <iframe
           src="https://www.dragonfi.ph/market/stocks/${sym}"
           width="100%" height="100%"
@@ -694,11 +694,11 @@ async function toggleCardChart(sym, btn) {
       <div style="position:absolute;bottom:0;left:0;right:0;display:flex;gap:6px;justify-content:flex-end;padding:4px 0">
         <span style="color:#475569;font-size:10px;align-self:center">📊 DragonFi live chart</span>
         <a href="https://www.dragonfi.ph/market/stocks/${sym}" target="_blank"
-           style="background:#1a2035;color:#94A3B8;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #1E2A3A">
+           style="background:#F1F5F9;color:#64748B;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #E2E8F0">
           Open full ↗
         </a>
         <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
-           style="background:#1a2035;color:#94A3B8;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #1E2A3A">
+           style="background:#F1F5F9;color:#64748B;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #E2E8F0">
           TradingView ↗
         </a>
       </div>`;
@@ -712,10 +712,10 @@ async function toggleCardChart(sym, btn) {
     const chart = LightweightCharts.createChart(inner, {
       width: inner.clientWidth || 320,
       height: 220,
-      layout: { background: { color: '#0D1320' }, textColor: '#94A3B8' },
-      grid: { vertLines: { color: '#1E2A3A' }, horzLines: { color: '#1E2A3A' } },
-      timeScale: { borderColor: '#1E2A3A', timeVisible: false },
-      rightPriceScale: { borderColor: '#1E2A3A' },
+      layout: { background: { color: '#FFFFFF' }, textColor: '#475569' },
+      grid: { vertLines: { color: '#E2E8F0' }, horzLines: { color: '#E2E8F0' } },
+      timeScale: { borderColor: '#E2E8F0', timeVisible: false },
+      rightPriceScale: { borderColor: '#E2E8F0' },
       crosshair: { mode: 1 },
       handleScroll: false, handleScale: false
     });
@@ -738,7 +738,7 @@ async function toggleCardChart(sym, btn) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:6px;align-items:center;z-index:2;pointer-events:none';
     overlay.innerHTML = `
-      <span style="background:rgba(255,215,0,0.15);color:#FFD700;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace">
+      <span style="background:rgba(201,150,12,0.12);color:#C9960C;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace">
         ₱${latestClose.toFixed(2)} · 3mo
       </span>`;
     inner.style.position = 'relative';
@@ -1104,7 +1104,7 @@ function verdictColor(v) {
   const vl = v.toLowerCase();
   if (vl.includes('bullish') || vl.includes('positive') || vl.includes('strong buy') || vl.includes('deep value') || vl.includes('undervalued')) return '#00D4A0';
   if (vl.includes('bearish') || vl.includes('negative') || vl.includes('sell')) return '#FF4757';
-  if (vl.includes('oversold') || vl.includes('building') || vl.includes('cautious') || vl.includes('mixed') || vl.includes('neutral')) return '#FFD700';
+  if (vl.includes('oversold') || vl.includes('building') || vl.includes('cautious') || vl.includes('mixed') || vl.includes('neutral')) return '#C9960C';
   if (vl.includes('buy') || vl.includes('value')) return '#60A5FA';
   return '#94A3B8';
 }
@@ -2727,7 +2727,7 @@ function showGlossaryTooltip(e) {
   // Close button + definition
   tip.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <span style="font-weight:700;color:#FFD700;font-size:12px;margin-bottom:4px;display:block">${term}</span>
+      <span style="font-weight:700;color:#C9960C;font-size:12px;margin-bottom:4px;display:block">${term}</span>
       <button onclick="hideGlossaryTooltip()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:14px;cursor:pointer;border-radius:50%;width:22px;height:22px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <span>${INLINE_GLOSSARY[term]}</span>
@@ -2884,7 +2884,7 @@ function renderPatternCharts() {
       const container = document.getElementById('pattern-chart-' + i);
       if (!container) return;
       const chartOptions = {
-        layout: { background: { color: '#0d1117' }, textColor: '#FFD700' },
+        layout: { background: { color: '#FFFFFF' }, textColor: '#C9960C' },
         grid: { vertLines: { color: '#1a2035' }, horzLines: { color: '#1a2035' } },
         width: container.offsetWidth || 300,
         height: 200,
@@ -2892,7 +2892,7 @@ function renderPatternCharts() {
       };
       const chart = LightweightCharts.createChart(container, chartOptions);
       if (p.type === 'line') {
-        const s50 = chart.addLineSeries({ color: '#FFD700', lineWidth: 2, title: '50 MA' });
+        const s50 = chart.addLineSeries({ color: '#C9960C', lineWidth: 2, title: '50 MA' });
         s50.setData(p.ma50);
         const s200 = chart.addLineSeries({ color: '#FF6B6B', lineWidth: 2, title: '200 MA' });
         s200.setData(p.ma200);
@@ -2961,13 +2961,13 @@ async function renderPatternAlerts() {
       return `
         <div class="pattern-alert-card">
           <div>
-            <span style="font-weight:700;color:#FFD700;font-family:monospace;font-size:16px">${sym}</span>
-            <span style="color:#aaa;font-size:12px;margin-left:8px">${COMPANY_NAMES[sym] || ''}</span>
-            <div style="color:#e0e0e0;font-size:14px;margin-top:4px;font-family:monospace">${formatPeso(curPrice)}</div>
+            <span style="font-weight:700;color:#C9960C;font-family:monospace;font-size:16px">${sym}</span>
+            <span style="color:#64748B;font-size:12px;margin-left:8px">${COMPANY_NAMES[sym] || ''}</span>
+            <div style="color:#0F172A;font-size:14px;margin-top:4px;font-family:monospace">${formatPeso(curPrice)}</div>
           </div>
           <div>
             <span class="pattern-badge ${badgeClass}">${pattern.label}</span>
-            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="display:block;color:#FFD700;font-size:11px;margin-top:4px;text-decoration:none">View Live Chart \u2192</a>
+            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="display:block;color:#C9960C;font-size:11px;margin-top:4px;text-decoration:none">View Live Chart \u2192</a>
           </div>
         </div>
       `;
@@ -3077,9 +3077,9 @@ function renderStudyPortfolio() {
       width: container.clientWidth || 300,
       height: 220,
       layout: { background: { color: '#111827' }, textColor: '#94A3B8' },
-      grid: { vertLines: { color: '#1E2A3A' }, horzLines: { color: '#1E2A3A' } },
-      timeScale: { borderColor: '#1E2A3A', timeVisible: false },
-      rightPriceScale: { borderColor: '#1E2A3A' },
+      grid: { vertLines: { color: '#E2E8F0' }, horzLines: { color: '#E2E8F0' } },
+      timeScale: { borderColor: '#E2E8F0', timeVisible: false },
+      rightPriceScale: { borderColor: '#E2E8F0' },
       crosshair: { mode: 1 },
       handleScroll: false,
       handleScale: false
@@ -3107,7 +3107,7 @@ function renderStudyPortfolio() {
 
     // Show live price badge
     const badge = document.createElement('div');
-    badge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(255,215,0,0.15);color:#FFD700;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:monospace;pointer-events:none';
+    badge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(201,150,12,0.12);color:#C9960C;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:monospace;pointer-events:none';
     const latestClose = parseFloat(ohlcv[ohlcv.length - 1].close);
     badge.textContent = live ? '₱' + live.value.toFixed(2) + ' LIVE' : '₱' + latestClose.toFixed(2);
     container.style.position = 'relative';
