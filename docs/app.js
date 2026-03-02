@@ -528,6 +528,21 @@ function editTrade(idx) {
   openTradeLog();
 }
 
+// Fetch OHLCV from Supabase (no CORS issues on GitHub Pages)
+async function fetchOHLCVFromSupabase(symbol) {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - 3);
+  const since = cutoff.toISOString().split('T')[0];
+  try {
+    const data = await window.sbFetch(
+      `sterling_ohlcv?symbol=eq.${symbol}&date=gte.${since}&order=date.asc&select=date,open,high,low,close,volume`
+    );
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
 async function toggleCardChart(sym, btn) {
   const container = document.getElementById('card-chart-' + sym);
   const inner = document.getElementById('card-chart-inner-' + sym);
@@ -544,35 +559,32 @@ async function toggleCardChart(sym, btn) {
     inner.dataset.rendered = '1';
     inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#475569;font-size:12px">Loading…</div>';
 
-    let data = [];
-    // Try Yahoo Finance
-    try {
-      const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${sym}.PS?interval=1d&range=3mo`);
-      const j = await res.json();
-      const result = j.chart.result[0];
-      const ts = result.timestamp;
-      const closes = result.indicators.quote[0].close;
-      data = ts.map((t, i) => {
-        const val = closes[i];
-        if (val == null) return null;
-        return { time: new Date(t * 1000).toISOString().split('T')[0], value: parseFloat(val.toFixed(2)) };
-      }).filter(Boolean);
-    } catch {}
-
-    // Append live Phisix price
+    // Fetch OHLCV from Supabase (no CORS issues)
+    let ohlcv = await fetchOHLCVFromSupabase(sym);
+    
+    // Append live Phisix price if available
     try {
       const pr = await fetch(`https://phisix-api3.appspot.com/stocks/${sym}.json`);
       const pj = await pr.json();
       const livePrice = parseFloat(pj.stock[0].price.amount);
       const today = new Date().toISOString().split('T')[0];
-      data = data.filter(d => d.time !== today);
-      data.push({ time: today, value: livePrice });
+      // Update today's close or add new entry
+      if (ohlcv.length > 0) {
+        const lastEntry = ohlcv[ohlcv.length - 1];
+        if (lastEntry.date === today) {
+          lastEntry.close = livePrice;
+          lastEntry.high = Math.max(parseFloat(lastEntry.high), livePrice);
+          lastEntry.low = Math.min(parseFloat(lastEntry.low), livePrice);
+        } else {
+          ohlcv.push({ date: today, open: livePrice, high: livePrice, low: livePrice, close: livePrice });
+        }
+      }
     } catch {}
 
     inner.innerHTML = '';
 
-    if (data.length < 2) {
-      inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#475569;font-size:12px;text-align:center;padding:16px">Chart data unavailable.<br>Use the links below.</div>';
+    if (ohlcv.length < 2) {
+      inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#475569;font-size:12px;text-align:center;padding:16px">Chart data unavailable.<br>Run fetch-ohlcv.js to populate.</div>';
       return;
     }
 
@@ -592,21 +604,30 @@ async function toggleCardChart(sym, btn) {
       handleScroll: false, handleScale: false
     });
 
-    const series = chart.addAreaSeries({
-      lineColor: '#FFD700',
-      topColor: 'rgba(255,215,0,0.2)',
-      bottomColor: 'rgba(255,215,0,0.0)',
-      lineWidth: 2,
-      priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
+    // Use candlestick series for OHLCV data
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderDownColor: '#ef5350',
+      borderUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+      wickUpColor: '#26a69a'
     });
 
-    series.setData(data);
+    candleSeries.setData(ohlcv.map(d => ({
+      time: d.date,
+      open: parseFloat(d.open),
+      high: parseFloat(d.high),
+      low: parseFloat(d.low),
+      close: parseFloat(d.close)
+    })));
+    
     chart.timeScale().fitContent();
 
     // Live price badge
     const badge = document.createElement('div');
     badge.style.cssText = 'position:absolute;top:6px;right:6px;background:rgba(255,215,0,0.15);color:#FFD700;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace;pointer-events:none;z-index:2';
-    const latestVal = data[data.length - 1].value;
+    const latestVal = parseFloat(ohlcv[ohlcv.length - 1].close);
     badge.textContent = '₱' + latestVal.toFixed(2) + ' · 3mo';
     inner.style.position = 'relative';
     inner.appendChild(badge);
@@ -2795,24 +2816,7 @@ function renderStudyPortfolio() {
     </div>
   `;
 
-  // Fetch 3-month daily OHLC from Yahoo Finance (PSE symbols = SYMBOL.PS)
-  async function fetchYahooHistory(sym) {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}.PS?interval=1d&range=3mo`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Yahoo ' + res.status);
-    const j = await res.json();
-    const result = j.chart.result[0];
-    const timestamps = result.timestamp;
-    const closes = result.indicators.quote[0].close;
-    return timestamps.map((ts, i) => {
-      const d = new Date(ts * 1000);
-      const time = d.toISOString().split('T')[0];
-      const value = closes[i];
-      return value != null ? { time, value: parseFloat(value.toFixed(2)) } : null;
-    }).filter(Boolean);
-  }
-
-  // Fetch live price from Phisix (already used by dashboard)
+  // Fetch live price from Phisix
   async function fetchPhisixLive(sym) {
     try {
       const res = await fetch(`https://phisix-api3.appspot.com/stocks/${sym}.json`);
@@ -2823,49 +2827,34 @@ function renderStudyPortfolio() {
     } catch { return null; }
   }
 
-  // Render chart for one stock
+  // Render chart for one stock using Supabase OHLCV (no CORS issues)
   async function renderPriceChart(sym) {
     const container = document.getElementById('chart-' + sym);
     if (!container || typeof LightweightCharts === 'undefined') return;
     container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading…</div>';
 
-    let data = [];
-
-    // Try Yahoo Finance first (3 months real historical data)
-    try {
-      data = await fetchYahooHistory(sym);
-    } catch (e) {
-      // Yahoo CORS blocked — fall back to Supabase history
-      try {
-        const rows = await window.sbFetch('sterling_price_history', {
-          filter: `symbol=eq.${sym}`, order: 'recorded_at.asc', limit: '90'
-        });
-        const byDate = {};
-        (rows || []).forEach(r => {
-          const day = (r.recorded_at || '').split('T')[0];
-          const val = parseFloat(r.price || r.close_price || r.current_price || 0);
-          if (day && val > 0) byDate[day] = val;
-        });
-        data = Object.entries(byDate).map(([time, value]) => ({ time, value })).sort((a,b) => a.time.localeCompare(b.time));
-      } catch {}
-    }
+    // Fetch OHLCV from Supabase (no CORS issues on GitHub Pages)
+    let ohlcv = await fetchOHLCVFromSupabase(sym);
 
     // Append live Phisix price as latest point
     const live = await fetchPhisixLive(sym);
-    if (live && (!data.length || data[data.length-1].time <= live.time)) {
-      // Replace today's entry or append
-      data = data.filter(d => d.time !== live.time);
-      data.push(live);
+    if (live && ohlcv.length > 0) {
+      const lastEntry = ohlcv[ohlcv.length - 1];
+      if (lastEntry.date === live.time) {
+        lastEntry.close = live.value;
+      } else if (lastEntry.date < live.time) {
+        ohlcv.push({ date: live.time, open: live.value, high: live.value, low: live.value, close: live.value });
+      }
     }
 
     container.innerHTML = '';
 
-    if (data.length < 2) {
+    if (ohlcv.length < 2) {
       container.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:10px;padding:16px">
           <div style="font-size:26px">📊</div>
-          <div style="color:#64748B;font-size:12px;text-align:center">Live chart unavailable<br>
-            <span style="font-size:11px;color:#475569">Use the chart links below</span></div>
+          <div style="color:#64748B;font-size:12px;text-align:center">Chart data unavailable<br>
+            <span style="font-size:11px;color:#475569">Run fetch-ohlcv.js to populate</span></div>
         </div>`;
       return;
     }
@@ -2882,21 +2871,31 @@ function renderStudyPortfolio() {
       handleScale: false
     });
 
-    const series = chart.addAreaSeries({
-      lineColor: '#FFD700',
-      topColor: 'rgba(255,215,0,0.25)',
-      bottomColor: 'rgba(255,215,0,0.0)',
-      lineWidth: 2,
-      priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
+    // Use candlestick series for real OHLCV
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderDownColor: '#ef5350',
+      borderUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+      wickUpColor: '#26a69a'
     });
 
-    series.setData(data);
+    candleSeries.setData(ohlcv.map(d => ({
+      time: d.date,
+      open: parseFloat(d.open),
+      high: parseFloat(d.high),
+      low: parseFloat(d.low),
+      close: parseFloat(d.close)
+    })));
+    
     chart.timeScale().fitContent();
 
     // Show live price badge
     const badge = document.createElement('div');
     badge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(255,215,0,0.15);color:#FFD700;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:monospace;pointer-events:none';
-    badge.textContent = live ? '₱' + live.value.toFixed(2) + ' LIVE' : '3mo chart';
+    const latestClose = parseFloat(ohlcv[ohlcv.length - 1].close);
+    badge.textContent = live ? '₱' + live.value.toFixed(2) + ' LIVE' : '₱' + latestClose.toFixed(2);
     container.style.position = 'relative';
     container.appendChild(badge);
 
