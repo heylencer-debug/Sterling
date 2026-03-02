@@ -1218,3 +1218,79 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+/* ===== LEARN PAGE ===== */
+.learn-search { margin-bottom: 20px; }
+.learn-search input { width: 100%; padding: 12px 16px; background: #111827; border: 1px solid #1E2A3A; border-radius: 8px; color: #F1F5F9; font-family: 'Inter', sans-serif; font-size: 14px; outline: none; }
+.learn-search input:focus { border-color: #FFD700; }
+.learn-search input::placeholder { color: #475569; }
+
+.learn-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.learn-tab { padding: 8px 16px; background: #111827; border: 1px solid #1E2A3A; border-radius: 20px; color: #64748B; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+.learn-tab:hover { border-color: #FFD700; color: #FFD700; }
+.learn-tab.active { background: #FFD700; color: #0A0E1A; border-color: #FFD700; }
+
+.learn-section { display: none; }
+.learn-section.active { display: block; }
+
+/* Glossary */
+.glossary-category { margin-bottom: 32px; }
+.category-title { color: #FFD700; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; border-bottom: 1px solid #1E2A3A; padding-bottom: 8px; }
+.category-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.glossary-card { background: #111827; border: 1px solid #1E2A3A; border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.3s; min-height: 120px; position: relative; }
+.glossary-card:hover { border-color: #FFD700; transform: translateY(-2px); }
+.term-name { font-size: 15px; font-weight: 700; color: #F1F5F9; margin-bottom: 4px; }
+.term-short { font-size: 12px; color: #94A3B8; margin-bottom: 8px; }
+.term-level { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-bottom: 8px; }
+.level-beginner { background: rgba(0,212,160,0.15); color: #00D4A0; }
+.level-intermediate { background: rgba(255,215,0,0.15); color: #FFD700; }
+.level-advanced { background: rgba(255,71,87,0.15); color: #FF4757; }
+.card-hint { font-size: 11px; color: #475569; }
+.card-back { display: none; }
+.glossary-card.flipped .card-front { display: none; }
+.glossary-card.flipped .card-back { display: block; }
+.term-explanation { font-size: 13px; color: #CBD5E1; line-height: 1.6; }
+.term-example { margin-top: 10px; font-size: 12px; color: #FFD700; background: rgba(255,215,0,0.08); padding: 8px; border-radius: 6px; }
+
+/* Concepts */
+.concept-card { background: #111827; border: 1px solid #1E2A3A; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+.concept-header { display: flex; align-items: center; gap: 12px; padding: 16px; cursor: pointer; }
+.concept-header:hover { background: rgba(255,215,0,0.05); }
+.concept-icon { font-size: 24px; }
+.concept-title { font-size: 15px; font-weight: 700; color: #F1F5F9; }
+.concept-toggle { margin-left: auto; color: #64748B; font-size: 12px; }
+.concept-body { padding: 0 16px 16px; border-top: 1px solid #1E2A3A; }
+.concept-content { font-size: 13px; color: #CBD5E1; line-height: 1.8; white-space: pre-wrap; font-family: inherit; margin: 12px 0 0; }
+
+/* Patterns */
+.patterns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.pattern-card { background: #111827; border: 1px solid #1E2A3A; border-radius: 10px; padding: 16px; }
+.pattern-emoji { font-size: 32px; margin-bottom: 8px; }
+.pattern-name { font-size: 16px; font-weight: 700; color: #F1F5F9; }
+.pattern-type { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; display: inline-block; margin: 6px 0 10px; }
+.type-bull { background: rgba(0,212,160,0.15); color: #00D4A0; }
+.type-bear { background: rgba(255,71,87,0.15); color: #FF4757; }
+.type-neutral { background: rgba(255,215,0,0.15); color: #FFD700; }
+.pattern-desc, .pattern-signal, .pattern-trade, .pattern-appearance { font-size: 12px; color: #94A3B8; line-height: 1.6; margin-bottom: 8px; }
+.pattern-signal strong, .pattern-trade strong, .pattern-appearance strong { color: #CBD5E1; }
+
+/* Portfolio School */
+.ps-card { background: #111827; border: 1px solid #1E2A3A; border-left: 3px solid #FFD700; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+.ps-header { display: flex; align-items: center; padding: 16px; cursor: pointer; gap: 12px; }
+.ps-header:hover { background: rgba(255,215,0,0.05); }
+.ps-stock { font-size: 11px; font-weight: 800; color: #FFD700; letter-spacing: 1px; }
+.ps-title { font-size: 14px; font-weight: 600; color: #F1F5F9; }
+.ps-toggle { margin-left: auto; color: #64748B; }
+.ps-body { padding: 0 16px 16px; border-top: 1px solid #1E2A3A; }
+.ps-content { font-size: 13px; color: #CBD5E1; line-height: 1.8; white-space: pre-wrap; font-family: inherit; margin: 12px 0 0; }
+
+/* Resources */
+.resources-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+.resource-category h3 { color: #FFD700; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; border-bottom: 1px solid #1E2A3A; padding-bottom: 8px; }
+.resource-card { display: block; background: #111827; border: 1px solid #1E2A3A; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; text-decoration: none; transition: all 0.2s; }
+.resource-card:hover { border-color: #FFD700; transform: translateX(4px); }
+.resource-name { font-size: 14px; font-weight: 600; color: #F1F5F9; margin-bottom: 4px; }
+.resource-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; background: rgba(255,215,0,0.15); color: #FFD700; border-radius: 4px; margin-left: 6px; }
+.resource-desc { font-size: 12px; color: #64748B; line-height: 1.5; }
+
+.page-subtitle { font-size: 14px; color: #64748B; margin-top: 4px; }
