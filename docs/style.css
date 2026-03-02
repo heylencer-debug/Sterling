@@ -1785,24 +1785,9 @@ textarea:focus {
 }
 
 /* ── Card Stagger Animation ────────────────────────────────── */
-.holding-card,
-.watchlist-card,
-.news-card,
-.glossary-card,
-.discovery-card {
-  opacity: 0;
-  transform: translateY(8px);
-}
 
-.holding-card.animate-in,
-.watchlist-card.animate-in,
-.news-card.animate-in,
-.glossary-card.animate-in,
-.discovery-card.animate-in {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
+
+
 
 /* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 1200px) {
@@ -1916,3 +1901,859 @@ textarea:focus {
   letter-spacing: 0.05em;
   margin-bottom: 16px;
 }
+
+/* =============================================================
+   STERLING � Missing Page Card Styles (Full Audit Fix)
+   All 9 pages � glossary, briefs, watchlist, alerts, news,
+   dividends, discovery, learn, gold
+   ============================================================= */
+
+/* -- Base card mixin (reusable) ----------------------------- */
+.brief-card,
+.watchlist-card,
+.news-card,
+.alert-card,
+.discovery-card,
+.learn-card,
+.concept-card,
+.pattern-card,
+.resource-card,
+.dividend-item,
+.gold-card,
+.glossary-category {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.brief-card:hover,
+.watchlist-card:hover,
+.news-card:hover,
+.discovery-card:hover,
+.learn-card:hover,
+.concept-card:hover,
+.pattern-card:hover,
+.gold-card:hover {
+  box-shadow: 4px 4px 0 #0A0A0A;
+  transform: translateY(-2px);
+}
+
+/* -- Morning Brief page ------------------------------------- */
+.brief-card {
+  padding: 20px 24px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.brief-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brief-date {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #555555;
+}
+
+.brief-snapshot {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0A0A0A;
+  font-family: 'Cutive Mono', monospace;
+}
+
+.brief-expand {
+  font-size: 12px;
+  color: #555555;
+  font-weight: 700;
+}
+
+.brief-content {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #EEEEEE;
+  display: none;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #1A1A1A;
+}
+
+.brief-card.expanded .brief-content { display: block; }
+.brief-card.expanded .brief-expand { transform: rotate(180deg); display: inline-block; }
+
+/* -- Watchlist page ----------------------------------------- */
+.watchlist-card {
+  padding: 20px;
+}
+
+.watchlist-symbol {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0A0A0A;
+  letter-spacing: -0.01em;
+}
+
+.watchlist-company {
+  font-size: 12px;
+  color: #555555;
+  margin-top: 2px;
+}
+
+.watchlist-price {
+  font-size: 24px;
+  font-weight: 800;
+  font-family: 'Cutive Mono', monospace;
+  color: #0A0A0A;
+  margin: 12px 0 4px;
+}
+
+.watchlist-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+
+.watchlist-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #555555;
+}
+
+.watchlist-meta-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0A0A0A;
+  font-family: 'Cutive Mono', monospace;
+}
+
+/* -- Discovery page ----------------------------------------- */
+.discovery-card {
+  padding: 20px;
+}
+
+.discovery-symbol {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0A0A0A;
+}
+
+.discovery-company {
+  font-size: 12px;
+  color: #555555;
+  margin-top: 2px;
+  margin-bottom: 12px;
+}
+
+.discovery-score {
+  font-size: 28px;
+  font-weight: 800;
+  font-family: 'Cutive Mono', monospace;
+  color: #0A0A0A;
+}
+
+.discovery-score-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #555555;
+}
+
+.add-to-watchlist-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0A0A0A;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.add-to-watchlist-btn:hover {
+  background: #0A0A0A;
+  color: #FFFFFF;
+  box-shadow: 3px 3px 0 #EA580C;
+}
+
+/* -- News page ---------------------------------------------- */
+.news-card {
+  padding: 20px;
+  margin-bottom: 0;
+}
+
+/* -- Learn page --------------------------------------------- */
+
+/* Glossary category wrapper */
+.glossary-category {
+  padding: 24px;
+  margin-bottom: 0;
+}
+
+.category-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #555555;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid #EEEEEE;
+}
+
+.category-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+/* Glossary flip cards */
+.glossary-card {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  min-height: 120px;
+  cursor: pointer;
+  perspective: 600px;
+  position: relative;
+}
+
+.glossary-card:hover {
+  box-shadow: 4px 4px 0 #0A0A0A;
+}
+
+.card-front,
+.card-back {
+  padding: 16px;
+  backface-visibility: hidden;
+  transition: transform 0.4s ease;
+}
+
+.card-front {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-back {
+  position: absolute;
+  inset: 0;
+  background: #0A0A0A;
+  color: #FFFFFF;
+  border-radius: 6px;
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.glossary-card.flipped .card-front { transform: rotateY(180deg); }
+.glossary-card.flipped .card-back { transform: rotateY(0deg); }
+
+.term-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0A0A0A;
+  letter-spacing: -0.01em;
+}
+
+.term-short {
+  font-size: 12px;
+  color: #555555;
+  line-height: 1.4;
+}
+
+.term-explanation {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #FFFFFF;
+}
+
+.term-example {
+  font-size: 12px;
+  color: #CCCCCC;
+  margin-top: 8px;
+  font-style: italic;
+}
+
+.term-level {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+  background: transparent;
+  border: 1.5px solid #C8C8C8;
+  color: #555555;
+}
+
+.card-hint {
+  font-size: 10px;
+  font-weight: 700;
+  color: #EA580C;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: auto;
+}
+
+/* Concept cards */
+.concept-card {
+  padding: 0;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.concept-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  background: #FFFFFF;
+}
+
+.concept-header:hover { background: #F5F5F5; }
+
+.concept-icon { font-size: 20px; }
+
+.concept-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0A0A0A;
+  flex: 1;
+}
+
+.concept-level {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1.5px solid #C8C8C8;
+  color: #555555;
+}
+
+.concept-toggle {
+  font-size: 12px;
+  color: #555555;
+  font-weight: 700;
+}
+
+.concept-body {
+  padding: 0 20px 20px;
+  background: #FFFFFF;
+  border-top: 1px solid #EEEEEE;
+}
+
+.concept-content {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #1A1A1A;
+  white-space: pre-wrap;
+  font-family: inherit;
+  margin-top: 12px;
+}
+
+/* Pattern cards */
+.patterns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.pattern-card {
+  padding: 24px;
+  text-align: center;
+}
+
+.pattern-emoji { font-size: 36px; margin-bottom: 12px; }
+
+.pattern-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0A0A0A;
+  margin-bottom: 6px;
+}
+
+.pattern-type {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: transparent;
+  display: inline-block;
+}
+
+.type-bull { color: #059669; border: 1.5px solid #059669; }
+.type-bear { color: #DC2626; border: 1.5px solid #DC2626; }
+.type-neutral { color: #555555; border: 1.5px solid #C8C8C8; }
+
+/* Learn tabs */
+.learn-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.learn-tab {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 4px;
+  background: transparent;
+  color: #555555;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.learn-tab:hover {
+  border-color: #0A0A0A;
+  color: #0A0A0A;
+}
+
+.learn-tab.active {
+  background: #0A0A0A;
+  border-color: #0A0A0A;
+  color: #FFFFFF;
+}
+
+/* Learn search */
+.learn-search {
+  margin-bottom: 20px;
+}
+
+.learn-search input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 6px;
+  background: #FFFFFF;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.learn-search input:focus {
+  border-color: #0A0A0A;
+  outline: none;
+  box-shadow: 3px 3px 0 #EA580C;
+}
+
+/* Learn sections */
+.learn-section { display: none; }
+.learn-section.active { display: block; }
+
+/* Resources */
+.resources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.resource-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resource-icon { font-size: 24px; }
+
+.resource-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0A0A0A;
+}
+
+.resource-desc {
+  font-size: 13px;
+  color: #555555;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.resource-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: #EA580C;
+  text-decoration: none;
+  letter-spacing: 0.04em;
+}
+
+.resource-link:hover { text-decoration: underline; }
+
+/* Portfolio school */
+.portfolio-school-item {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 12px;
+}
+
+.portfolio-school-item:hover {
+  box-shadow: 4px 4px 0 #0A0A0A;
+  transform: translateY(-2px);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/* -- Dividends page ----------------------------------------- */
+.dividend-item {
+  background: #FFFFFF;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.dividend-symbol {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0A0A0A;
+}
+
+.dividend-amount {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'Cutive Mono', monospace;
+  color: #059669;
+}
+
+.dividend-date {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555555;
+}
+
+.dividend-upcoming h2,
+.dividend-income h2 {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #0A0A0A;
+  margin: 24px 0 12px;
+}
+
+.income-total {
+  font-size: 36px;
+  font-weight: 800;
+  font-family: 'Cutive Mono', monospace;
+  color: #059669;
+  margin-bottom: 16px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.calendar-header span {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0A0A0A;
+}
+
+.calendar-header button {
+  padding: 8px 14px;
+  font-size: 16px;
+  background: transparent;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+
+.calendar-header button:hover { background: #EEEEEE; }
+
+.dividends-calendar {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  padding: 24px;
+}
+
+/* -- Gold page ---------------------------------------------- */
+.gold-price-display {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.gold-price-value {
+  font-size: 44px;
+  font-weight: 800;
+  font-family: 'Cutive Mono', monospace;
+  color: #0A0A0A;
+  letter-spacing: -0.02em;
+}
+
+.gold-price-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #555555;
+  margin-top: 6px;
+}
+
+.gold-price-change {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Cutive Mono', monospace;
+  margin-top: 8px;
+}
+
+.gold-card {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  padding: 20px;
+  border-left: 4px solid #EA580C;
+}
+
+.gold-positions-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.gold-positions-table th {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0A0A0A;
+  padding: 10px 14px;
+  border-bottom: 1.5px solid #0A0A0A;
+  text-align: left;
+}
+
+.gold-positions-table td {
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid #EEEEEE;
+  font-family: 'Cutive Mono', monospace;
+}
+
+.gold-positions-table tr:hover { background: #F5F5F5; }
+
+/* -- Trade modal -------------------------------------------- */
+.trade-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10,10,10,0.6);
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8%;
+  z-index: 200;
+}
+
+.trade-modal-overlay.open { display: flex; }
+
+.trade-modal {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  padding: 28px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 6px 6px 0 #0A0A0A;
+  position: relative;
+}
+
+.trade-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1.5px solid #0A0A0A;
+}
+
+.trade-modal-header h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0A0A0A;
+  letter-spacing: -0.02em;
+}
+
+.trade-modal-close {
+  background: none;
+  border: 1.5px solid #C8C8C8;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  color: #555555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.trade-modal-close:hover {
+  border-color: #0A0A0A;
+  color: #0A0A0A;
+  background: #EEEEEE;
+}
+
+.trade-form-group {
+  margin-bottom: 16px;
+}
+
+.trade-form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #555555;
+  margin-bottom: 6px;
+}
+
+.trade-submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #0A0A0A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.trade-submit-btn:hover {
+  background: #1A1A1A;
+  box-shadow: 3px 3px 0 #EA580C;
+}
+
+/* -- FAB ---------------------------------------------------- */
+.trade-log-fab,
+.fab-log-trade,
+.log-trade-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0A0A0A;
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  border-radius: 6px;
+  padding: 12px 20px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #EA580C;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: box-shadow 0.15s, transform 0.15s;
+  z-index: 50;
+}
+
+.trade-log-fab:hover,
+.fab-log-trade:hover,
+.log-trade-fab:hover {
+  box-shadow: 5px 5px 0 #EA580C;
+  transform: translateY(-2px);
+}
+
+/* -- Sidebar � BLACK ---------------------------------------- */
+.sidebar {
+  background: #0A0A0A !important;
+  border-right: none !important;
+}
+
+.logo-text { color: #FFFFFF !important; }
+.logo-sub { color: #666666 !important; }
+.logo-icon { filter: none; }
+
+.nav-item {
+  color: #888888 !important;
+}
+
+.nav-item:hover {
+  background: #1A1A1A !important;
+  color: #FFFFFF !important;
+}
+
+.nav-item.active {
+  background: transparent !important;
+  color: #FFFFFF !important;
+  border-left: 2px solid #EA580C !important;
+  border-radius: 0 !important;
+  margin-left: 0 !important;
+  padding-left: 14px !important;
+}
+
+.nav-item .badge {
+  background: #EA580C;
+}
+
+.sidebar-footer {
+  border-top: 1px solid #222222 !important;
+  color: #666666 !important;
+}
+
+.sidebar-footer strong { color: #888888 !important; }
+
+.sterling-status { color: #888888 !important; }
+.status-dot { background: #EA580C !important; }
+.last-update { color: #555555 !important; }
+
+/* -- Holding card � holding-card opacity fix --------------- */
+.holding-card {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.holding-card.animate-in {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* end full audit fix */
