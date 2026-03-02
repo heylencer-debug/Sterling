@@ -987,12 +987,28 @@ const WATCHLIST_INTELLIGENCE = {
 // Keep STOCK_ACTIONS as alias for backward compatibility
 const STOCK_ACTIONS = STOCK_INTELLIGENCE;
 
+function renderThreePillarSources(a) {
+  const allSources = [
+    ...(a.fundamentals?.sources || []),
+    ...(a.news?.sources || []),
+    ...(a.technicals?.sources || [])
+  ];
+  // Deduplicate by url
+  const seen = new Set();
+  const unique = allSources.filter(s => {
+    if (seen.has(s.url)) return false;
+    seen.add(s.url);
+    return true;
+  });
+  if (!unique.length) return '';
+  return `<div class="action-sources">${unique.map(s =>
+    `<a href="${s.url}" target="_blank" class="action-src">${s.name} ↗</a>`
+  ).join('')}</div>`;
+}
+
 function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
   if (!a) return '';
-  const sourceLinks = (a.sources || []).map(s =>
-    `<a href="${s.url}" target="_blank" class="action-src">${s.name} ↗</a>`
-  ).join('');
   return `
     <div class="action-block">
       <div class="action-headline">
@@ -1017,8 +1033,8 @@ function renderStockAction(symbol) {
         <span>⚔️ Full rationale + sources</span><span class="chevron">▸</span>
       </div>
       <div class="action-detail" style="display:none">
-        <div>${a.detail}</div>
-        ${sourceLinks ? `<div class="action-sources">${sourceLinks}</div>` : ''}
+        <p class="action-conclusion">${a.conclusion || ''}</p>
+        ${renderThreePillarSources(a)}
       </div>
     </div>`
 }
@@ -2399,20 +2415,32 @@ async function submitTrade(e) {
           newQty = Math.max(0, oldQty - qty);
           newAvg = oldAvg; // avg cost doesn't change on sell
         }
-        await window.sbUpdate('sterling_portfolio', `symbol=eq.${symbol}`, {
-          qty: parseFloat(newQty.toFixed(4)),
-          avg_buy_price: parseFloat(newAvg.toFixed(4))
-        });
-        showToast(`${action} ${symbol} logged ✓ — portfolio updated`);
+        if (action === 'SELL' && newQty === 0) {
+          // Remove position entirely
+          const { url, anonKey } = window.SUPABASE_CONFIG;
+          await fetch(`${url}/rest/v1/sterling_portfolio?symbol=eq.${symbol}`, {
+            method: 'DELETE',
+            headers: { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` }
+          });
+          showToast(`${symbol} position closed — removed from portfolio`);
+        } else {
+          await window.sbUpdate('sterling_portfolio', `symbol=eq.${symbol}`, {
+            qty: parseFloat(newQty.toFixed(4)),
+            avg_buy_price: parseFloat(newAvg.toFixed(4))
+          });
+          showToast(`${action} ${symbol} logged ✓ — portfolio updated`);
+        }
       } else if (action === 'BUY') {
-        // New position
+        // Look up company info from PSE_UNIVERSE
+        const knownStock = PSE_UNIVERSE.find(s => s.symbol === symbol) || {};
         await window.sbInsert('sterling_portfolio', {
           symbol: symbol,
           qty: qty,
           avg_buy_price: price,
           current_price: price,
-          company_name: symbol,
-          sector: 'Unknown'
+          company_name: knownStock.name || symbol,
+          sector: knownStock.sector || 'PSE',
+          is_reit: knownStock.sector === 'REIT'
         });
         showToast(`${symbol} added to portfolio ✓`);
       } else {
@@ -2420,10 +2448,14 @@ async function submitTrade(e) {
       }
     }
     closeTradeLog();
-    // Refresh portfolio if loaded
-    if (loadedPages['portfolio']) {
-      portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
-      renderPortfolio();
+    showToast(`${action} ${symbol} logged — updating portfolio...`);
+    // Always refresh portfolio (regardless of which tab is active)
+    portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
+    loadedPages['portfolio'] = true; // ensure renderPortfolio runs fully
+    renderPortfolio();
+    // Also refresh trade history section
+    if (typeof renderTradeHistory === 'function') {
+      renderTradeHistory();
     }
   } catch (err) {
     console.error('Trade submit error:', err);
