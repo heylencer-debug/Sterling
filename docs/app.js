@@ -454,6 +454,19 @@ function renderPortfolio() {
   }).join('');
   window.applyGlossary(document.getElementById('page-portfolio'));
 
+  // Restore pillar open/closed state from localStorage
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if (!key.startsWith('sterling_pillar_')) return;
+      const id = key.replace('sterling_pillar_', '');
+      const isOpen = localStorage.getItem(key) === '1';
+      const body = document.getElementById('body-' + id);
+      const chev = document.getElementById('chev-' + id);
+      if (body) body.style.display = isOpen ? 'block' : 'none';
+      if (chev) chev.style.transform = isOpen ? 'rotate(90deg)' : '';
+    });
+  } catch(e) {}
+
   // Load and render trade history below the grid
   renderTradeHistory();
 }
@@ -1205,9 +1218,9 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
           ${helpText ? `<span class="pillar-subtitle">${helpText}</span>` : ''}
         </div>
         <span class="pillar-verdict" style="color:${vc};border-color:${vc}20;background:${vc}12">${verdict}</span>
-        <span class="pillar-chevron" id="chev-${id}">▸</span>
+        <span class="pillar-chevron" id="chev-${id}" style="transform:rotate(90deg)">▸</span>
       </div>
-      <div class="pillar-body" id="body-${id}" style="display:none">
+      <div class="pillar-body" id="body-${id}" style="display:block">
         ${aiSummary ? `<div class="pillar-ai-summary">💡 ${aiSummary}</div>` : ''}
         ${analyzedDate ? `<div class="pillar-meta">
           <span class="pillar-date">🕐 Analyzed ${analyzedDate}</span>
@@ -1226,6 +1239,11 @@ function togglePillar(id) {
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if (chev) chev.style.transform = open ? '' : 'rotate(90deg)';
+  // Persist open state across auto-refresh
+  try {
+    const key = 'sterling_pillar_' + id;
+    localStorage.setItem(key, open ? '0' : '1');
+  } catch(e) {}
 }
 
 function renderStockAction(symbol) {
