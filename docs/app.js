@@ -2804,12 +2804,14 @@ function filterSymbolDropdown() {
     dd.style.display = 'block';
     return;
   }
-  dd.innerHTML = matches.map(s => `
-    <div class="symbol-dd-item" onmousedown="selectSymbol('${s.symbol}','${s.name.replace(/'/g,'\\'')}')">
+  dd.innerHTML = matches.map(s => {
+    const safeName = s.name.replace(/'/g, '&#39;');
+    return `<div class="symbol-dd-item" onmousedown="selectSymbol('${s.symbol}','${safeName}')">
       <span class="symbol-dd-code">${s.symbol}</span>
       <span class="symbol-dd-name">${s.name}</span>
       <span class="symbol-dd-sector">${s.sector}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   dd.style.display = 'block';
 }
 
