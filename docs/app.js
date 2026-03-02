@@ -1081,56 +1081,95 @@ const WATCHLIST_INTELLIGENCE = {
 // Keep STOCK_ACTIONS as alias for backward compatibility
 const STOCK_ACTIONS = STOCK_INTELLIGENCE;
 
-function renderThreePillarSources(a) {
-  const allSources = [
-    ...(a.fundamentals?.sources || []),
-    ...(a.news?.sources || []),
-    ...(a.technicals?.sources || [])
-  ];
-  // Deduplicate by url
-  const seen = new Set();
-  const unique = allSources.filter(s => {
-    if (seen.has(s.url)) return false;
-    seen.add(s.url);
-    return true;
-  });
-  if (!unique.length) return '';
-  return `<div class="action-sources">${unique.map(s =>
-    `<a href="${s.url}" target="_blank" class="action-src">${s.name} ↗</a>`
-  ).join('')}</div>`;
+function verdictColor(v) {
+  if (!v) return '#64748B';
+  const vl = v.toLowerCase();
+  if (vl.includes('bullish') || vl.includes('positive') || vl.includes('strong buy') || vl.includes('deep value') || vl.includes('undervalued')) return '#00D4A0';
+  if (vl.includes('bearish') || vl.includes('negative') || vl.includes('sell')) return '#FF4757';
+  if (vl.includes('oversold') || vl.includes('building') || vl.includes('cautious') || vl.includes('mixed') || vl.includes('neutral')) return '#FFD700';
+  if (vl.includes('buy') || vl.includes('value')) return '#60A5FA';
+  return '#94A3B8';
+}
+
+function renderPillar(icon, title, pillar, id) {
+  if (!pillar) return '';
+  const vc = verdictColor(pillar.verdict);
+  const points = (pillar.points || []).map(p =>
+    `<div class="pillar-point">
+      <span class="pillar-dot" style="background:${vc}"></span>
+      <span>${p}</span>
+    </div>`
+  ).join('');
+  const sources = (pillar.sources || []).map(s =>
+    `<a href="${s.url}" target="_blank" class="pillar-src">${s.name} ↗</a>`
+  ).join('');
+  return `
+    <div class="pillar-block">
+      <div class="pillar-header" onclick="togglePillar('${id}')">
+        <span class="pillar-icon">${icon}</span>
+        <span class="pillar-title">${title}</span>
+        <span class="pillar-verdict" style="color:${vc};border-color:${vc}20;background:${vc}12">${pillar.verdict}</span>
+        <span class="pillar-chevron" id="chev-${id}">▸</span>
+      </div>
+      <div class="pillar-body" id="body-${id}" style="display:none">
+        <div class="pillar-points">${points}</div>
+        ${sources ? `<div class="pillar-sources">${sources}</div>` : ''}
+      </div>
+    </div>`;
+}
+
+function togglePillar(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  if (!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (chev) chev.style.transform = open ? '' : 'rotate(90deg)';
 }
 
 function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
   if (!a) return '';
+  const uid = symbol + '_' + Date.now();
   return `
     <div class="action-block">
+
       <div class="action-headline">
         <span class="action-badge ${a.badgeClass}">${a.badge}</span>
         <span class="action-summary">${a.summary}</span>
       </div>
+
       <div class="price-triggers">
         <div class="trigger-pill buy">
-          <span class="trigger-label">BUY IF drops to</span>
+          <span class="trigger-label">ENTRY</span>
           <span class="trigger-price">${a.entry}</span>
         </div>
         <div class="trigger-pill tp">
-          <span class="trigger-label">TAKE PROFIT</span>
+          <span class="trigger-label">TARGET</span>
           <span class="trigger-price">${a.target}</span>
         </div>
         <div class="trigger-pill sl">
-          <span class="trigger-label">STOP LOSS</span>
+          <span class="trigger-label">STOP</span>
           <span class="trigger-price">${a.stop}</span>
         </div>
       </div>
-      <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-        <span>⚔️ Full rationale + sources</span><span class="chevron">▸</span>
+
+      <div class="pillars-section">
+        ${renderPillar('📊', 'Fundamentals', a.fundamentals, uid + '_f')}
+        ${renderPillar('📰', 'News & Catalysts', a.news, uid + '_n')}
+        ${renderPillar('📈', 'Technicals', a.technicals, uid + '_t')}
       </div>
-      <div class="action-detail" style="display:none">
-        <p class="action-conclusion">${a.conclusion || ''}</p>
-        ${renderThreePillarSources(a)}
+
+      <div class="action-conclusion-block">
+        <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+          <span>⚔️ Perci's verdict</span><span class="chevron">▸</span>
+        </div>
+        <div class="action-detail" style="display:none">
+          <p class="action-conclusion">${a.conclusion || ''}</p>
+        </div>
       </div>
-    </div>`
+
+    </div>`;
 }
 
 function renderSparkline(history) {
