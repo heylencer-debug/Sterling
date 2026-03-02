@@ -2226,84 +2226,114 @@ function renderStudyPortfolio() {
     </div>
   `;
 
-  // Render Lightweight Charts from Supabase price history
+  // Fetch 3-month daily OHLC from Yahoo Finance (PSE symbols = SYMBOL.PS)
+  async function fetchYahooHistory(sym) {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}.PS?interval=1d&range=3mo`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Yahoo ' + res.status);
+    const j = await res.json();
+    const result = j.chart.result[0];
+    const timestamps = result.timestamp;
+    const closes = result.indicators.quote[0].close;
+    return timestamps.map((ts, i) => {
+      const d = new Date(ts * 1000);
+      const time = d.toISOString().split('T')[0];
+      const value = closes[i];
+      return value != null ? { time, value: parseFloat(value.toFixed(2)) } : null;
+    }).filter(Boolean);
+  }
+
+  // Fetch live price from Phisix (already used by dashboard)
+  async function fetchPhisixLive(sym) {
+    try {
+      const res = await fetch(`https://phisix-api3.appspot.com/stocks/${sym}.json`);
+      const j = await res.json();
+      const price = j.stock[0].price.amount;
+      const today = new Date().toISOString().split('T')[0];
+      return { time: today, value: parseFloat(price) };
+    } catch { return null; }
+  }
+
+  // Render chart for one stock
   async function renderPriceChart(sym) {
     const container = document.getElementById('chart-' + sym);
     if (!container || typeof LightweightCharts === 'undefined') return;
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading…</div>';
 
-    // Show loading state
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#475569;font-size:12px">Loading price history…</div>';
+    let data = [];
 
+    // Try Yahoo Finance first (3 months real historical data)
     try {
-      // Fetch price history from Supabase
-      const rows = await window.sbFetch('sterling_price_history', {
-        filter: `symbol=eq.${sym}`,
-        order: 'recorded_at.asc',
-        limit: '90'
-      });
-
-      container.innerHTML = '';
-
-      if (!rows || rows.length < 2) {
-        // Not enough data yet — show placeholder with chart links
-        container.innerHTML = `
-          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;padding:16px">
-            <div style="font-size:28px">📈</div>
-            <div style="color:#64748B;font-size:12px;text-align:center">Price history building up<br><span style="color:#475569;font-size:11px">Sterling collects data every 10min on market days</span></div>
-            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="color:#FFD700;font-size:12px;text-decoration:none;padding:6px 14px;border:1px solid rgba(255,215,0,0.3);border-radius:6px">View on TradingView ↗</a>
-          </div>`;
-        return;
-      }
-
-      // Build chart data from price history
-      const chartData = rows.map(r => ({
-        time: r.recorded_at.split('T')[0],
-        value: parseFloat(r.price || r.close_price || r.current_price || 0)
-      })).filter(d => d.value > 0);
-
-      // Deduplicate by date (keep last value per day)
-      const byDate = {};
-      chartData.forEach(d => { byDate[d.time] = d.value; });
-      const dedupedData = Object.entries(byDate).map(([time, value]) => ({ time, value })).sort((a,b) => a.time.localeCompare(b.time));
-
-      if (dedupedData.length < 2) {
-        container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#475569;font-size:12px">Insufficient data — check back tomorrow</div>`;
-        return;
-      }
-
-      const chart = LightweightCharts.createChart(container, {
-        width: container.clientWidth || 320,
-        height: 220,
-        layout: { background: { color: '#111827' }, textColor: '#94A3B8' },
-        grid: { vertLines: { color: '#1E2A3A' }, horzLines: { color: '#1E2A3A' } },
-        timeScale: { borderColor: '#1E2A3A', timeVisible: true },
-        rightPriceScale: { borderColor: '#1E2A3A' },
-        crosshair: { mode: 1 }
-      });
-
-      const series = chart.addAreaSeries({
-        lineColor: '#FFD700',
-        topColor: 'rgba(255,215,0,0.3)',
-        bottomColor: 'rgba(255,215,0,0.02)',
-        lineWidth: 2,
-        priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
-      });
-
-      series.setData(dedupedData);
-      chart.timeScale().fitContent();
-
-      // Resize on window resize
-      window.addEventListener('resize', () => {
-        if (container.clientWidth > 0) chart.resize(container.clientWidth, 220);
-      });
-
-    } catch (err) {
-      container.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px">
-          <div style="color:#475569;font-size:12px">Chart unavailable</div>
-          <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="color:#FFD700;font-size:12px;text-decoration:none">View on TradingView ↗</a>
-        </div>`;
+      data = await fetchYahooHistory(sym);
+    } catch (e) {
+      // Yahoo CORS blocked — fall back to Supabase history
+      try {
+        const rows = await window.sbFetch('sterling_price_history', {
+          filter: `symbol=eq.${sym}`, order: 'recorded_at.asc', limit: '90'
+        });
+        const byDate = {};
+        (rows || []).forEach(r => {
+          const day = (r.recorded_at || '').split('T')[0];
+          const val = parseFloat(r.price || r.close_price || r.current_price || 0);
+          if (day && val > 0) byDate[day] = val;
+        });
+        data = Object.entries(byDate).map(([time, value]) => ({ time, value })).sort((a,b) => a.time.localeCompare(b.time));
+      } catch {}
     }
+
+    // Append live Phisix price as latest point
+    const live = await fetchPhisixLive(sym);
+    if (live && (!data.length || data[data.length-1].time <= live.time)) {
+      // Replace today's entry or append
+      data = data.filter(d => d.time !== live.time);
+      data.push(live);
+    }
+
+    container.innerHTML = '';
+
+    if (data.length < 2) {
+      container.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:10px;padding:16px">
+          <div style="font-size:26px">📊</div>
+          <div style="color:#64748B;font-size:12px;text-align:center">Live chart unavailable<br>
+            <span style="font-size:11px;color:#475569">Use the chart links below</span></div>
+        </div>`;
+      return;
+    }
+
+    const chart = LightweightCharts.createChart(container, {
+      width: container.clientWidth || 300,
+      height: 220,
+      layout: { background: { color: '#111827' }, textColor: '#94A3B8' },
+      grid: { vertLines: { color: '#1E2A3A' }, horzLines: { color: '#1E2A3A' } },
+      timeScale: { borderColor: '#1E2A3A', timeVisible: false },
+      rightPriceScale: { borderColor: '#1E2A3A' },
+      crosshair: { mode: 1 },
+      handleScroll: false,
+      handleScale: false
+    });
+
+    const series = chart.addAreaSeries({
+      lineColor: '#FFD700',
+      topColor: 'rgba(255,215,0,0.25)',
+      bottomColor: 'rgba(255,215,0,0.0)',
+      lineWidth: 2,
+      priceFormat: { type: 'price', precision: 2, minMove: 0.01 }
+    });
+
+    series.setData(data);
+    chart.timeScale().fitContent();
+
+    // Show live price badge
+    const badge = document.createElement('div');
+    badge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(255,215,0,0.15);color:#FFD700;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:monospace;pointer-events:none';
+    badge.textContent = live ? '₱' + live.value.toFixed(2) + ' LIVE' : '3mo chart';
+    container.style.position = 'relative';
+    container.appendChild(badge);
+
+    window.addEventListener('resize', () => {
+      if (container.clientWidth > 0) chart.resize(container.clientWidth, 220);
+    });
   }
 
   // Render all charts
