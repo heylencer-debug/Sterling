@@ -476,18 +476,66 @@ async function deleteTrade(idx) {
   if (!confirm(`Delete ${t.action} ${t.symbol} on ${t.trade_date || t.date}?`)) return;
   try {
     const { url, anonKey } = window.SUPABASE_CONFIG;
+
+    // 1. Delete the trade record
     const res = await fetch(`${url}/rest/v1/${t._table}?id=eq.${t.id}`, {
       method: 'DELETE',
       headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey }
     });
-    if (res.ok || res.status === 204) {
-      _tradeCache.splice(idx, 1);
-      _renderTradeTable();
-      showToast(`Trade deleted`);
-    } else {
-      showToast('Delete failed');
+    if (!res.ok && res.status !== 204) { showToast('Delete failed'); return; }
+
+    // 2. Reverse the effect on sterling_portfolio (PSE trades only)
+    if (t._table === 'sterling_trades' && t.symbol && t.action) {
+      const price = parseFloat(t.price || 0);
+      const qty   = parseFloat(t.quantity || t.qty || 0);
+      const existing = await window.sbFetch('sterling_portfolio', { filter: `symbol=eq.${t.symbol}` });
+
+      if (existing && existing.length > 0) {
+        const row = existing[0];
+        const oldQty = parseFloat(row.qty || 0);
+        const oldAvg = parseFloat(row.avg_buy_price || 0);
+        let newQty, newAvg;
+
+        if (t.action === 'BUY') {
+          // Undo a BUY: subtract qty, recalculate avg
+          newQty = Math.max(0, oldQty - qty);
+          newAvg = newQty > 0
+            ? Math.max(0, ((oldAvg * oldQty) - (price * qty)) / newQty)
+            : 0;
+        } else {
+          // Undo a SELL: add qty back, avg cost unchanged
+          newQty = oldQty + qty;
+          newAvg = oldAvg;
+        }
+
+        if (newQty <= 0) {
+          // Position fully reversed — remove from portfolio
+          await fetch(`${url}/rest/v1/sterling_portfolio?symbol=eq.${t.symbol}`, {
+            method: 'DELETE',
+            headers: { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` }
+          });
+          showToast(`${t.symbol} position removed from portfolio`);
+        } else {
+          await window.sbUpdate('sterling_portfolio', `symbol=eq.${t.symbol}`, {
+            qty: parseFloat(newQty.toFixed(4)),
+            avg_buy_price: parseFloat(newAvg.toFixed(4))
+          });
+        }
+      }
+
+      // Refresh portfolio cards
+      portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
+      loadedPages['portfolio'] = true;
+      renderPortfolio();
     }
-  } catch { showToast('Delete failed'); }
+
+    _tradeCache.splice(idx, 1);
+    _renderTradeTable();
+    showToast(`Trade deleted — portfolio updated`);
+  } catch(e) {
+    console.error('deleteTrade error:', e);
+    showToast('Delete failed');
+  }
 }
 
 function duplicateTrade(idx) {
