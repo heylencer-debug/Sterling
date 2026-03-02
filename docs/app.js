@@ -228,12 +228,36 @@ async function loadPortfolio() {
     renderPortfolio();
     updateLastUpdate();
 
-    // Auto-refresh every 60s
+    // Auto-refresh every 60s — preserves open toggle state
     setInterval(async () => {
+      // Save which pillars/details are open before re-render
+      const openBodies   = [...document.querySelectorAll('.pillar-body')].filter(el => el.style.display === 'block').map(el => el.id);
+      const openDetails  = [...document.querySelectorAll('.action-detail')].filter(el => el.style.display === 'block').map(el => el.closest('.action-block')?.dataset?.sym);
+      const activeCard   = document.querySelector('.view-chart-btn.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+
       portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
       renderPortfolio();
       fetchPSEi();
       updateLastUpdate();
+
+      // Restore open states after DOM rebuild
+      requestAnimationFrame(() => {
+        openBodies.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.style.display = 'block';
+            const chevId = id.replace('body-', 'chev-');
+            const chev = document.getElementById(chevId);
+            if (chev) chev.style.transform = 'rotate(90deg)';
+          }
+        });
+        // Restore active chart button
+        if (activeCard) {
+          document.querySelectorAll('.view-chart-btn').forEach(b => {
+            if (b.getAttribute('onclick')?.includes(`'${activeCard}'`)) b.classList.add('active');
+          });
+        }
+      });
     }, 60000);
 
   } catch (err) {
@@ -1125,27 +1149,66 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
   const verdict = supabaseData?.verdict || staticPillar?.verdict || '';
   
   const vc = verdictColor(verdict);
-  
+
+  // Inline glossary — underlines key terms with tap-to-explain tooltip
+  const TERM_DEFS = {
+    'P/E':             "Price-to-Earnings — how much you pay per ₱1 of profit. Lower P/E = cheaper stock.",
+    'NAV':             "Net Asset Value — the real book value of assets owned. Price below NAV = you're buying at a discount.",
+    'RSI':             "0–100 momentum meter. Below 30 = oversold (beaten down, may bounce). Above 70 = overbought (may pull back).",
+    'MACD':            "Compares two moving averages. Positive = buying pressure winning. Negative = selling pressure winning.",
+    'EPS':             "Earnings Per Share — company profit ÷ shares. Rising EPS = growing profits.",
+    'ex-date':         "Ex-dividend date — own the stock before this date to receive the upcoming dividend.",
+    'overbought':      "RSI above 70 — stock ran up fast, short-term cooldown likely.",
+    'oversold':        "RSI below 30 — stock fell too fast, potential bounce incoming.",
+    'dividend yield':  "Annual dividend ÷ stock price. 7% yield = ₱7 per year for every ₱100 invested.",
+    'Dividend yield':  "Annual dividend ÷ stock price. 7% yield = ₱7 per year for every ₱100 invested.",
+    'moving averages': "Average price over set periods (20, 50, 200 days). More MAs pointing up = stronger trend.",
+    'support':         "Price floor where buyers usually step in. Holding support = bullish.",
+    'resistance':      "Price ceiling where sellers appear. Breaking above resistance = bullish breakout.",
+    'occupancy rate':  "% of rentable space that is leased. Higher occupancy = more rental income.",
+    'analyst target':  "The price analysts at brokers think the stock should reach within 12 months.",
+    'capital ratios':  "How much of a bank's own money it holds vs loans given out. Higher = safer bank.",
+  };
+  function glossify(text) {
+    let out = text;
+    Object.entries(TERM_DEFS).forEach(([term, def]) => {
+      out = out.replace(new RegExp(`\\b(${term})\\b`, 'g'),
+        `<span class="glossary-term" onclick="showGlossaryTip(this)" data-def="${def.replace(/"/g,"'")}">${term}</span>`);
+    });
+    return out;
+  }
+
+  // Pillar subtitle — one plain-English question so Carlo knows what the pillar answers
+  const PILLAR_HELP = {
+    'fundamentals': 'Is this stock cheap or expensive? Is the business healthy?',
+    'news':         'What\'s happening right now that affects this stock?',
+    'technicals':   'What is price momentum and chart pattern telling us?',
+  };
+  const helpText = PILLAR_HELP[pillarKey] || '';
+
   const pointsHTML = points.map(p => `
     <div class="pillar-point">
       <span class="pillar-dot" style="background:${vc}"></span>
-      <span>${p}</span>
+      <span class="pillar-point-text">${glossify(p)}</span>
     </div>`).join('');
-  
+
   const sourcesHTML = sources.map(s =>
     `<a href="${s.url}" target="_blank" class="pillar-src">${s.name} ↗</a>`
   ).join('');
-  
+
   return `
     <div class="pillar-block">
       <div class="pillar-header" onclick="togglePillar('${id}')">
         <span class="pillar-icon">${icon}</span>
-        <span class="pillar-title">${title}</span>
+        <div class="pillar-title-group">
+          <span class="pillar-title">${title}</span>
+          ${helpText ? `<span class="pillar-subtitle">${helpText}</span>` : ''}
+        </div>
         <span class="pillar-verdict" style="color:${vc};border-color:${vc}20;background:${vc}12">${verdict}</span>
         <span class="pillar-chevron" id="chev-${id}">▸</span>
       </div>
       <div class="pillar-body" id="body-${id}" style="display:none">
-        ${aiSummary ? `<div class="pillar-ai-summary">${aiSummary}</div>` : ''}
+        ${aiSummary ? `<div class="pillar-ai-summary">💡 ${aiSummary}</div>` : ''}
         ${analyzedDate ? `<div class="pillar-meta">
           <span class="pillar-date">🕐 Analyzed ${analyzedDate}</span>
           ${isStale ? '<span class="pillar-stale">⚠️ Update needed</span>' : '<span class="pillar-fresh">✓ Current</span>'}
@@ -1215,7 +1278,7 @@ function renderStockAction(symbol) {
 
       <div class="action-conclusion-block">
         <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-          <span>⚔️ Perci's verdict</span><span class="chevron">▸</span>
+          <span>⚔️ Sterling's Verdict</span><span class="chevron">▸</span>
         </div>
         <div class="action-detail" style="display:none">
           <p class="action-conclusion">${a.conclusion || ''}</p>
