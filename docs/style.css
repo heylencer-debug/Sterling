@@ -1160,3 +1160,7 @@ body {
 .news-card.bullish { border-left: 3px solid #059669; }
 .news-card.bearish { border-left: 3px solid #DC2626; }
 .news-card.neutral { border-left: 3px solid #D1D5DB; }
+
+/* Modal .active support (possize + dividend modals) */
+.trade-modal-overlay.active { display: flex; }
+
