@@ -390,6 +390,82 @@ function renderPortfolio() {
     `;
   }).join('');
   window.applyGlossary(document.getElementById('page-portfolio'));
+
+  // Load and render trade history below the grid
+  renderTradeHistory();
+}
+
+async function renderTradeHistory() {
+  const pageEl = document.getElementById('page-portfolio');
+  if (!pageEl) return;
+
+  // Remove old history section if present
+  const old = document.getElementById('trade-history-section');
+  if (old) old.remove();
+
+  const section = document.createElement('div');
+  section.id = 'trade-history-section';
+  section.style.cssText = 'margin-top:32px';
+  section.innerHTML = '<div class="section-header" style="margin-bottom:12px">📋 Trade History</div><div id="trade-history-body" style="color:#475569;font-size:12px;text-align:center;padding:16px">Loading trades…</div>';
+  pageEl.appendChild(section);
+
+  try {
+    const [pseRows, goldRows] = await Promise.all([
+      window.sbFetch('sterling_trades', { order: 'created_at.desc', limit: '50' }).catch(() => []),
+      window.sbFetch('sterling_gold_trades', { order: 'created_at.desc', limit: '20' }).catch(() => [])
+    ]);
+
+    const allTrades = [
+      ...(pseRows || []).map(r => ({ ...r, asset_type: r.asset_type || 'PSE Stock' })),
+      ...(goldRows || []).map(r => ({ ...r, symbol: r.symbol || 'XAU/USD', asset_type: 'Gold' }))
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const body = document.getElementById('trade-history-body');
+    if (!body) return;
+
+    if (!allTrades.length) {
+      body.innerHTML = '<div style="text-align:center;padding:24px;color:#475569">No trades logged yet.<br><span style="font-size:11px">Tap ⚡ Log Trade to record your first trade.</span></div>';
+      return;
+    }
+
+    body.innerHTML = `
+      <div style="overflow-x:auto">
+        <table class="trade-history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Symbol</th>
+              <th>Type</th>
+              <th>Action</th>
+              <th>Price</th>
+              <th>Qty</th>
+              <th>Total</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${allTrades.map(t => {
+              const isBuy = (t.action || '').toUpperCase() === 'BUY';
+              const total = (parseFloat(t.price || 0) * parseFloat(t.quantity || t.qty || t.lot_size || 0));
+              const dateStr = (t.trade_date || t.date || (t.created_at || '').split('T')[0]);
+              return `<tr>
+                <td>${dateStr}</td>
+                <td style="font-weight:700;color:#F1F5F9">${t.symbol || '—'}</td>
+                <td><span style="font-size:10px;color:#64748B">${t.asset_type || 'PSE'}</span></td>
+                <td><span class="trade-action-badge ${isBuy ? 'buy' : 'sell'}">${t.action || '—'}</span></td>
+                <td style="font-family:monospace">${t.price ? '₱' + parseFloat(t.price).toFixed(2) : '—'}</td>
+                <td style="font-family:monospace">${parseFloat(t.quantity || t.qty || t.lot_size || 0).toLocaleString()}</td>
+                <td style="font-family:monospace;color:${isBuy ? '#FF4757' : '#00D4A0'}">${total ? (isBuy ? '-' : '+') + '₱' + total.toLocaleString('en', {maximumFractionDigits:2}) : '—'}</td>
+                <td style="color:#64748B;font-size:11px">${t.notes || '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (err) {
+    const body = document.getElementById('trade-history-body');
+    if (body) body.innerHTML = '<div style="color:#475569;text-align:center;padding:16px">Could not load trade history</div>';
+  }
 }
 
 async function toggleCardChart(sym, btn) {
@@ -705,25 +781,130 @@ const STOCK_INTELLIGENCE = {
   },
   MREIT: {
     badge: 'HOLD + COLLECT DIV', badgeClass: 'badge-hold',
-    summary: 'Ex-dividend ~Mar 20. NAV discount 28%. Megaworld expanding.',
     entry: '₱13.80–14.00', target: '₱17.50', stop: '₱13.00',
-    detail: 'NAV ₱19.69 vs price ₱14.18 = 28% discount to Megaworld real estate portfolio. 7.2% dividend yield. Ex-date ~March 20 — hold through to collect dividend. Megaworld expanding to Iloilo and Davao CBDs = future rental income growth. BUY rating from Asia Securities. Target ₱17.50. Stop-loss ₱13.00.',
-    sources: [
-      { name: 'Asia Securities Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
-      { name: 'Chart', url: 'https://www.tradingview.com/symbols/PSE-MREIT/technicals/' },
-    ]
+    summary: 'NAV discount 28%. Ex-dividend ~Mar 20. Megaworld expanding to Iloilo + Davao.',
+    fundamentals: {
+      verdict: 'Undervalued',
+      points: [
+        'NAV ₱19.69 vs price ₱14.18 = 28% discount to Megaworld commercial real estate',
+        'Dividend yield 7.2% — strong income',
+        'BUY rating from Asia Securities, target ₱17.50',
+        'Megaworld expanding to Iloilo and Davao CBDs = future rental income growth',
+      ],
+      sources: [
+        { name: 'Asia Securities REIT Research', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' },
+        { name: 'DragonFi MREIT', url: 'https://www.dragonfi.ph/market/stocks/MREIT' },
+      ]
+    },
+    news: {
+      verdict: 'Positive — Expanding',
+      points: [
+        'Ex-dividend date approximately March 20 — hold shares before this date',
+        'Megaworld township expansion drives future REIT portfolio growth',
+        'Office occupancy recovering post-pandemic in Megaworld properties',
+      ],
+      sources: [
+        { name: 'PSE Edge MREIT', url: 'https://edge.pse.com.ph' },
+        { name: 'BusinessWorld', url: 'https://bworldonline.com' },
+      ]
+    },
+    technicals: {
+      verdict: 'Neutral — Rate Sensitive',
+      points: [
+        'Same BSP rate pressure as all REITs — price suppressed by macro',
+        'Holding above ₱14.00 support — not breaking down',
+        'Volume normal — no panic selling',
+        'Post-ex-date dip often happens — could be a good add point at ₱13.80–14.00',
+      ],
+      sources: [
+        { name: 'TradingView PSE:MREIT', url: 'https://www.tradingview.com/symbols/PSE-MREIT/technicals/' },
+      ]
+    },
+    conclusion: 'Hold through ex-dividend ~March 20 to collect your dividend. If price dips post-ex-date (typical behavior — dividend buyers exit), the ₱13.80–14.00 range is a good accumulation zone. Asia Securities target ₱17.50 = 23% upside from current price, plus the 7.2% yield while you wait.',
   },
   RRHI: {
     badge: 'WAIT', badgeClass: 'badge-wait',
-    summary: 'Mixed signals — 8 indicators say sell. Do not add until RSI drops under 40.',
     entry: '₱35.00–36.00', target: '₱43.00', stop: '₱34.00',
-    detail: 'RSI 47 = neutral. MACD -0.284 = mild sell signal. Of 12 moving averages: 8 say Sell, only 4 say Buy. Same-store sales grew 5.65% (solid business) but technical momentum is weak. Sterling\'s rule: don\'t fight the technicals. Wait for RSI to drop below 40 (more oversold) before adding. If you see RSI < 40 + MACD cross up = that\'s your buy signal. Current stop-loss ₱34.00.',
-    sources: [
-      { name: 'Technicals (Investing.com)', url: 'https://www.investing.com/equities/robinsons-reta-technical' },
-      { name: 'GuruFocus', url: 'https://www.gurufocus.com/stock/PHS:RRHI/summary' },
-    ]
+    summary: 'Mixed technical signals. Do not add until RSI drops below 40 or MACD crosses up.',
+    fundamentals: {
+      verdict: 'Fair Value',
+      points: [
+        'Same-store sales grew 5.65% in 2025 — underlying retail business is healthy',
+        'Growth rank 9/10 on GuruFocus = strong business quality score',
+        'Robinsons Retail: supermarkets, convenience stores, drug stores — defensive business',
+        'P/E moderate — not cheap enough to be exciting, not expensive enough to sell',
+      ],
+      sources: [
+        { name: 'GuruFocus RRHI', url: 'https://www.gurufocus.com/stock/PHS:RRHI/summary' },
+        { name: 'HelloSafe RRHI', url: 'https://hellosafe.ph/investing/stock-market/stocks/rrhi' },
+      ]
+    },
+    news: {
+      verdict: 'Neutral',
+      points: [
+        'No major catalysts or negative news recently',
+        'Consumer spending in PH stable — retail sector broadly healthy',
+        'Competition from e-commerce (Lazada, Shopee) a long-term watch item',
+      ],
+      sources: [
+        { name: 'PSE Edge RRHI', url: 'https://edge.pse.com.ph' },
+        { name: 'BusinessWorld retail', url: 'https://bworldonline.com' },
+      ]
+    },
+    technicals: {
+      verdict: 'Bearish Short-Term',
+      points: [
+        'RSI 47 — neutral but trending down. No oversold bounce signal yet.',
+        'MACD -0.284 = selling pressure slightly stronger than buying pressure',
+        '8 out of 12 moving averages signal SELL — short-term momentum is negative',
+        'Sterling rule: don\'t fight 8/12 MAs pointing down. Wait for the turn.',
+        'BUY SIGNAL to watch for: RSI drops below 40 (oversold) AND MACD line crosses above signal line',
+      ],
+      sources: [
+        { name: 'Investing.com RRHI technicals', url: 'https://www.investing.com/equities/robinsons-reta-technical' },
+        { name: 'TradingView PSE:RRHI', url: 'https://www.tradingview.com/symbols/PSE-RRHI/technicals/' },
+      ]
+    },
+    conclusion: 'RRHI is a good business but the technicals say wait. When 8 of 12 moving averages say sell and MACD is negative, adding now means fighting the trend. The business hasn\'t deteriorated — this is a timing call. Your specific buy signal: RSI drops below 40 AND MACD crosses upward. That combination = trend reversal confirmed. Entry ₱35–36, target ₱43, stop ₱34.',
   },
 };
+
+// Watchlist Intelligence - WHY/HOW for top watchlist stocks
+const WATCHLIST_INTELLIGENCE = {
+  BDO: {
+    why: 'Largest bank by assets. P/E 10.2x vs sector 11x. Conservative management, strong capital ratios.',
+    how: 'Entry below ₱130. Wait for RSI < 50 or ex-dividend dip. BDO moves slowly — patience required.',
+    source: { name: 'PSE Edge BDO', url: 'https://edge.pse.com.ph' }
+  },
+  AREIT: {
+    why: 'Ayala-backed REIT. Premium quality tenants (Ayala offices, BGC, Makati). 5.8% yield, lowest risk REIT.',
+    how: 'Entry ₱32–33. This is the "safe" REIT — lower yield but highest quality. Add on BSP rate cut news.',
+    source: { name: 'Asia Securities REIT', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' }
+  },
+  SCC: {
+    why: 'Coal mining + power. 12.5% yield — highest on PSE. P/E 5.2x = extremely cheap. ESG risk is why it\'s cheap.',
+    how: 'Entry ₱36–37. High risk/high reward. Only add if you accept coal exposure. Watch global coal prices.',
+    source: { name: 'Fintel SCC', url: 'https://fintel.io/s/ph/scc' }
+  },
+  BPI: {
+    why: 'Premium bank brand. Lower yield (3.2%) but very stable. Good for capital preservation.',
+    how: 'Entry ₱105–106. BPI is not cheap — only buy for stability and brand quality, not value.',
+    source: { name: 'HelloSafe BPI', url: 'https://hellosafe.ph/investing/stock-market/stocks/bpi' }
+  },
+  DDMPR: {
+    why: 'DoubleDragon REIT. 8.9% yield, P/E 11.5x. Smaller REIT but high yield. CityMall exposure = provincial growth.',
+    how: 'Entry ₱1.30–1.35. High yield but less liquid than bigger REITs. Good for income, harder to sell quickly.',
+    source: { name: 'DragonFi DDMPR', url: 'https://www.dragonfi.ph/market/stocks/DDMPR' }
+  },
+  CREIT: {
+    why: 'Citicore REIT. Industrial/solar focus. 7.5% yield. Renewable energy exposure = growth angle.',
+    how: 'Entry ₱2.50–2.55. Newer REIT, less track record. Good diversification from office REITs.',
+    source: { name: 'PSE Edge CREIT', url: 'https://edge.pse.com.ph' }
+  },
+};
+
+// Keep STOCK_ACTIONS as alias for backward compatibility
+const STOCK_ACTIONS = STOCK_INTELLIGENCE;
 
 function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
@@ -2056,45 +2237,61 @@ async function submitTrade(e) {
     const notes = document.getElementById('trade-notes').value;
 
     if (assetType === 'Gold (XAU/USD)') {
+      // Save to gold trades with correct column names
       await window.sbInsert('sterling_gold_trades', {
-        direction: action,
-        entry_price: price,
-        lot_size: qty,
-        date: date,
-        notes: notes,
-        status: 'OPEN',
-        profit_usd: 0,
-        profit_php: 0
+        symbol: 'XAU/USD',
+        action: action,
+        price: price,
+        quantity: qty,
+        trade_date: date,
+        asset_type: 'Gold',
+        notes: notes
       });
-      showToast('Gold trade logged \u2713');
+      showToast('Gold trade logged ✓');
     } else {
-      // PSE Stock
-      const existing = await window.sbFetch('sterling_portfolio', { filter: `symbol=eq.${symbol}`, single: true });
+      // Save trade to history first
+      await window.sbInsert('sterling_trades', {
+        symbol: symbol,
+        action: action,
+        price: price,
+        quantity: qty,
+        trade_date: date,
+        asset_type: 'PSE Stock',
+        notes: notes
+      });
+      // Update portfolio position
+      const existing = await window.sbFetch('sterling_portfolio', { filter: `symbol=eq.${symbol}` });
       if (existing && existing.length > 0) {
         const row = existing[0];
-        const oldQty = row.qty || row.quantity || 0;
-        const oldAvg = row.avg_buy_price || row.average_price || 0;
+        const oldQty = parseFloat(row.qty || row.quantity || 0);
+        const oldAvg = parseFloat(row.avg_buy_price || row.average_price || 0);
         let newQty, newAvg;
         if (action === 'BUY') {
           newQty = oldQty + qty;
           newAvg = ((oldAvg * oldQty) + (price * qty)) / newQty;
         } else {
           newQty = Math.max(0, oldQty - qty);
-          newAvg = oldAvg;
+          newAvg = oldAvg; // avg cost doesn't change on sell
         }
         await window.sbUpdate('sterling_portfolio', `symbol=eq.${symbol}`, {
-          qty: newQty,
+          qty: parseFloat(newQty.toFixed(4)),
           avg_buy_price: parseFloat(newAvg.toFixed(4))
         });
+        showToast(`${action} ${symbol} logged ✓ — portfolio updated`);
       } else if (action === 'BUY') {
+        // New position
         await window.sbInsert('sterling_portfolio', {
           symbol: symbol,
           qty: qty,
           avg_buy_price: price,
-          current_price: price
+          current_price: price,
+          company_name: symbol,
+          sector: 'Unknown'
         });
+        showToast(`${symbol} added to portfolio ✓`);
+      } else {
+        showToast('Symbol not in portfolio — trade saved to history only');
       }
-      showToast('Trade logged \u2713');
     }
     closeTradeLog();
     // Refresh portfolio if loaded
