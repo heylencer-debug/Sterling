@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Cutive+Mono&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=25">
+  <link rel="stylesheet" href="style.css?v=30">
 
 </head>
 <body>
@@ -350,7 +350,13 @@
         </div>
         <div class="trade-form-group">
           <label>Symbol / Instrument</label>
-          <select id="trade-symbol" required></select>
+          <div class="symbol-search-wrap" id="symbol-search-wrap">
+            <input type="text" id="symbol-search-input" class="symbol-search-input"
+              placeholder="Type symbol or name… e.g. MBT, Jollibee"
+              autocomplete="off" oninput="filterSymbolDropdown()" onfocus="openSymbolDropdown()" onblur="closeSymbolDropdownDelayed()">
+            <input type="hidden" id="trade-symbol" required>
+            <div class="symbol-dropdown" id="symbol-dropdown"></div>
+          </div>
         </div>
         <div class="trade-form-group">
           <label>Action</label>
@@ -385,7 +391,7 @@
 
   <script src="data/sb.js?v=4"></script>
   <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="app.js?v=29"></script>
+  <script src="app.js?v=30"></script>
   <script src="gold.js?v=4"></script>
 </body>
 </html>
