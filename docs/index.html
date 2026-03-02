@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sterling — Sterling PSE Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <!-- Sidebar nav -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⚔️</span>
+      <span class="logo-text">Sterling</span>
+      <span class="logo-sub">by Sterling</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="portfolio">
+        <span class="nav-icon">📊</span> Portfolio
+      </a>
+      <a href="#" class="nav-item" data-page="brief">
+        <span class="nav-icon">📋</span> Morning Brief
+      </a>
+      <a href="#" class="nav-item" data-page="watchlist">
+        <span class="nav-icon">🎯</span> Watchlist
+      </a>
+      <a href="#" class="nav-item" data-page="alerts">
+        <span class="nav-icon">🔔</span> Alerts
+        <span class="badge" id="alerts-badge" style="display:none">0</span>
+      </a>
+      <a href="#" class="nav-item" data-page="news">
+        <span class="nav-icon">📰</span> News
+      </a>
+      <a href="#" class="nav-item" data-page="gold">
+        <span class="nav-icon">⚡</span> Gold
+      </a>
+      <a href="#" class="nav-item" data-page="dividends">
+        <span class="nav-icon">💰</span> Dividends
+      </a>
+      <a href="#" class="nav-item" data-page="discovery">
+        <span class="nav-icon">🔍</span> Discovery
+      </a>
+      <a href="#" class="nav-item" data-page="learn">
+        <span class="nav-icon">📚</span> Learn
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sterling-status">
+        <span class="status-dot"></span>
+        Sterling Active
+      </div>
+      <div id="market-status" style="font-size:11px;font-weight:700;margin:4px 0;color:#FFD700">⏳ Checking...</div>
+      <div class="last-update" id="last-update">—</div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <!-- Mobile header -->
+    <header class="mobile-header">
+      <button class="hamburger" onclick="toggleMobileMenu()">☰</button>
+      <span class="mobile-title">⚔️ Sterling</span>
+    </header>
+
+    <!-- Loader -->
+    <div class="loader" id="loader">
+      <div class="loader-sword">⚔️</div>
+      <div class="loader-text">Sterling is watching the market...</div>
+    </div>
+
+    <!-- Page: Portfolio -->
+    <section class="page active" id="page-portfolio">
+      <div class="page-header">
+        <h1>Portfolio Overview</h1>
+        <div class="psei-widget" id="psei-widget">
+          <span class="psei-label">PSEi</span>
+          <span class="psei-value" id="psei-value">—</span>
+          <span class="psei-change" id="psei-change">—</span>
+        </div>
+      </div>
+
+      <div class="summary-bar" id="portfolio-summary">
+        <div class="summary-item">
+          <span class="summary-label">Total Value</span>
+          <span class="summary-value" id="total-value">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Total P&L</span>
+          <span class="summary-value" id="total-pl">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">P&L %</span>
+          <span class="summary-value" id="total-pl-pct">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Last Updated</span>
+          <span class="summary-value" id="portfolio-updated">—</span>
+        </div>
+      </div>
+
+      <div class="holdings-grid" id="holdings-grid">
+        <!-- Holdings cards rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Morning Brief -->
+    <section class="page" id="page-brief">
+      <div class="page-header">
+        <h1>Morning Brief</h1>
+        <div class="brief-note">Sterling runs at 7AM weekdays</div>
+      </div>
+      <div class="briefs-list" id="briefs-list">
+        <!-- Briefs rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Watchlist -->
+    <section class="page" id="page-watchlist">
+      <div class="page-header">
+        <h1>Watchlist</h1>
+        <div class="view-toggle">
+          <button class="toggle-btn active" data-view="cards" onclick="setWatchlistView('cards')">Cards</button>
+          <button class="toggle-btn" data-view="table" onclick="setWatchlistView('table')">Table</button>
+        </div>
+      </div>
+      <div class="filters" id="watchlist-filters">
+        <select id="filter-sector" onchange="filterWatchlist()">
+          <option value="">All Sectors</option>
+        </select>
+        <select id="filter-recommendation" onchange="filterWatchlist()">
+          <option value="">All Recommendations</option>
+          <option value="BUY">BUY</option>
+          <option value="WATCH">WATCH</option>
+          <option value="AVOID">AVOID</option>
+        </select>
+      </div>
+      <div class="watchlist-cards" id="watchlist-cards">
+        <!-- Watchlist cards rendered by JS -->
+      </div>
+      <div class="watchlist-table-wrap" id="watchlist-table-wrap" style="display:none">
+        <table class="watchlist-table" id="watchlist-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Company</th>
+              <th>Price</th>
+              <th>Target Buy</th>
+              <th>Stop Loss</th>
+              <th>Sector</th>
+              <th>P/E</th>
+              <th>Div Yield</th>
+              <th>Signal</th>
+              <th>Score</th>
+              <th>Rec</th>
+            </tr>
+          </thead>
+          <tbody id="watchlist-tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Page: Alerts -->
+    <section class="page" id="page-alerts">
+      <div class="page-header">
+        <h1>Alerts</h1>
+      </div>
+      <div class="alerts-feed" id="alerts-feed">
+        <!-- Alerts rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: News -->
+    <section class="page" id="page-news">
+      <div class="page-header">
+        <h1>Market News</h1>
+      </div>
+      <div class="filters" id="news-filters">
+        <select id="filter-news-symbol" onchange="filterNews()">
+          <option value="">All Stocks</option>
+        </select>
+        <select id="filter-news-sentiment" onchange="filterNews()">
+          <option value="">All Sentiment</option>
+          <option value="positive">Positive</option>
+          <option value="negative">Negative</option>
+          <option value="neutral">Neutral</option>
+        </select>
+        <select id="filter-news-impact" onchange="filterNews()">
+          <option value="">All Impact</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="news-feed" id="news-feed">
+        <!-- News rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Gold -->
+    <section class="page" id="page-gold">
+      <div class="page-header">
+        <h1>Gold Trading</h1>
+      </div>
+      <div class="empty-state">
+        <div class="empty-state-icon">⚡</div>
+        <div class="empty-state-text">Loading gold data...</div>
+      </div>
+    </section>
+
+    <!-- Page: Dividends -->
+    <section class="page" id="page-dividends">
+      <div class="page-header">
+        <h1>Dividends</h1>
+      </div>
+      <div class="dividend-calendar" id="dividend-calendar">
+        <div class="calendar-header">
+          <button onclick="prevMonth()">&#8249;</button>
+          <span id="calendar-month">March 2026</span>
+          <button onclick="nextMonth()">&#8250;</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- Calendar rendered by JS -->
+        </div>
+      </div>
+      <div class="dividend-upcoming" id="dividend-upcoming">
+        <h2>Upcoming Dividends</h2>
+        <div class="upcoming-cards" id="upcoming-dividends">
+          <!-- Upcoming dividends rendered by JS -->
+        </div>
+      </div>
+      <div class="dividend-income" id="dividend-income">
+        <h2>Estimated Annual Income</h2>
+        <div class="income-total" id="income-total">—</div>
+        <div class="income-breakdown" id="income-breakdown">
+          <!-- Income breakdown rendered by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Page: Discovery -->
+    <section class="page" id="page-discovery">
+      <div class="page-header">
+        <h1>Stock Discovery</h1>
+      </div>
+      <div class="discovery-grid" id="discovery-grid">
+        <!-- Discovery cards rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Learn -->
+    <section class="page" id="page-learn">
+      <div class="page-header">
+        <h1 class="page-title">📚 Sterling's Trading School</h1>
+        <p class="page-subtitle">Learn how to read stocks — one concept at a time.</p>
+      </div>
+
+      <!-- Search -->
+      <div class="learn-search">
+        <input type="text" id="glossary-search" placeholder="Search terms, concepts, indicators..." oninput="filterGlossary(this.value)">
+      </div>
+
+      <!-- Tabs within Learn -->
+      <div class="learn-tabs">
+        <button class="learn-tab active" onclick="showLearnTab('glossary', this)">📖 Glossary</button>
+        <button class="learn-tab" onclick="showLearnTab('concepts', this)">💡 Concepts</button>
+        <button class="learn-tab" onclick="showLearnTab('patterns', this)">📊 Patterns</button>
+        <button class="learn-tab" onclick="showLearnTab('pattern-alerts', this)">🔔 Pattern Alerts</button>
+        <button class="learn-tab" onclick="showLearnTab('study-portfolio', this)">📈 Study Portfolio</button>
+        <button class="learn-tab" onclick="showLearnTab('portfolio-school', this)">🎯 Your Portfolio</button>
+        <button class="learn-tab" onclick="showLearnTab('resources', this)">🔗 Resources</button>
+      </div>
+
+      <!-- Glossary Tab -->
+      <div class="learn-section active" id="learn-glossary">
+        <div class="glossary-grid" id="glossary-grid"></div>
+      </div>
+
+      <!-- Concepts Tab -->
+      <div class="learn-section" id="learn-concepts">
+        <div class="concepts-list" id="concepts-list"></div>
+      </div>
+
+      <!-- Patterns Tab -->
+      <div class="learn-section" id="learn-patterns">
+        <div class="patterns-grid" id="patterns-grid"></div>
+      </div>
+
+      <!-- Pattern Alerts Tab -->
+      <div class="learn-section" id="learn-pattern-alerts">
+        <div class="pattern-alerts-content" id="pattern-alerts-content"></div>
+      </div>
+
+      <!-- Study My Portfolio Tab -->
+      <div class="learn-section" id="learn-study-portfolio">
+        <div class="study-portfolio-content" id="study-portfolio-content"></div>
+      </div>
+
+      <!-- Portfolio School Tab -->
+      <div class="learn-section" id="learn-portfolio-school">
+        <div class="portfolio-school-content" id="portfolio-school-content"></div>
+      </div>
+
+      <!-- Resources Tab -->
+      <div class="learn-section" id="learn-resources">
+        <div class="resources-grid" id="resources-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Trade Log Floating Button -->
+  <button class="trade-log-fab" id="trade-log-fab" onclick="openTradeLog()">
+    <span>⚡</span> Log Trade
+  </button>
+
+  <!-- Trade Log Modal -->
+  <div class="trade-modal-overlay" id="trade-modal-overlay" onclick="closeTradeLog()">
+    <div class="trade-modal" onclick="event.stopPropagation()">
+      <div class="trade-modal-header">
+        <h2>⚡ Log Trade</h2>
+        <button class="trade-modal-close" onclick="closeTradeLog()">&times;</button>
+      </div>
+      <form id="trade-log-form" onsubmit="submitTrade(event)">
+        <div class="trade-form-group">
+          <label>Asset Type</label>
+          <select id="trade-asset-type" onchange="onAssetTypeChange()" required>
+            <option value="PSE Stock">PSE Stock</option>
+            <option value="Gold (XAU/USD)">Gold (XAU/USD)</option>
+          </select>
+        </div>
+        <div class="trade-form-group">
+          <label>Symbol / Instrument</label>
+          <input type="text" id="trade-symbol" placeholder="e.g. MBT, XAU/USD" required>
+        </div>
+        <div class="trade-form-group">
+          <label>Action</label>
+          <select id="trade-action" required>
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+        </div>
+        <div class="trade-form-group">
+          <label>Price</label>
+          <input type="number" id="trade-price" step="0.01" placeholder="Entry price" required>
+        </div>
+        <div class="trade-form-group">
+          <label id="trade-qty-label">Quantity</label>
+          <input type="number" id="trade-qty" step="0.01" placeholder="Shares or Lots" required>
+        </div>
+        <div class="trade-form-group">
+          <label>Date</label>
+          <input type="date" id="trade-date" required>
+        </div>
+        <div class="trade-form-group">
+          <label>Notes (optional)</label>
+          <textarea id="trade-notes" rows="2" placeholder="Optional notes..."></textarea>
+        </div>
+        <button type="submit" class="trade-submit-btn" id="trade-submit-btn">Submit Trade</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast"></div>
+
+  <script src="data/sb.js"></script>
+  <script src="app.js"></script>
+  <script src="gold.js"></script>
+  <script src="https://s3.tradingview.com/tv.js" async></script>
+</body>
+</html>
