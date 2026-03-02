@@ -877,3 +877,48 @@ body {
 /* Card entrance animation fix */
 .animate-in { opacity: 1 !important; transform: translateY(0) !important; transition: opacity 0.25s ease, transform 0.25s ease; }
 
+
+/* -- Price Trigger Pills (ENTRY / TARGET / STOP) --------------- */
+.price-triggers {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.trigger-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1.5px solid;
+  text-align: center;
+  gap: 3px;
+}
+.trigger-label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.trigger-price {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.01em;
+}
+.trigger-pill.buy {
+  border-color: #2563EB;
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+.trigger-pill.tp {
+  border-color: #059669;
+  background: #ECFDF5;
+  color: #047857;
+}
+.trigger-pill.sl {
+  border-color: #DC2626;
+  background: #FEF2F2;
+  color: #B91C1C;
+}
