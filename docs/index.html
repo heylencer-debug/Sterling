@@ -84,6 +84,7 @@
       <div class="page-header">
         <h1>Portfolio Overview</h1>
         <div style="display:flex;align-items:center;gap:10px">
+          <button onclick="openAddPosition()" style="font-size:11px;font-weight:700;padding:7px 14px;border:1.5px solid #0A0A0A;border-radius:6px;background:#0A0A0A;color:#FFFFFF;cursor:pointer;font-family:inherit">+ Add Position</button>
           <button onclick="openPosSize()" style="font-size:11px;font-weight:700;padding:7px 14px;border:1.5px solid #0A0A0A;border-radius:6px;background:#FFFFFF;cursor:pointer;font-family:inherit">🧮 Position Size</button>
           <div class="psei-widget" id="psei-widget">
           <span class="psei-label">PSEi</span>
@@ -422,6 +423,54 @@
   </div>
 
   <!-- Trade Log Modal -->
+  <!-- Add / Edit Position Modal -->
+  <div class="trade-modal-overlay" id="addpos-modal-overlay" onclick="closeAddPosition()">
+    <div class="trade-modal" onclick="event.stopPropagation()" style="max-width:440px">
+      <div class="trade-modal-header">
+        <h2 id="addpos-modal-title">📌 Add Position</h2>
+        <button class="trade-modal-close" onclick="closeAddPosition()">&times;</button>
+      </div>
+      <p style="font-size:12px;color:#64748B;margin:0 0 16px 0;line-height:1.6">
+        Enter your current holdings as shown in your broker app.<br>
+        No trade history needed — just symbol, shares, and average price.
+      </p>
+      <form id="addpos-form" onsubmit="submitAddPosition(event)">
+        <div class="trade-form-group">
+          <label>Symbol</label>
+          <div class="symbol-search-wrap" id="addpos-symbol-wrap">
+            <input type="text" id="addpos-symbol-input" class="symbol-search-input"
+              placeholder="Type symbol or name… e.g. MBT, Jollibee"
+              autocomplete="off"
+              oninput="filterAddPosDropdown()"
+              onfocus="openAddPosDropdown()"
+              onblur="closeAddPosDropdownDelayed()">
+            <input type="hidden" id="addpos-symbol" required>
+            <div class="symbol-dropdown" id="addpos-symbol-dropdown"></div>
+          </div>
+        </div>
+        <div class="trade-form-group">
+          <label>Available Shares (AVL SHS)</label>
+          <input type="number" id="addpos-shares" step="1" min="1" placeholder="e.g. 1100" required>
+        </div>
+        <div class="trade-form-group">
+          <label>Average Buy Price (₱)</label>
+          <input type="number" id="addpos-avgprice" step="0.01" min="0.01" placeholder="e.g. 69.70" required>
+        </div>
+        <!-- Live preview strip -->
+        <div id="addpos-preview" style="display:none;background:#F5F5F5;border:1.5px solid #E2E8F0;border-radius:8px;padding:12px 14px;margin-bottom:16px">
+          <div style="font-size:10px;font-weight:800;letter-spacing:0.07em;color:#64748B;margin-bottom:8px">POSITION PREVIEW</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
+            <div><div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:0.05em">TOTAL COST</div><div class="font-mono" id="addpos-prev-cost" style="font-size:15px;font-weight:700">—</div></div>
+            <div><div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:0.05em">CURRENT VALUE</div><div class="font-mono" id="addpos-prev-value" style="font-size:15px;font-weight:700">—</div></div>
+            <div><div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:0.05em">UNREALIZED P&L</div><div class="font-mono" id="addpos-prev-pl" style="font-size:15px;font-weight:700">—</div></div>
+            <div><div style="font-size:10px;color:#64748B;font-weight:700;letter-spacing:0.05em">P&L %</div><div class="font-mono" id="addpos-prev-plpct" style="font-size:15px;font-weight:700">—</div></div>
+          </div>
+        </div>
+        <button type="submit" class="trade-submit-btn" id="addpos-submit-btn">Save Position</button>
+      </form>
+    </div>
+  </div>
+
   <div class="trade-modal-overlay" id="trade-modal-overlay" onclick="closeTradeLog()">
     <div class="trade-modal" onclick="event.stopPropagation()">
       <div class="trade-modal-header">
@@ -479,7 +528,7 @@
 
   <script src="data/sb.js?v=4"></script>
   <script src="https://unpkg.com/lightweight-charts@3.8.0/dist/lightweight-charts.standalone.production.js"></script>
-  <script src="app.js?v=33"></script>
+  <script src="app.js?v=34"></script>
   <script src="gold.js?v=4"></script>
 </body>
 </html>
