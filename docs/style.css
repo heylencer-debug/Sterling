@@ -623,3 +623,252 @@ body {
   .holding-card { padding: 16px; }
   .category-cards { grid-template-columns: 1fr 1fr; }
 }
+
+/* =============================================================
+   STERLING — REAL CLASS FIXES (matches actual app.js output)
+   ============================================================= */
+
+/* -- Trade modal: uses .active not .open ----------------------- */
+#trade-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.65);display:none;align-items:center;justify-content:center;z-index:200;padding:20px; }
+#trade-modal-overlay.active { display:flex; }
+
+/* -- Watchlist stats bar --------------------------------------- */
+.watchlist-stats-bar,.wl-stats { display:flex;gap:0;background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;overflow:hidden;margin-bottom:20px; }
+#watchlist-stats { display:flex;background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;overflow:hidden;margin-bottom:20px; }
+.wl-stat { flex:1;padding:16px 20px;text-align:center; }
+.wl-stat+.wl-stat { border-left:1px solid #EEEEEE; }
+.wl-stat-value { display:block;font-size:22px;font-weight:800;font-family:'Cutive Mono',monospace;color:#0A0A0A; }
+.wl-stat-label { display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#555555;margin-top:2px; }
+.wl-stat.buy .wl-stat-value { color:#059669; }
+.wl-stat.target .wl-stat-value { color:#EA580C; }
+
+/* -- Watchlist cards grid -------------------------------------- */
+.watchlist-cards { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px; }
+
+/* -- Watchlist card: actual class is .watchlist-card-new ------- */
+.watchlist-card-new {
+  background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;
+  padding:20px;display:flex;flex-direction:column;gap:10px;
+  transition:box-shadow 0.15s ease,transform 0.15s ease;
+}
+.watchlist-card-new:hover { box-shadow:4px 4px 0 #0A0A0A;transform:translateY(-2px); }
+.watchlist-card-new.signal-buy { border-left:4px solid #059669; }
+.watchlist-card-new.signal-watch { border-left:4px solid #EA580C; }
+.watchlist-card-new.signal-avoid { border-left:4px solid #DC2626; }
+.wl-card-top { display:flex;justify-content:space-between;align-items:center; }
+.wl-card-badges { display:flex;gap:6px;flex-wrap:wrap; }
+.sector-badge-wl { font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;background:transparent;border:1.5px solid #C8C8C8;color:#555555;text-transform:uppercase;letter-spacing:0.04em; }
+.signal-badge { font-size:10px;font-weight:800;padding:3px 10px;border-radius:4px;background:transparent;border:1.5px solid;text-transform:uppercase;letter-spacing:0.06em; }
+.signal-badge.buy { color:#059669;border-color:#059669; }
+.signal-badge.watch { color:#EA580C;border-color:#EA580C; }
+.signal-badge.avoid { color:#DC2626;border-color:#DC2626; }
+.wl-remove-btn { background:transparent;border:1.5px solid #C8C8C8;border-radius:4px;width:26px;height:26px;font-size:12px;cursor:pointer;color:#555555;display:flex;align-items:center;justify-content:center; }
+.wl-remove-btn:hover { border-color:#DC2626;color:#DC2626; }
+.wl-card-main { display:flex;flex-direction:column;gap:2px; }
+.wl-card-symbol { font-size:18px;font-weight:800;color:#0A0A0A;letter-spacing:-0.01em; }
+.wl-card-company { font-size:12px;color:#555555;font-weight:500; }
+.wl-card-prices { display:flex;flex-direction:column;gap:6px;background:#F5F5F5;border-radius:6px;padding:10px 12px; }
+.wl-price-row { display:flex;justify-content:space-between;align-items:center;font-size:13px; }
+.wl-price-row .label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#555555; }
+.wl-price-row .value { font-size:14px;font-weight:800;font-family:'Cutive Mono',monospace;color:#0A0A0A; }
+.wl-price-row .value.target { color:#059669; }
+.wl-card-metrics-row { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
+.wl-card-metrics-row > div { display:flex;flex-direction:column;gap:2px; }
+.wl-card-metrics-row .label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#555555; }
+.wl-card-metrics-row .value { font-size:13px;font-weight:700;font-family:'Cutive Mono',monospace;color:#0A0A0A; }
+.wl-portfolio-connection { display:flex;gap:8px;font-size:12px;color:#555555;background:#F5F5F5;border-radius:6px;padding:8px 12px; }
+.wl-rationale { display:flex;gap:8px;font-size:12px;color:#1A1A1A;line-height:1.5; }
+.wl-entry-points { display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:8px;border-top:1px solid #EEEEEE; }
+.wl-entry-points > div { display:flex;flex-direction:column;gap:2px; }
+.wl-entry-points .label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#555555; }
+.wl-entry-points .value { font-size:13px;font-weight:700;font-family:'Cutive Mono',monospace;color:#0A0A0A; }
+.wl-entry-points .value.stop { color:#DC2626; }
+.wl-card-actions { padding-top:8px;border-top:1px solid #EEEEEE; }
+.wl-chart-link { font-size:12px;font-weight:700;color:#2563EB;text-decoration:none; }
+.wl-chart-link:hover { text-decoration:underline; }
+.wl-remove-btn-sm { background:transparent;border:1.5px solid #C8C8C8;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;color:#555555; }
+.wl-remove-btn-sm:hover { border-color:#DC2626;color:#DC2626; }
+
+/* -- Alerts: actual structure ---------------------------------- */
+.alerts-feed { display:flex;flex-direction:column;gap:10px; }
+.alert-card {
+  background:#FFFFFF;border:1.5px solid #0A0A0A;border-left:4px solid #0A0A0A;
+  border-radius:8px;padding:16px 20px;display:flex;align-items:flex-start;gap:14px;
+}
+.alert-card.urgent { border-left-color:#DC2626; }
+.alert-card.warning { border-left-color:#EA580C; }
+.alert-card.info { border-left-color:#2563EB; }
+.alert-icon { font-size:18px;flex-shrink:0;margin-top:2px; }
+.alert-content { flex:1;display:flex;flex-direction:column;gap:4px; }
+.alert-type { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;padding:2px 8px;border-radius:4px;background:transparent;border:1.5px solid #C8C8C8;color:#555555;display:inline-block;width:fit-content; }
+.alert-type.urgent { border-color:#DC2626;color:#DC2626; }
+.alert-type.warning { border-color:#EA580C;color:#EA580C; }
+.alert-type.info { border-color:#2563EB;color:#2563EB; }
+.alert-message { font-size:14px;line-height:1.6;color:#1A1A1A; }
+.alert-symbol { font-size:14px;font-weight:800;color:#0A0A0A; }
+.alert-time { font-size:11px;color:#555555;font-weight:600; }
+.alert-dismiss { background:transparent;border:1.5px solid #C8C8C8;border-radius:4px;width:28px;height:28px;font-size:16px;cursor:pointer;color:#555555;flex-shrink:0;display:flex;align-items:center;justify-content:center; }
+.alert-dismiss:hover { border-color:#DC2626;color:#DC2626; }
+
+/* -- News: actual structure ------------------------------------ */
+.news-feed { display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px; }
+.news-card {
+  background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;
+  padding:20px;display:flex;flex-direction:column;gap:10px;
+  transition:box-shadow 0.15s ease,transform 0.15s ease;
+}
+.news-card:hover { box-shadow:4px 4px 0 #0A0A0A;transform:translateY(-2px); }
+.news-header { display:flex;flex-direction:column;gap:8px; }
+.news-headline { font-size:15px;font-weight:700;color:#0A0A0A;line-height:1.4; }
+.news-badges { display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
+.news-symbol-badge { font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;background:transparent;border:1.5px solid #EA580C;color:#EA580C;text-transform:uppercase; }
+.news-sentiment { font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;background:transparent;border:1.5px solid;text-transform:uppercase;letter-spacing:0.05em; }
+.news-sentiment.positive { border-color:#059669;color:#059669; }
+.news-sentiment.negative { border-color:#DC2626;color:#DC2626; }
+.news-sentiment.neutral { border-color:#C8C8C8;color:#555555; }
+.news-meta { display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:#555555;padding-top:8px;border-top:1px solid #EEEEEE; }
+
+/* -- Discovery: actual class is .stock-card -------------------- */
+.discovery-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px; }
+.stock-card {
+  background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;
+  padding:20px;display:flex;flex-direction:column;gap:12px;
+  transition:box-shadow 0.15s ease,transform 0.15s ease;
+}
+.stock-card:hover { box-shadow:4px 4px 0 #0A0A0A;transform:translateY(-2px); }
+.stock-card-header { display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px; }
+.sector-badge { font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;border:1.5px solid transparent;text-transform:uppercase;letter-spacing:0.04em; }
+.portfolio-badge { font-size:10px;font-weight:800;padding:2px 8px;border-radius:4px;background:transparent;border:1.5px solid #2563EB;color:#2563EB;text-transform:uppercase; }
+.stock-card-main { display:flex;flex-direction:column;gap:2px; }
+.stock-symbol { font-size:18px;font-weight:800;color:#0A0A0A;letter-spacing:-0.01em; }
+.stock-name { font-size:12px;color:#555555;font-weight:500; }
+.stock-card-price { display:flex;align-items:baseline;gap:8px; }
+.stock-price { font-size:22px;font-weight:800;font-family:'Cutive Mono',monospace;color:#0A0A0A; }
+.stock-change { font-size:12px;font-weight:700;font-family:'Cutive Mono',monospace;padding:2px 8px;border-radius:4px;background:transparent;border:1.5px solid; }
+.stock-change.positive { border-color:#059669;color:#059669; }
+.stock-change.negative { border-color:#DC2626;color:#DC2626; }
+.stock-card-metrics { display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;background:#F5F5F5;border-radius:6px; }
+.stock-card-metrics > div { display:flex;flex-direction:column;gap:2px; }
+.stock-card-metrics .label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#555555; }
+.stock-card-metrics .value { font-size:13px;font-weight:700;font-family:'Cutive Mono',monospace;color:#0A0A0A; }
+.stock-card-metrics .highlight-green { color:#059669; }
+.stock-add-btn { width:100%;background:#0A0A0A;color:#FFFFFF;border:none;border-radius:6px;padding:10px;font-size:12px;font-weight:800;cursor:pointer;transition:box-shadow 0.15s;font-family:'Plus Jakarta Sans',sans-serif;text-transform:uppercase;letter-spacing:0.04em; }
+.stock-add-btn:hover { box-shadow:3px 3px 0 #EA580C; }
+.stock-add-btn.in-watchlist { background:#F5F5F5;color:#555555;border:1.5px solid #C8C8C8;cursor:default; }
+
+/* -- Gold page: actual classes --------------------------------- */
+.gold-ticker { background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;padding:28px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr auto;gap:24px;align-items:center; }
+.gold-ticker-main,.gold-ticker-php { display:flex;flex-direction:column;gap:4px; }
+.gold-ticker-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#555555; }
+.gold-ticker-price { font-size:36px;font-weight:800;font-family:'Cutive Mono',monospace;color:#0A0A0A;letter-spacing:-0.02em; }
+.gold-ticker-price-php { font-size:24px;font-weight:800;font-family:'Cutive Mono',monospace;color:#0A0A0A; }
+.gold-ticker-change { font-size:14px;font-weight:700;font-family:'Cutive Mono',monospace;padding:3px 10px;border-radius:4px;background:transparent;border:1.5px solid;display:inline-block;width:fit-content; }
+.gold-ticker-change.up { border-color:#059669;color:#059669; }
+.gold-ticker-change.down { border-color:#DC2626;color:#DC2626; }
+.gold-ticker-meta { display:flex;flex-direction:column;gap:6px;font-size:12px;color:#555555; }
+.gold-fx-badge { font-size:11px;font-weight:700;padding:4px 10px;border-radius:4px;background:transparent;border:1.5px solid #EA580C;color:#EA580C; }
+
+.gold-positions { background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;padding:24px;margin-bottom:20px; }
+.gold-positions-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:16px; }
+.gold-positions-header h2 { font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#0A0A0A; }
+.gold-running-pl { display:flex;align-items:center;gap:8px; }
+.gold-pl-label { font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#555555; }
+.gold-pl-value { font-size:16px;font-weight:800;font-family:'Cutive Mono',monospace; }
+.gold-pl-value.positive { color:#059669; }
+.gold-pl-value.negative { color:#DC2626; }
+.gold-table-wrap { border:1.5px solid #0A0A0A;border-radius:8px;overflow:hidden; }
+.gold-table { width:100%;border-collapse:collapse; }
+.gold-table th { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#0A0A0A;padding:12px 16px;border-bottom:1.5px solid #0A0A0A;background:#F5F5F5;text-align:left; }
+.gold-table td { padding:12px 16px;font-size:13px;border-bottom:1px solid #EEEEEE;color:#0A0A0A;font-family:'Cutive Mono',monospace; }
+.gold-table tr:last-child td { border-bottom:none; }
+.gold-table tr:hover td { background:#F5F5F5; }
+.trade-status { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;padding:2px 8px;border-radius:4px;background:transparent;border:1.5px solid;font-family:'Plus Jakarta Sans',sans-serif; }
+.trade-status.open { border-color:#EA580C;color:#EA580C; }
+.trade-status.closed { border-color:#555555;color:#555555; }
+.trade-notes { font-size:12px;color:#555555;font-family:'Plus Jakarta Sans',sans-serif; }
+
+.gold-brokers { margin-top:20px; }
+.gold-brokers h2 { font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#0A0A0A;margin-bottom:16px; }
+.broker-cards-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px; }
+.broker-card {
+  background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;
+  padding:20px;transition:box-shadow 0.15s ease,transform 0.15s ease;
+}
+.broker-card:hover { box-shadow:4px 4px 0 #0A0A0A;transform:translateY(-2px); }
+.broker-header { display:flex;align-items:center;gap:10px;margin-bottom:14px; }
+.broker-logo { font-size:20px; }
+.broker-name { font-size:15px;font-weight:800;color:#0A0A0A;flex:1; }
+.broker-best-for { font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.04em; }
+.broker-pros { list-style:none;padding:0;margin:0 0 14px;display:flex;flex-direction:column;gap:6px; }
+.broker-pros li { font-size:13px;color:#1A1A1A;padding-left:14px;position:relative; }
+.broker-pros li::before { content:"—";position:absolute;left:0;color:#555555; }
+.broker-link { display:block;text-align:center;padding:10px;border-radius:6px;font-size:12px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.05em;border:1.5px solid;transition:box-shadow 0.15s; }
+.broker-link:hover { box-shadow:3px 3px 0 #0A0A0A; }
+
+/* -- Patterns: extra fields ------------------------------------ */
+.patterns-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px; }
+.pattern-card { background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:8px;transition:box-shadow 0.15s ease,transform 0.15s ease; }
+.pattern-card:hover { box-shadow:4px 4px 0 #0A0A0A;transform:translateY(-2px); }
+.pattern-emoji { font-size:32px; }
+.pattern-name { font-size:15px;font-weight:800;color:#0A0A0A; }
+.pattern-type { font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;padding:3px 10px;border-radius:4px;background:transparent;border:1.5px solid;display:inline-block;width:fit-content; }
+.type-bull { border-color:#059669;color:#059669; }
+.type-bear { border-color:#DC2626;color:#DC2626; }
+.type-neutral { border-color:#C8C8C8;color:#555555; }
+.pattern-desc { font-size:13px;color:#555555;line-height:1.6; }
+.pattern-signal,.pattern-trade,.pattern-appearance { font-size:13px;color:#1A1A1A;line-height:1.6;padding:8px 12px;background:#F5F5F5;border-radius:6px; }
+.pattern-signal strong,.pattern-trade strong,.pattern-appearance strong { font-weight:800;color:#0A0A0A; }
+
+/* -- Portfolio School: actual classes -------------------------- */
+#portfolio-school-content,.portfolio-school-content { display:flex;flex-direction:column;gap:12px; }
+.ps-card { background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;overflow:hidden; }
+.ps-header { display:flex;justify-content:space-between;align-items:center;padding:18px 20px;cursor:pointer;transition:background 0.15s; }
+.ps-header:hover { background:#F5F5F5; }
+.ps-stock { font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.07em;color:#EA580C; }
+.ps-title { font-size:15px;font-weight:700;color:#0A0A0A;margin-top:2px; }
+.ps-toggle { font-size:14px;color:#555555;font-weight:700; }
+.ps-body { border-top:1px solid #EEEEEE; }
+.ps-content { font-size:13px;line-height:1.8;color:#1A1A1A;white-space:pre-wrap;font-family:inherit;padding:16px 20px; }
+
+/* -- Resources ------------------------------------------------- */
+#resources-grid,.resources-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px; }
+.resource-category h3 { font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#0A0A0A;margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid #0A0A0A; }
+.resource-card { background:#FFFFFF;border:1.5px solid #0A0A0A;border-radius:8px;padding:16px 20px;display:block;text-decoration:none;margin-bottom:10px;transition:box-shadow 0.15s ease,transform 0.15s ease; }
+.resource-card:hover { box-shadow:4px 4px 0 #0A0A0A;transform:translateY(-2px); }
+.resource-name { font-size:14px;font-weight:700;color:#0A0A0A;margin-bottom:4px; }
+.resource-tag { font-size:10px;font-weight:800;padding:1px 6px;border-radius:4px;background:transparent;border:1.5px solid #C8C8C8;color:#555555;margin-left:6px;text-transform:uppercase; }
+.resource-desc { font-size:12px;color:#555555;line-height:1.5; }
+
+/* -- Pattern Alerts -------------------------------------------- */
+#pattern-alerts-content,.pattern-alerts-content { display:flex;flex-direction:column;gap:10px; }
+
+/* -- Study Portfolio ------------------------------------------- */
+#study-portfolio-content,.study-portfolio-content { display:flex;flex-direction:column;gap:12px; }
+
+/* -- Learn sections visibility --------------------------------- */
+.learn-section { display:none; }
+.learn-section.active { display:block; }
+
+/* -- Discovery toast ------------------------------------------- */
+.discovery-toast { position:fixed;bottom:80px;right:24px;background:#0A0A0A;color:#FFFFFF;padding:14px 24px;border-radius:6px;font-size:14px;font-weight:600;box-shadow:3px 3px 0 #EA580C;opacity:0;transform:translateY(20px);transition:opacity 0.3s,transform 0.3s;z-index:300;pointer-events:none; }
+.discovery-toast.show { opacity:1;transform:translateY(0); }
+
+/* -- Dividend calendar extras ---------------------------------- */
+.calendar-day.today { border:2px solid #0A0A0A;font-weight:800; }
+.calendar-day.empty { background:transparent; }
+
+/* -- Responsive overrides -------------------------------------- */
+@media (max-width:768px) {
+  .watchlist-cards { grid-template-columns:1fr; }
+  .news-feed { grid-template-columns:1fr; }
+  .discovery-grid { grid-template-columns:1fr; }
+  .broker-cards-grid { grid-template-columns:1fr; }
+  .gold-ticker { grid-template-columns:1fr;gap:16px; }
+  .patterns-grid { grid-template-columns:1fr 1fr; }
+}
+@media (max-width:480px) {
+  .patterns-grid { grid-template-columns:1fr; }
+  .wl-card-metrics-row { grid-template-columns:1fr; }
+}
+
+/* end real-class fixes */
