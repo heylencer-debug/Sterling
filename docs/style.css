@@ -1982,3 +1982,21 @@ body {
     left: 16px;
   }
 }
+
+/* Signal Card */
+.signal-card { background: rgba(255,255,255,0.03); border: 1px solid #1E2A3A; border-radius: 8px; padding: 12px; margin-top: 12px; cursor: pointer; transition: border-color 0.2s; }
+.signal-card:hover, .signal-card.expanded { border-color: #FFD700; }
+.signal-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.signal-badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.3px; }
+.signal-prices { display: flex; gap: 8px; margin-left: auto; }
+.signal-entry { font-size: 11px; color: #00D4A0; background: rgba(0,212,160,0.1); padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.signal-stop { font-size: 11px; color: #FF4757; background: rgba(255,71,87,0.1); padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.signal-expand-icon { color: #64748B; font-size: 12px; margin-left: auto; transition: transform 0.2s; }
+.signal-card.expanded .signal-expand-icon { transform: rotate(90deg); }
+.signal-reason { font-size: 12px; color: #94A3B8; line-height: 1.5; }
+.signal-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #1E2A3A; }
+.signal-card.expanded .signal-detail { display: block; }
+.signal-full { font-size: 12px; color: #CBD5E1; line-height: 1.6; margin-bottom: 8px; }
+.signal-sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.signal-source { font-size: 10px; color: #FFD700; background: rgba(255,215,0,0.1); padding: 2px 8px; border-radius: 4px; text-decoration: none; }
+.signal-source:hover { background: rgba(255,215,0,0.2); }
