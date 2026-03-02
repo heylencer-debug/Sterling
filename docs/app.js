@@ -286,7 +286,7 @@ async function loadPortfolio() {
     fetchPSEi();
 
     // Fetch portfolio
-    portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
+    portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     renderPortfolio();
     updateLastUpdate();
 
@@ -297,7 +297,7 @@ async function loadPortfolio() {
       const openDetails  = [...document.querySelectorAll('.action-detail')].filter(el => el.style.display === 'block').map(el => el.closest('.action-block')?.dataset?.sym);
       const activeCard   = document.querySelector('.view-chart-btn.active')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
 
-      portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
+      portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
       renderPortfolio();
       fetchPSEi();
       updateLastUpdate();
@@ -580,8 +580,8 @@ async function renderTradeHistory() {
 async function _loadAndRenderTrades() {
   try {
     const [pseRows, goldRows] = await Promise.all([
-      window.sbFetch('sterling_trades', { order: 'created_at.desc', limit: '100' }).catch(() => []),
-      window.sbFetch('sterling_gold_trades', { order: 'created_at.desc', limit: '50' }).catch(() => [])
+      window.sbFetch('sterling_trades', { filter: _uf(), order: 'created_at.desc', limit: '100' }).catch(() => []),
+      window.sbFetch('sterling_gold_trades', { filter: _uf(), order: 'created_at.desc', limit: '50' }).catch(() => [])
     ]);
     _tradeCache = [
       ...(pseRows || []).map(r => ({ ...r, _table: 'sterling_trades', asset_type: r.asset_type || 'PSE Stock' })),
@@ -654,7 +654,7 @@ async function deleteTrade(idx) {
     if (t._table === 'sterling_trades' && t.symbol && t.action) {
       const price = parseFloat(t.price || 0);
       const qty   = parseFloat(t.quantity || t.qty || 0);
-      const existing = await window.sbFetch('sterling_portfolio', { filter: `symbol=eq.${t.symbol}` });
+      const existing = await window.sbFetch('sterling_portfolio', { filter: _uf(`symbol=eq.${t.symbol}`) });
 
       if (existing && existing.length > 0) {
         const row = existing[0];
@@ -676,13 +676,13 @@ async function deleteTrade(idx) {
 
         if (newQty <= 0) {
           // Position fully reversed — remove from portfolio
-          await fetch(`${url}/rest/v1/sterling_portfolio?symbol=eq.${t.symbol}`, {
+          await fetch(`${url}/rest/v1/sterling_portfolio?symbol=eq.${t.symbol}&user_id=eq.${_uid()}`, {
             method: 'DELETE',
             headers: { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` }
           });
           showToast(`${t.symbol} position removed from portfolio`);
         } else {
-          await window.sbUpdate('sterling_portfolio', `symbol=eq.${t.symbol}`, {
+          await window.sbUpdate('sterling_portfolio', `symbol=eq.${t.symbol}&user_id=eq.${_uid()}`, {
             qty: parseFloat(newQty.toFixed(4)),
             avg_buy_price: parseFloat(newAvg.toFixed(4))
           });
@@ -690,7 +690,7 @@ async function deleteTrade(idx) {
       }
 
       // Refresh portfolio cards
-      portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
+      portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
       loadedPages['portfolio'] = true;
       renderPortfolio();
     }
@@ -1479,7 +1479,7 @@ async function loadBriefs() {
     console.error('Briefs load error:', err);
     // Try alerts table as fallback
     try {
-      const alerts = await window.sbFetch('sterling_alerts', { filter: "type=eq.morning_brief", order: 'created_at.desc', limit: '20' });
+      const alerts = await window.sbFetch('sterling_alerts', { filter: _uf("type=eq.morning_brief"), order: 'created_at.desc', limit: '20' });
       briefsData = alerts.map(a => ({
         brief_date: a.created_at,
         brief_text: a.message,
@@ -1534,7 +1534,7 @@ function toggleBrief(index) {
 
 async function loadWatchlist() {
   try {
-    watchlistData = await window.sbFetch('sterling_watchlist', { order: 'fundamental_score.desc' });
+    watchlistData = await window.sbFetch('sterling_watchlist', { filter: _uf(), order: 'fundamental_score.desc' });
     populateWatchlistFilters();
     renderWatchlist();
   } catch (err) {
@@ -1722,13 +1722,13 @@ async function removeFromWatchlist(symbol) {
 
 async function loadAlerts() {
   try {
-    alertsData = await window.sbFetch('sterling_alerts', { order: 'created_at.desc', limit: '50' });
+    alertsData = await window.sbFetch('sterling_alerts', { filter: _uf(), order: 'created_at.desc', limit: '50' });
     renderAlerts();
     updateAlertsBadge();
 
     // Auto-refresh every 30s
     setInterval(async () => {
-      alertsData = await window.sbFetch('sterling_alerts', { order: 'created_at.desc', limit: '50' });
+      alertsData = await window.sbFetch('sterling_alerts', { filter: _uf(), order: 'created_at.desc', limit: '50' });
       renderAlerts();
       updateAlertsBadge();
     }, 30000);
@@ -1878,7 +1878,7 @@ async function loadDividends() {
     }
 
     if (!portfolioData || portfolioData.length === 0) {
-      portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
+      portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     }
     renderCalendar();
     renderUpcomingDividends();
@@ -2024,7 +2024,7 @@ function renderIncomeProjection() {
 async function loadDiscovery() {
   try {
     // Load watchlist and portfolio to check existing symbols
-    const watchlist = await window.sbFetch('sterling_watchlist', { select: 'symbol' });
+    const watchlist = await window.sbFetch('sterling_watchlist', { filter: _uf(), select: 'symbol' });
     watchlistSymbols = new Set(watchlist.map(w => w.symbol));
     portfolioSymbols = new Set(portfolioData.map(p => p.symbol));
 
@@ -2171,7 +2171,7 @@ async function addToWatchlistFromDiscovery(symbol, company, sector) {
       reason: 'Added by user from Discovery scanner'
     };
 
-    await window.sbFetch('sterling_watchlist', { method: 'POST', body: JSON.stringify(payload) });
+    await window.sbFetch('sterling_watchlist', { method: 'POST', body: JSON.stringify({...payload, user_id: _uid()}) });
 
     // Update local state and re-render
     watchlistSymbols.add(symbol);
@@ -2725,6 +2725,7 @@ async function submitTrade(e) {
     if (assetType === 'Gold (XAU/USD)') {
       // Save to gold trades with correct column names
       await window.sbInsert('sterling_gold_trades', {
+        user_id: _uid(),
         symbol: 'XAU/USD',
         action: action,
         price: price,
@@ -2737,6 +2738,7 @@ async function submitTrade(e) {
     } else {
       // Save trade to history first
       await window.sbInsert('sterling_trades', {
+        user_id: _uid(),
         symbol: symbol,
         action: action,
         price: price,
@@ -2746,7 +2748,7 @@ async function submitTrade(e) {
         notes: notes
       });
       // Update portfolio position
-      const existing = await window.sbFetch('sterling_portfolio', { filter: `symbol=eq.${symbol}` });
+      const existing = await window.sbFetch('sterling_portfolio', { filter: _uf(`symbol=eq.${symbol}`) });
       if (existing && existing.length > 0) {
         const row = existing[0];
         const oldQty = parseFloat(row.qty || row.quantity || 0);
@@ -2762,13 +2764,13 @@ async function submitTrade(e) {
         if (action === 'SELL' && newQty === 0) {
           // Remove position entirely
           const { url, anonKey } = window.SUPABASE_CONFIG;
-          await fetch(`${url}/rest/v1/sterling_portfolio?symbol=eq.${symbol}`, {
+          await fetch(`${url}/rest/v1/sterling_portfolio?symbol=eq.${symbol}&user_id=eq.${_uid()}`, {
             method: 'DELETE',
             headers: { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` }
           });
           showToast(`${symbol} position closed — removed from portfolio`);
         } else {
-          await window.sbUpdate('sterling_portfolio', `symbol=eq.${symbol}`, {
+          await window.sbUpdate('sterling_portfolio', `symbol=eq.${symbol}&user_id=eq.${_uid()}`, {
             qty: parseFloat(newQty.toFixed(4)),
             avg_buy_price: parseFloat(newAvg.toFixed(4))
           });
@@ -2778,6 +2780,7 @@ async function submitTrade(e) {
         // Look up company info from PSE_UNIVERSE
         const knownStock = PSE_UNIVERSE.find(s => s.symbol === symbol) || {};
         await window.sbInsert('sterling_portfolio', {
+          user_id: _uid(),
           symbol: symbol,
           qty: qty,
           avg_buy_price: price,
@@ -2792,7 +2795,7 @@ async function submitTrade(e) {
       }
     }
     // Refresh portfolio BEFORE closing modal so user sees update
-    portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
+    portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     loadedPages['portfolio'] = true;
     renderPortfolio();
     closeTradeLog();
@@ -3318,6 +3321,10 @@ function _getAccounts() {
 function _saveAccounts(a) { localStorage.setItem('sterling_accounts', JSON.stringify(a)); }
 function _getActiveId()  { return localStorage.getItem('sterling_active_user') || 'carlo'; }
 function _setActiveId(id){ localStorage.setItem('sterling_active_user', id); }
+
+function _uid() { return _getActiveId(); }
+function _uf(ex) { const b='user_id=eq.'+_uid(); return ex?(b+'&'+ex):b; }
+
 
 function getActiveUser() {
   const accounts = _getAccounts();
