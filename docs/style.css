@@ -988,3 +988,171 @@ label { font-size: 13px; font-weight: 600; color: var(--t2); margin-bottom: 5px;
   .chart-switcher { display: none; }
   .holding-details { grid-template-columns: 1fr 1fr; gap: 8px; }
 }
+
+/* ============================================================
+   SUPPLEMENT — Classes from HTML not in base stylesheet
+   ============================================================ */
+
+/* Main wrapper uses class="main" not "main-content" */
+.main { margin-left: 224px; flex: 1; min-height: 100vh; background: var(--bg); }
+
+/* Loader (full-page spinner) */
+#loader { display:none; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; gap:16px; }
+.loader-sword { font-size:40px; animation: spin 1.2s linear infinite; display:inline-block; }
+.loader-text { font-size:14px; color:var(--t4); font-weight:500; }
+
+/* Status dot */
+.sterling-status { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--t3); font-weight:600; margin-bottom:4px; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:var(--green); flex-shrink:0; box-shadow:0 0 0 2px var(--green-bg); }
+.last-update { font-size:10px; color:var(--t5); margin-top:2px; }
+
+/* PSEi widget in page header */
+.page-header { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
+.page-header h1 { font-size:22px; font-weight:800; color:var(--t1); letter-spacing:-0.03em; }
+.psei-widget { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r2); padding:8px 14px; }
+.psei-label { font-size:11px; font-weight:700; color:var(--t4); text-transform:uppercase; letter-spacing:0.06em; }
+.psei-value { font-size:16px; font-weight:800; font-family:var(--mono); color:var(--t1); }
+.psei-change { font-size:13px; font-weight:600; font-family:var(--mono); }
+.psei-change.up { color:var(--green); }
+.psei-change.dn { color:var(--red); }
+
+/* Summary bar (portfolio totals) */
+.summary-bar { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.summary-item { background:var(--surface); border:1px solid var(--border); border-radius:var(--r2); padding:14px 16px; box-shadow:var(--sh1); }
+.summary-label { font-size:11px; font-weight:600; color:var(--t4); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:4px; }
+.summary-value { font-size:20px; font-weight:800; font-family:var(--mono); color:var(--t1); letter-spacing:-0.02em; }
+
+/* Holdings grid */
+.holdings-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; }
+
+/* Brief page */
+.brief-note { font-size:12px; color:var(--t4); margin-top:2px; }
+.briefs-list { display:flex; flex-direction:column; gap:14px; }
+
+/* Alerts */
+.alerts-feed { display:flex; flex-direction:column; gap:10px; }
+
+/* News */
+.news-feed { display:flex; flex-direction:column; gap:10px; }
+
+/* Filters row */
+.filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.filters select { width:auto; min-width:150px; flex:1; }
+
+/* View toggle (cards/table) */
+.view-toggle { display:flex; gap:4px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r1); padding:3px; }
+.toggle-btn { padding:5px 14px; border-radius:4px; font-size:12px; font-weight:600; color:var(--t4); background:none; border:none; transition:all 0.12s; cursor:pointer; }
+.toggle-btn.active { background:var(--surface); color:var(--t1); box-shadow:var(--sh1); }
+
+/* Watchlist */
+.watchlist-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+.watchlist-table-wrap { overflow-x:auto; background:var(--surface); border:1px solid var(--border); border-radius:var(--r3); }
+.watchlist-table { width:100%; border-collapse:collapse; }
+
+/* Dividends page */
+.dividend-calendar { background:var(--surface); border:1px solid var(--border); border-radius:var(--r3); padding:20px; margin-bottom:20px; box-shadow:var(--sh1); }
+.calendar-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.calendar-header button { padding:6px 12px; border:1px solid var(--border); border-radius:var(--r1); background:var(--surface); color:var(--t2); font-size:16px; cursor:pointer; transition:background 0.1s; }
+.calendar-header button:hover { background:var(--surface-2); }
+.calendar-header span { font-size:16px; font-weight:700; color:var(--t1); }
+.calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-day { min-height:52px; padding:6px; border-radius:var(--r1); background:var(--surface-2); font-size:12px; color:var(--t3); }
+.cal-day.has-event { background:var(--gold-bg); border:1px solid var(--gold-border); color:var(--t1); cursor:pointer; }
+.cal-day.today { border:2px solid var(--gold); }
+.cal-day-num { font-weight:700; font-size:13px; }
+.cal-event { font-size:10px; color:var(--gold); font-weight:600; margin-top:2px; }
+.dividend-upcoming { margin-bottom:20px; }
+.dividend-upcoming h2, .dividend-income h2 { font-size:16px; font-weight:700; color:var(--t1); margin-bottom:12px; letter-spacing:-0.01em; }
+.upcoming-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+.dividend-income { background:var(--surface); border:1px solid var(--border); border-radius:var(--r3); padding:20px; box-shadow:var(--sh1); }
+.income-total { font-size:32px; font-weight:800; font-family:var(--mono); color:var(--green); letter-spacing:-0.03em; margin-bottom:14px; }
+.income-breakdown { display:flex; flex-direction:column; gap:8px; }
+.income-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border-2); font-size:13px; }
+.income-row:last-child { border-bottom:none; }
+
+/* Discovery */
+.discovery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+
+/* Learn page */
+.learn-search { margin-bottom:16px; }
+.learn-search input { max-width:400px; }
+.learn-tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:1px solid var(--border); margin-bottom:20px; }
+.learn-tab { padding:8px 14px; font-size:13px; font-weight:600; color:var(--t4); border:none; background:none; border-bottom:2px solid transparent; cursor:pointer; margin-bottom:-1px; transition:color 0.12s, border-color 0.12s; }
+.learn-tab:hover { color:var(--t2); }
+.learn-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+.learn-section { display:none; }
+.learn-section.active { display:block; }
+.concepts-list { display:flex; flex-direction:column; gap:8px; }
+.patterns-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.pattern-alerts-content, .study-portfolio-content, .portfolio-school-content { padding:8px 0; }
+.resources-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.resource-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r3); padding:16px 18px; box-shadow:var(--sh1); }
+.resource-link { font-size:14px; font-weight:600; color:var(--blue); }
+.resource-desc { font-size:12px; color:var(--t3); margin-top:4px; }
+
+/* Trade Log FAB */
+.trade-log-fab {
+  position:fixed; bottom:28px; right:28px; z-index:300;
+  display:flex; align-items:center; gap:8px;
+  padding:13px 22px;
+  background:var(--gold); color:#fff;
+  border-radius:var(--pill); font-size:14px; font-weight:700;
+  box-shadow:0 4px 16px rgba(201,136,10,0.40);
+  transition:transform 0.15s, box-shadow 0.15s;
+  border:none; cursor:pointer; font-family:var(--font);
+}
+.trade-log-fab:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(201,136,10,0.50); }
+
+/* Trade Modal */
+.trade-modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(15,23,42,0.45); z-index:400;
+  align-items:center; justify-content:center; padding:20px;
+}
+.trade-modal-overlay.open { display:flex; }
+.trade-modal {
+  background:var(--surface); border-radius:var(--r4);
+  padding:28px; width:100%; max-width:440px;
+  max-height:90vh; overflow-y:auto;
+  box-shadow:var(--sh4); border:1px solid var(--border);
+}
+.trade-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.trade-modal-header h2 { font-size:18px; font-weight:800; color:var(--t1); letter-spacing:-0.02em; }
+.trade-modal-close { font-size:22px; color:var(--t4); background:none; border:none; cursor:pointer; line-height:1; padding:0; }
+.trade-modal-close:hover { color:var(--t1); }
+.trade-form-group { margin-bottom:14px; }
+.trade-submit-btn {
+  width:100%; padding:11px; margin-top:8px;
+  background:var(--gold); color:#fff; border:none;
+  border-radius:var(--r2); font-size:15px; font-weight:700;
+  cursor:pointer; font-family:var(--font);
+  transition:background 0.12s;
+}
+.trade-submit-btn:hover { background:#b07608; }
+
+/* Mobile title */
+.mobile-title { font-size:17px; font-weight:800; color:var(--t1); }
+
+/* learn section */
+.learn-section .empty-state { padding:32px 0; }
+
+@media (max-width:768px) {
+  .main { margin-left:0; }
+  .summary-bar { grid-template-columns:1fr 1fr; }
+  .holdings-grid { grid-template-columns:1fr; }
+  .watchlist-cards { grid-template-columns:1fr; }
+  .upcoming-cards { grid-template-columns:1fr; }
+  .patterns-grid, .resources-grid { grid-template-columns:1fr; }
+  .learn-tabs { gap:2px; }
+  .learn-tab { padding:6px 10px; font-size:12px; }
+  .trade-log-fab { bottom:20px; right:16px; padding:11px 18px; font-size:13px; }
+  .trade-modal { padding:20px; border-radius:var(--r3); }
+  .psei-widget { padding:6px 10px; }
+  .psei-value { font-size:14px; }
+}
+@media (max-width:480px) {
+  .summary-bar { grid-template-columns:1fr 1fr; gap:8px; }
+  .summary-value { font-size:16px; }
+  .filters { flex-direction:column; }
+  .filters select { min-width:100%; }
+}
