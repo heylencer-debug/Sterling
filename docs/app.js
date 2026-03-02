@@ -543,7 +543,7 @@ async function fetchOHLCVFromSupabase(symbol) {
   }
 }
 
-function toggleCardChart(sym, btn) {
+async function toggleCardChart(sym, btn) {
   const container = document.getElementById('card-chart-' + sym);
   const inner = document.getElementById('card-chart-inner-' + sym);
   const chevron = btn.querySelector('.chevron');
@@ -554,45 +554,80 @@ function toggleCardChart(sym, btn) {
   chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
   btn.querySelector('span').textContent = isOpen ? '📈 View Chart' : '📉 Hide Chart';
 
-  // Only render once
   if (!isOpen && inner && !inner.dataset.rendered) {
     inner.dataset.rendered = '1';
-    inner.style.height = '350px';
-    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:350px;color:#475569;font-size:12px">Loading TradingView chart…</div>';
+    inner.style.height = '220px';
+    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading chart…</div>';
 
-    // Wait for TradingView library then init widget
-    const tryInit = () => {
-      if (typeof TradingView === 'undefined') {
-        setTimeout(tryInit, 400);
-        return;
-      }
-      inner.innerHTML = '';
-      const widgetDiv = document.createElement('div');
-      widgetDiv.id = 'tv-widget-' + sym;
-      inner.appendChild(widgetDiv);
-
-      new TradingView.widget({
-        autosize: true,
-        symbol: 'PSE:' + sym,
-        interval: 'D',
-        timezone: 'Asia/Manila',
-        theme: 'dark',
-        style: '1',          // Candlestick
-        locale: 'en',
-        toolbar_bg: '#0A0E1A',
-        backgroundColor: '#0A0E1A',
-        gridColor: 'rgba(255,255,255,0.04)',
-        enable_publishing: false,
-        hide_top_toolbar: false,
-        hide_legend: false,
-        hide_side_toolbar: false,
-        allow_symbol_change: false,
-        save_image: false,
-        studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
-        container_id: 'tv-widget-' + sym
+    // Fetch OHLCV from Supabase sterling_ohlcv
+    let ohlcv = [];
+    try {
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - 3);
+      const since = cutoff.toISOString().split('T')[0];
+      ohlcv = await window.sbFetch('sterling_ohlcv', {
+        filter: `symbol=eq.${sym}&date=gte.${since}&order=date.asc`,
+        select: 'date,open,high,low,close,volume'
       });
-    };
-    setTimeout(tryInit, 100);
+    } catch(e) { ohlcv = []; }
+
+    inner.innerHTML = '';
+
+    if (!ohlcv || ohlcv.length < 2) {
+      inner.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:12px;padding:16px;text-align:center">
+          <div style="color:#475569;font-size:12px">No chart data yet</div>
+          <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
+             style="background:#FFD700;color:#0A0E1A;font-size:12px;font-weight:700;padding:8px 16px;border-radius:6px;text-decoration:none">
+            📈 Open in TradingView ↗
+          </a>
+        </div>`;
+      return;
+    }
+
+    if (typeof LightweightCharts === 'undefined') {
+      inner.innerHTML = '<div style="color:#475569;font-size:12px;padding:16px;text-align:center">Charts loading…</div>';
+      return;
+    }
+
+    const chart = LightweightCharts.createChart(inner, {
+      width: inner.clientWidth || 320,
+      height: 220,
+      layout: { background: { color: '#0D1320' }, textColor: '#94A3B8' },
+      grid: { vertLines: { color: '#1E2A3A' }, horzLines: { color: '#1E2A3A' } },
+      timeScale: { borderColor: '#1E2A3A', timeVisible: false },
+      rightPriceScale: { borderColor: '#1E2A3A' },
+      crosshair: { mode: 1 },
+      handleScroll: false, handleScale: false
+    });
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: '#26a69a', downColor: '#ef5350',
+      borderDownColor: '#ef5350', borderUpColor: '#26a69a',
+      wickDownColor: '#ef5350', wickUpColor: '#26a69a'
+    });
+
+    candleSeries.setData(ohlcv.map(d => ({
+      time: d.date,
+      open: parseFloat(d.open), high: parseFloat(d.high),
+      low: parseFloat(d.low),   close: parseFloat(d.close)
+    })));
+    chart.timeScale().fitContent();
+
+    // Live price badge + TradingView deep-link
+    const latestClose = parseFloat(ohlcv[ohlcv.length - 1].close);
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:6px;align-items:center;z-index:2;pointer-events:none';
+    overlay.innerHTML = `
+      <span style="background:rgba(255,215,0,0.15);color:#FFD700;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace">
+        ₱${latestClose.toFixed(2)} · 3mo
+      </span>`;
+    inner.style.position = 'relative';
+    inner.appendChild(overlay);
+
+    window.addEventListener('resize', () => {
+      if (inner.clientWidth > 0) chart.resize(inner.clientWidth, 220);
+    });
   }
 }
 
