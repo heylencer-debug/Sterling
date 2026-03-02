@@ -2048,3 +2048,14 @@ body {
   .mentor-note { padding: 12px 14px; }
   .mentor-title { font-size: 12px; }
 }
+
+/* Study Chart Links */
+.study-chart-links { display:flex; gap:6px; margin:8px 0; flex-wrap:wrap; }
+.chart-link-btn { flex:1; text-align:center; font-size:11px; font-weight:600; padding:7px 8px; border-radius:6px; text-decoration:none; transition:all 0.2s; white-space:nowrap; }
+.chart-link-btn.tv { background:rgba(41,98,255,0.15); color:#6B9FFF; border:1px solid rgba(41,98,255,0.25); }
+.chart-link-btn.tv:hover { background:rgba(41,98,255,0.25); }
+.chart-link-btn.pse { background:rgba(255,215,0,0.1); color:#FFD700; border:1px solid rgba(255,215,0,0.2); }
+.chart-link-btn.pse:hover { background:rgba(255,215,0,0.2); }
+.chart-link-btn.inv { background:rgba(0,212,160,0.1); color:#00D4A0; border:1px solid rgba(0,212,160,0.2); }
+.chart-link-btn.inv:hover { background:rgba(0,212,160,0.2); }
+@media (max-width:768px) { .chart-link-btn { font-size:10px; padding:6px 4px; } }
