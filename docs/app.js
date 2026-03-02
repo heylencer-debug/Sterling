@@ -847,7 +847,7 @@ async function toggleCardChart(sym, btn) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:6px;align-items:center;z-index:2;pointer-events:none';
     overlay.innerHTML = `
-      <span style="background:rgba(201,150,12,0.12);color:#C9960C;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace">
+      <span style="background:rgba(201,150,12,0.12);color:#EA580C;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace">
         ₱${latestClose.toFixed(2)} · 3mo
       </span>`;
     inner.style.position = 'relative';
@@ -2880,7 +2880,7 @@ function showGlossaryTooltip(e) {
   // Close button + definition
   tip.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <span style="font-weight:700;color:#C9960C;font-size:12px;margin-bottom:4px;display:block">${term}</span>
+      <span style="font-weight:700;color:#EA580C;font-size:12px;margin-bottom:4px;display:block">${term}</span>
       <button onclick="hideGlossaryTooltip()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:14px;cursor:pointer;border-radius:50%;width:22px;height:22px;line-height:1;flex-shrink:0;display:flex;align-items:center;justify-content:center">✕</button>
     </div>
     <span>${INLINE_GLOSSARY[term]}</span>
@@ -3114,13 +3114,13 @@ async function renderPatternAlerts() {
       return `
         <div class="pattern-alert-card">
           <div>
-            <span style="font-weight:700;color:#C9960C;font-family:monospace;font-size:16px">${sym}</span>
+            <span style="font-weight:700;color:#EA580C;font-family:monospace;font-size:16px">${sym}</span>
             <span style="color:#64748B;font-size:12px;margin-left:8px">${COMPANY_NAMES[sym] || ''}</span>
             <div style="color:#0F172A;font-size:14px;margin-top:4px;font-family:monospace">${formatPeso(curPrice)}</div>
           </div>
           <div>
             <span class="pattern-badge ${badgeClass}">${pattern.label}</span>
-            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="display:block;color:#C9960C;font-size:11px;margin-top:4px;text-decoration:none">View Live Chart \u2192</a>
+            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank" style="display:block;color:#EA580C;font-size:11px;margin-top:4px;text-decoration:none">View Live Chart \u2192</a>
           </div>
         </div>
       `;
@@ -3260,7 +3260,7 @@ function renderStudyPortfolio() {
 
     // Show live price badge
     const badge = document.createElement('div');
-    badge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(201,150,12,0.12);color:#C9960C;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:monospace;pointer-events:none';
+    badge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(201,150,12,0.12);color:#EA580C;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:monospace;pointer-events:none';
     const latestClose = parseFloat(ohlcv[ohlcv.length - 1].close);
     badge.textContent = live ? '₱' + live.value.toFixed(2) + ' LIVE' : '₱' + latestClose.toFixed(2);
     container.style.position = 'relative';
