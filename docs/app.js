@@ -116,9 +116,26 @@ function switchPage(page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`[data-page="${page}"]`).classList.add('active');
 
-  // Update pages
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(`page-${page}`).classList.add('active');
+  // Fade out current page, fade in new page
+  const currentPage = document.querySelector('.page.active');
+  const newPage = document.getElementById(`page-${page}`);
+
+  if (currentPage && currentPage !== newPage) {
+    currentPage.style.opacity = '0';
+    setTimeout(() => {
+      currentPage.classList.remove('active');
+      newPage.classList.add('active');
+      newPage.style.opacity = '0';
+      setTimeout(() => {
+        newPage.style.transition = 'opacity 0.15s ease';
+        newPage.style.opacity = '1';
+      }, 10);
+    }, 100);
+  } else {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    newPage.classList.add('active');
+    newPage.style.opacity = '1';
+  }
 
   // Lazy load
   lazyLoadTab(page);
@@ -195,6 +212,49 @@ function formatTime(str) {
 
 function updateLastUpdate() {
   document.getElementById('last-update').textContent = 'Updated ' + new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Count-up animation for portfolio numbers
+function animateCountUp(elementId, targetValue, isPeso) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  const duration = 600;
+  const startTime = performance.now();
+  const startValue = 0;
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+
+    // Easing function (ease-out)
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    const currentValue = startValue + (targetValue - startValue) * easeOut;
+
+    if (isPeso) {
+      el.textContent = formatPeso(currentValue);
+    } else {
+      el.textContent = formatPct(currentValue);
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
+// Card stagger entrance animation
+function animateCardsEntrance(containerSelector) {
+  const cards = document.querySelectorAll(containerSelector);
+  cards.forEach((card, i) => {
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(8px)';
+    setTimeout(() => {
+      card.classList.add('animate-in');
+    }, i * 60);
+  });
 }
 
 // ==================== INTELLIGENCE LOADER ====================
@@ -348,16 +408,16 @@ function renderPortfolio() {
   const totalPL = totalValue - totalCost;
   const totalPLPct = totalCost > 0 ? (totalPL / totalCost) * 100 : 0;
 
-  // Update summary
-  document.getElementById('total-value').textContent = formatPeso(totalValue);
+  // Update summary with count-up animation
+  animateCountUp('total-value', totalValue, true);
+  animateCountUp('total-pl', totalPL, true);
+  animateCountUp('total-pl-pct', totalPLPct, false);
 
   const plEl = document.getElementById('total-pl');
-  plEl.textContent = formatPeso(totalPL);
-  plEl.className = 'summary-value ' + (totalPL >= 0 ? 'positive' : 'negative');
+  plEl.className = 'stat-value font-mono ' + (totalPL >= 0 ? 'positive' : 'negative');
 
   const plPctEl = document.getElementById('total-pl-pct');
-  plPctEl.textContent = formatPct(totalPLPct);
-  plPctEl.className = 'summary-value ' + (totalPLPct >= 0 ? 'positive' : 'negative');
+  plPctEl.className = 'stat-value font-mono ' + (totalPLPct >= 0 ? 'positive' : 'negative');
 
   document.getElementById('portfolio-updated').textContent = new Date().toLocaleTimeString('en-PH');
 
@@ -369,15 +429,15 @@ function renderPortfolio() {
       <div id="main-chart-section" style="margin-bottom:20px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:10px">
-            <span style="color:#C9960C;font-size:18px;font-weight:800;letter-spacing:1px" id="main-chart-label">${firstSym}</span>
+            <span style="color:#0A0A0A;font-size:18px;font-weight:800;letter-spacing:-0.02em" id="main-chart-label">${firstSym}</span>
             <span style="color:#64748B;font-size:11px">DragonFi Live Chart</span>
           </div>
           <a id="main-chart-open" href="https://www.dragonfi.ph/market/stocks/${firstSym}" target="_blank"
-             style="color:#64748B;font-size:11px;text-decoration:none;border:1px solid #E2E8F0;padding:4px 10px;border-radius:4px">
+             style="color:#0A0A0A;font-size:11px;font-weight:700;text-decoration:none;border:1.5px solid #0A0A0A;padding:6px 12px;border-radius:6px">
             Open full ↗
           </a>
         </div>
-        <div style="border-radius:12px;overflow:hidden;border:1px solid #E2E8F0;background:#F8FAFC;height:780px;position:relative">
+        <div style="border-radius:8px;overflow:hidden;border:1.5px solid #0A0A0A;background:#FFFFFF;height:780px;position:relative">
           <iframe id="main-chart-iframe"
             src="https://www.dragonfi.ph/market/stocks/${firstSym}"
             width="100%"
@@ -453,6 +513,9 @@ function renderPortfolio() {
     `;
   }).join('');
   window.applyGlossary(document.getElementById('page-portfolio'));
+
+  // Animate cards entrance with stagger
+  animateCardsEntrance('#holdings-grid .holding-card');
 
   // Restore pillar open/closed state from localStorage
   try {
