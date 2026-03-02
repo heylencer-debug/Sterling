@@ -66,6 +66,7 @@ function lazyLoadTab(page) {
     case 'news': loadNews(); break;
     case 'dividends': loadDividends(); break;
     case 'discovery': loadDiscovery(); break;
+    case 'learn': loadLearnPage(); break;
   }
 }
 
@@ -839,5 +840,431 @@ async function addToWatchlist(symbol) {
   } catch (err) {
     console.error('Add to watchlist error:', err);
   }
+}
+
+// ===== LEARN PAGE =====
+
+const GLOSSARY = [
+  // Fundamentals
+  { term: 'P/E Ratio', category: 'Fundamentals', short: 'Price-to-Earnings', explanation: 'How much you pay for ₱1 of company earnings. Lower = cheaper. MBT at 6.86x means you pay ₱6.86 for every ₱1 of profit it earns. Banking sector avg is 11x — so MBT is cheap.', example: 'MBT P/E: 6.86x vs sector avg 11x → MBT is undervalued', level: 'Beginner' },
+  { term: 'EPS', category: 'Fundamentals', short: 'Earnings Per Share', explanation: 'How much profit each share earns. MBT EPS is ₱10.76 — meaning for every 1 share you own, MBT earned ₱10.76 in profit last year. Growing EPS year-over-year = healthy company.', example: 'MBT EPS grew 18% last year — strong signal', level: 'Beginner' },
+  { term: 'Dividend Yield', category: 'Fundamentals', short: 'Annual dividend ÷ share price', explanation: 'How much cash income you earn per year as a % of the stock price. KEEPR yields 11% — on your 11,000 shares worth ₱25,300, you earn ~₱2,783/year in dividends just for holding.', example: 'KEEPR: 11% yield. FILRT: 8.1%. GLO: 3.6%', level: 'Beginner' },
+  { term: 'NAV', category: 'Fundamentals', short: 'Net Asset Value', explanation: 'For REITs: the actual value of all properties owned divided by shares outstanding. KEEPR NAV is ₱3.80 but trades at ₱2.30 — you\'re buying ₱3.80 of real estate for ₱2.30. That\'s a 40% discount.', example: 'KEEPR: Price ₱2.30 vs NAV ₱3.80 = 40% discount', level: 'Intermediate' },
+  { term: 'ROE', category: 'Fundamentals', short: 'Return on Equity', explanation: 'How efficiently a company makes money from shareholders\' funds. 15%+ is generally good. Think of it as: for every ₱100 you invest, how much does the company earn? ROE 12.5% = ₱12.50 earned per ₱100.', example: 'MBT ROE: 12.5% — solid for a bank', level: 'Intermediate' },
+  { term: 'Book Value', category: 'Fundamentals', short: 'Company\'s net worth per share', explanation: 'What each share is worth if the company sold all its assets and paid all debts. If book value is ₱68 and the stock trades at ₱76, you\'re paying a small premium — that\'s fair for a profitable bank.', example: 'MBT book value: ₱68.50, price: ₱76 → P/B ratio 1.1x', level: 'Intermediate' },
+  { term: 'Debt-to-Equity', category: 'Fundamentals', short: 'How much the company borrowed vs owns', explanation: 'Lower is generally safer. Below 1.0 means the company owns more than it owes. Banks and telecoms naturally have higher D/E because they need capital. GLO has D/E of 2.1x — high but normal for telecoms.', example: 'GLO D/E: 2.1x (high but expected for telecoms)', level: 'Intermediate' },
+  { term: 'Ex-Dividend Date', category: 'Fundamentals', short: 'Cutoff date to receive dividend', explanation: 'You must OWN the stock BEFORE this date to receive the upcoming dividend. Buy on or after the ex-date = no dividend this cycle. FILRT ex-date ~March 11 — own it before then.', example: 'FILRT ex-date ~March 11. Own before then → get ₱420 dividend', level: 'Beginner' },
+  { term: 'Distributable Income', category: 'Fundamentals', short: 'Cash REITs have available to pay dividends', explanation: 'Philippine REITs must pay out at least 90% of distributable income as dividends. This is more important than earnings for REITs — check if distributable income is growing or shrinking each quarter.', example: 'MREIT distributable income growing → dividends should be maintained', level: 'Intermediate' },
+  { term: 'Occupancy Rate', category: 'Fundamentals', short: '% of REIT properties currently rented', explanation: 'For REITs: how many of their office/mall/industrial spaces are occupied by tenants. 90%+ is healthy. KEEPR at 94% means 94% of their properties are generating rental income right now.', example: 'KEEPR occupancy: 94% — healthy', level: 'Beginner' },
+
+  // Technical Analysis
+  { term: 'RSI', category: 'Technical', short: 'Relative Strength Index (0-100)', explanation: 'Measures buying/selling momentum. Below 30 = oversold (stock may be too cheap, potential bounce). Above 70 = overbought (stock may be too expensive, potential pullback). MBT RSI 66.8 = strong but not yet overbought.', example: 'MBT RSI: 66.8 (strong buy territory). Below 30 = oversold opportunity.', level: 'Intermediate' },
+  { term: 'MACD', category: 'Technical', short: 'Moving Average Convergence Divergence', explanation: 'Shows momentum shifts. When the MACD line crosses ABOVE the signal line = bullish (upward momentum). When it crosses BELOW = bearish. MBT MACD: +0.81 (positive = bullish momentum).', example: 'MBT MACD: +0.81 → bullish momentum confirmed', level: 'Intermediate' },
+  { term: 'Support Level', category: 'Technical', short: 'Price floor where buyers step in', explanation: 'A price level where the stock has historically bounced upward. Buyers see it as cheap here and step in. MBT support at ₱73.95 — if it dips there, that\'s historically a buying opportunity, not a panic signal.', example: 'MBT support: ₱73.95. Dips to here = buy zone, not panic.', level: 'Beginner' },
+  { term: 'Resistance Level', category: 'Technical', short: 'Price ceiling where sellers push back', explanation: 'A price level where the stock has historically struggled to break through. Sellers see it as expensive and sell. MBT resistance at ₱76.57 — a strong close above this = breakout signal.', example: 'MBT resistance: ₱76.57. Break above = bullish breakout.', level: 'Beginner' },
+  { term: 'Moving Average (MA)', category: 'Technical', short: 'Average price over N days', explanation: 'Smooths out daily noise to show the trend. 50-day MA = average of last 50 days\' closing prices. When stock price is ABOVE the 50-day MA = uptrend. BELOW = downtrend. MBT is above ALL its moving averages right now.', example: 'MBT price ₱76 > 200-day MA ₱72.70 → confirmed uptrend', level: 'Beginner' },
+  { term: 'Volume', category: 'Technical', short: 'How many shares traded today', explanation: 'Confirms the conviction behind a price move. Big move UP on big volume = real buying. Big move UP on tiny volume = suspicious, may reverse. Always ask: "Was this move on high or low volume?"', example: 'Price up 3% on 2M volume = strong signal. Up 3% on 100K volume = weak signal.', level: 'Beginner' },
+  { term: 'Breakout', category: 'Technical', short: 'Price closes above resistance with volume', explanation: 'When a stock closes above a key resistance level, especially on high volume. This signals that buyers have overpowered sellers at that level and the stock may run higher. Very strong buy signal when confirmed.', example: 'If MBT closes above ₱77 on high volume = breakout signal', level: 'Intermediate' },
+  { term: '200-Day MA', category: 'Technical', short: 'The ultimate long-term trend indicator', explanation: 'The most watched moving average by professional investors. Stock above 200-day MA = long-term uptrend. Stock below = long-term downtrend. MBT recently crossed ABOVE its 200-day MA — that\'s a major bullish signal that professionals notice.', example: 'MBT crossed above 200-day MA ₱72.70 → major bullish signal', level: 'Intermediate' },
+
+  // Trading Strategy
+  { term: 'Stop-Loss', category: 'Strategy', short: 'Price where you accept you were wrong and exit', explanation: 'A predetermined price where you sell to limit losses. NOT a sign of weakness — it\'s risk management. Every professional sets a stop-loss before entering a trade. For MBT, stop-loss ₱69 means: if it drops below ₱69, the thesis is broken — sell.', example: 'MBT stop-loss: ₱69. KEEPR stop-loss: ₱1.90.', level: 'Beginner' },
+  { term: 'Take Profit', category: 'Strategy', short: 'Price where you lock in gains', explanation: 'A target price where you sell a portion of your position to lock in profits. Smart approach: sell 30% at first target, hold the rest. Don\'t sell everything at once — let winners run. MBT first take-profit: ₱86.', example: 'MBT: sell 30% at ₱86, hold rest to ₱97.', level: 'Beginner' },
+  { term: 'Averaging Down', category: 'Strategy', short: 'Buying more when price drops to lower your average cost', explanation: 'If you own a stock and it drops, buying more shares lowers your average purchase price. ONLY do this if the fundamentals haven\'t changed — not just because the price fell. KEEPR fundamentals intact (94% occupancy, 11% yield) = averaging down is valid.', example: 'KEEPR: bought at ₱2.60, now ₱2.30. Adding more lowers avg cost. Valid IF fundamentals intact.', level: 'Intermediate' },
+  { term: 'Unrealized P&L', category: 'Strategy', short: 'Paper profit or loss — not real until you sell', explanation: 'Your current profit/loss on paper while you still hold the stock. KEEPR shows -11% unrealized — that money is NOT gone. You still own the same 11,000 shares. It only becomes a real loss if you sell. As long as fundamentals are intact, unrealized loss = temporary price discount.', example: 'KEEPR -11% unrealized ≠ actual loss. Don\'t sell based on paper loss alone.', level: 'Beginner' },
+  { term: 'Long-Term Investing', category: 'Strategy', short: 'Holding quality stocks for years, not days', explanation: 'Carlo\'s approach. You\'re NOT day trading. You buy fundamentally strong companies at good prices, hold them for dividends + price appreciation, and only sell when fundamentals change — not when price dips.', example: 'Carlo\'s horizon: 1-5 years. Dividends + capital appreciation = total return.', level: 'Beginner' },
+  { term: 'Dividend Investing', category: 'Strategy', short: 'Building passive income through dividends', explanation: 'Owning stocks that pay regular cash dividends. Your REITs (FILRT, KEEPR, MREIT) pay quarterly. GLO and DMC pay annually. Combined, your current portfolio generates estimated ₱35,000-45,000/year in dividends — without selling a single share.', example: 'Your est. annual dividends: KEEPR ₱28,600 + FILRT ₱4,200 + MREIT ₱1,000 + GLO ₱600 + DMC ₱1,640', level: 'Beginner' },
+];
+
+const CONCEPTS = [
+  {
+    title: 'Why REITs Drop When Interest Rates Rise',
+    icon: '🏢',
+    level: 'Beginner',
+    content: `REITs borrow money to buy properties. When the BSP raises interest rates, their borrowing costs increase → less profit left over → smaller dividends → investors sell → price drops.
+
+The flip side: when BSP CUTS rates (expected H2 2026), borrowing gets cheaper → more profit → bigger dividends → investors buy → price rises.
+
+This is why your REITs (KEEPR, FILRT, MREIT) have been soft. Not because the properties are empty — but because rates have been high. BSP holding rates at 6.5% is the key thing to monitor.
+
+Sterling's Alert: When BSP announces a rate cut, buy more REITs immediately.`
+  },
+  {
+    title: 'How to Read an Analyst Target Price',
+    icon: '🎯',
+    level: 'Beginner',
+    content: `When you see "13 analysts, average target ₱91" for MBT, here's what it means:
+
+13 professional analysts (from banks like UBS, Goldman, local brokers like COL, BDO Securities) have each built a financial model for MBT and concluded that the fair price is around ₱91.
+
+This does NOT mean the stock will reach ₱91 by tomorrow. It's a 12-month target.
+Some will be right, some wrong. But 13 professionals independently reaching ₱86-97 is meaningful signal.
+
+How to use it: If current price (₱76) is significantly below analyst target (₱91) = potential undervaluation. But always check IF the thesis still holds — earnings still growing? No major negative news?
+
+Sterling's rule: Only trust analyst targets from named firms with track records (COL Financial, BDO Securities, First Metro, UBS, Citi).`
+  },
+  {
+    title: 'The Difference Between Price and Value',
+    icon: '💡',
+    level: 'Beginner',
+    content: `This is the most important concept in long-term investing.
+
+PRICE = what the market is willing to pay right now. Changes every second. Driven by emotion, news, sentiment.
+
+VALUE = what the company is actually worth based on its earnings, assets, and future prospects. Changes slowly. Driven by fundamentals.
+
+Great investing = buying VALUE at a discount to PRICE.
+
+Example: KEEPR's value (NAV) is ₱3.80. Its price is ₱2.30. You're getting ₱3.80 of real estate value for ₱2.30. That's a 40% discount.
+
+Warren Buffett's rule: "Price is what you pay. Value is what you get."
+
+Sterling applies this to every recommendation.`
+  },
+  {
+    title: 'How Dividends Actually Work Step by Step',
+    icon: '💰',
+    level: 'Beginner',
+    content: `Step 1: Company announces a dividend (e.g., "FILRT declares ₱0.06/share dividend")
+Step 2: They announce an EX-DIVIDEND DATE (e.g., March 11)
+Step 3: You must own the stock BEFORE that date to qualify
+Step 4: On the ex-date, the stock price usually drops by roughly the dividend amount (it's been "extracted")
+Step 5: The actual cash hits your DragonFi account on the PAYMENT DATE (usually 2-4 weeks later)
+
+Your FILRT example:
+• You own 7,000 shares
+• Dividend: ₱0.06/share
+• Calculation: 7,000 × ₱0.06 = ₱420
+• Action needed: HOLD before March 11. Then ₱420 arrives in your account.
+
+Annual dividend income from your current portfolio (estimated):
+KEEPR: ~₱28,600 | FILRT: ~₱4,200 | MREIT: ~₱1,000 | GLO: ~₱608 | DMC: ~₱1,640
+Total: ~₱36,048/year in passive income.`
+  },
+  {
+    title: 'Technical Analysis vs Fundamental Analysis — When to Use Each',
+    icon: '📊',
+    level: 'Intermediate',
+    content: `For long-term investors like Carlo, the priority order is:
+
+1. FUNDAMENTALS FIRST (is this a good company at a good price?)
+   Use: P/E, dividend yield, EPS growth, ROE, debt levels
+   Tools: PSE Edge, HelloSafe PH, Simply Wall St
+
+2. TECHNICALS TO TIME ENTRY (when is the right moment to buy?)
+   Use: RSI, support levels, moving averages
+   Tools: TradingView, PSE EQUIP, Investing.com
+
+Never buy a fundamentally weak company just because the chart "looks good."
+Use technicals to get a better price on a fundamentally strong company.
+
+Example: MBT is fundamentally strong (PE 6.86x, 18% earnings growth). Technicals confirm (all MAs bullish, RSI 66). Both agree → high conviction hold/buy.
+
+If fundamentals say good but technicals say it's breaking down → wait for stabilization.`
+  },
+];
+
+const PATTERNS = [
+  {
+    name: 'Hammer',
+    emoji: '🔨',
+    type: 'Bullish Reversal',
+    description: 'A candle with a small body at the top and a long lower wick (tail). The long tail means sellers pushed the price way down during the day, but buyers came in and reversed it back up near the open.',
+    signal: 'Bullish — potential reversal at lows. Most reliable at key support levels.',
+    howToTrade: 'Wait for confirmation: if the NEXT candle is also green and closes higher, enter on that confirmation. Don\'t buy the hammer alone.',
+    appearance: '🕯️ Small body on top + long wick below = wick is 2x+ the body size'
+  },
+  {
+    name: 'Doji',
+    emoji: '➕',
+    type: 'Indecision',
+    description: 'Open and close price are nearly equal — looks like a cross or plus sign. Means the market is undecided: buyers and sellers are in perfect balance. Neither side is winning.',
+    signal: 'Neutral — watch for the NEXT candle. After a downtrend, a Doji can signal reversal. After an uptrend, it can signal pause or reversal.',
+    howToTrade: 'Don\'t trade the Doji itself. Wait one more candle to see which direction the market chooses.',
+    appearance: '➕ Almost equal open and close, with wicks on both sides'
+  },
+  {
+    name: 'Bullish Engulfing',
+    emoji: '📈',
+    type: 'Strong Bullish Reversal',
+    description: 'A red candle followed by a LARGER green candle that completely covers ("engulfs") the previous red candle\'s body. Shows buyers overwhelmed sellers in one session.',
+    signal: 'Strong bullish — especially at support levels or after a downtrend. One of the most reliable reversal patterns.',
+    howToTrade: 'Enter on the open of the third candle (after the engulfing green candle). Stop-loss below the low of the red candle.',
+    appearance: 'Red candle → Big green candle that swallows the red'
+  },
+  {
+    name: 'Higher Highs / Higher Lows',
+    emoji: '📊',
+    type: 'Uptrend Structure',
+    description: 'Each rally goes HIGHER than the previous rally, and each pullback stays HIGHER than the previous pullback. This is the definition of an uptrend.',
+    signal: 'As long as this pattern holds, the uptrend is intact. Only worry when a low breaks below the previous low.',
+    howToTrade: 'Buy on the dips (pullbacks to higher lows). Hold until the structure breaks.',
+    appearance: 'Chart staircase going up → each step higher than the last'
+  },
+  {
+    name: 'Golden Cross',
+    emoji: '✨',
+    type: 'Major Bullish Signal',
+    description: 'When the 50-day moving average crosses ABOVE the 200-day moving average. Signals a shift from long-term downtrend to uptrend. Major institutional investors (funds, banks) pay close attention to this.',
+    signal: 'Very bullish long-term signal. Often precedes sustained price increases over weeks/months.',
+    howToTrade: 'For long-term investors: buy on the Golden Cross and hold. Stop-loss below 200-day MA.',
+    appearance: '50-day MA line crosses up through the 200-day MA line on chart'
+  },
+  {
+    name: 'Death Cross',
+    emoji: '💀',
+    type: 'Major Bearish Signal',
+    description: 'When the 50-day moving average crosses BELOW the 200-day moving average. Opposite of Golden Cross. Signals shift to long-term downtrend.',
+    signal: 'Bearish long-term signal. Used to exit or reduce position sizes.',
+    howToTrade: 'Consider reducing position. Don\'t average down when a Death Cross forms.',
+    appearance: '50-day MA line crosses down through the 200-day MA line on chart'
+  },
+];
+
+const RESOURCES = [
+  {
+    category: 'Charts & Technicals',
+    icon: '📈',
+    items: [
+      { name: 'PSE EQUIP', url: 'https://equip.pse.com.ph', description: 'Official PSE charting platform. Free. TradingView charts + Refinitiv fundamentals. Start here.', tag: '🇵🇭 Official' },
+      { name: 'TradingView PSE', url: 'https://www.tradingview.com/symbols/PSE-MBT/technicals/', description: 'Best charting tool globally. Free account gives you RSI, MACD, MAs, community ideas. Replace MBT with any symbol.', tag: '⭐ Best Charts' },
+      { name: 'Investagrams', url: 'https://www.investagrams.com', description: 'PH trading community. Chart spotting, local trader ideas, technical analysis discussions.', tag: '🇵🇭 PH Community' },
+      { name: 'Investing.com PSE', url: 'https://www.investing.com/equities/metropolitan-b-technical', description: 'Instant technical summary: Strong Buy/Buy/Neutral/Sell. Replace "metropolitan-b" with any stock slug.', tag: '⚡ Quick Analysis' },
+    ]
+  },
+  {
+    category: 'Fundamentals & News',
+    icon: '📰',
+    items: [
+      { name: 'PSE Edge', url: 'https://edge.pse.com.ph', description: 'Official PSE disclosures. Every dividend, earnings report, material disclosure filed here. Your primary news source.', tag: '🇵🇭 Official' },
+      { name: 'HelloSafe PH', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company', description: 'Analyst targets, PE, EPS, fundamentals aggregated in one clean page. Replace slug for any stock.', tag: '📊 Fundamentals' },
+      { name: 'Simply Wall St', url: 'https://simplywall.st/stocks/ph', description: 'Visual "snowflake" fundamental analysis. Great for quick health check on any PH stock.', tag: '👁️ Visual' },
+      { name: 'BusinessWorld', url: 'https://www.bworldonline.com', description: 'Philippine financial newspaper of record. Primary source for corporate news.', tag: '📰 PH News' },
+    ]
+  },
+  {
+    category: 'Your Broker',
+    icon: '🏦',
+    items: [
+      { name: 'DragonFi', url: 'https://www.dragonfi.ph', description: 'Your actual broker. Most reliable data source since it\'s your account. Check here first for live prices.', tag: '💼 Your Broker' },
+      { name: 'DragonFi — MBT', url: 'https://www.dragonfi.ph/market/stocks/MBT', description: 'Direct link to MBT on DragonFi. Replace symbol for any stock.', tag: '💼 Direct Link' },
+    ]
+  },
+  {
+    category: 'Learning',
+    icon: '🎓',
+    items: [
+      { name: 'PSE Academy', url: 'https://www.pseacademy.com.ph', description: 'Free courses by the PSE itself. Investing basics, how to read disclosures, understanding REITs. Start here if you\'re a beginner.', tag: '🇵🇭 Free Courses' },
+      { name: 'r/phinvest', url: 'https://www.reddit.com/r/phinvest/', description: 'Philippine investing community. Real discussions, no-nonsense advice, fellow Filipino investors sharing what works.', tag: '💬 Community' },
+      { name: 'r/phstock', url: 'https://www.reddit.com/r/phstock/', description: 'PSE-focused stock discussions. Technical analysis posts, stock ideas, market sentiment.', tag: '💬 Community' },
+      { name: 'Trading Economics PH', url: 'https://tradingeconomics.com/philippines/stock-market', description: 'PSEi data, BSP interest rate history, macro indicators. Essential for understanding the big picture.', tag: '🌍 Macro' },
+    ]
+  },
+];
+
+// Portfolio-specific lessons using real Carlo data
+const PORTFOLIO_SCHOOL = [
+  {
+    stock: 'MBT',
+    title: 'Why MBT is Your Strongest Position',
+    content: `MBT is a textbook example of a fundamentally cheap stock in an uptrend.
+
+FUNDAMENTAL CASE:
+• P/E of 6.86x — you pay ₱6.86 for every ₱1 of profit. Banking avg is 11x. That's 38% cheaper than peers.
+• EPS grew 18% last year — the business is accelerating.
+• Dividend yield 6.78% — you get paid while you wait.
+• 13 analysts say Strong Buy. Average target: ₱91. High: ₱97.50.
+
+TECHNICAL CASE:
+• ALL 12 moving averages say BUY — unanimous.
+• RSI 66.8 — strong momentum, not yet overbought.
+• Price is above all MAs: 5-day (₱76.35), 20-day (₱75.31), 50-day (₱73.85), 200-day (₱72.70).
+• Just crossed above 200-day MA — major institutional buy signal.
+
+YOUR POSITION:
+• You bought avg ₱69.70, it's now ₱75.80 — up ₱6,930 (+8.75%).
+• Analyst upside to avg target: +₱15.20/share = +₱16,720 more potential gain on 1,100 shares.
+• Upside to high target ₱97.50: +₱21.70/share = +₱23,870 more.
+
+LESSON: This is what "fundamentally strong stock in uptrend" looks like. Hold it.`
+  },
+  {
+    stock: 'KEEPR',
+    title: 'Understanding Why KEEPR Looks Scary But Isn\'t',
+    content: `KEEPR is down -11.54% from your buy price. It LOOKS bad. Here's why it's not time to panic.
+
+THE MATH OF VALUE:
+• NAV (actual property value per share): ₱3.80
+• Current price: ₱2.30
+• You're buying ₱3.80 of real estate for ₱2.30 — a 40% discount.
+• This discount happens when market sentiment is negative (high interest rates, REIT selloff).
+• The properties themselves are fine: 94% occupancy rate.
+
+THE DIVIDEND MATH:
+• Estimated annual dividend yield at current price: ~11%
+• On your 11,000 shares: ~₱28,600/year just in dividends.
+• Even if the price stays flat for 2 years, you collect ₱57,200 in dividends.
+
+THE CATALYST:
+• BSP is expected to cut rates in H2 2026.
+• When rates fall: REIT borrowing costs fall → more profit → higher dividends → investors buy → price rises.
+• Historical pattern: Philippine REITs rally 20-40% after rate cut cycles begin.
+
+LESSON: Sometimes the best investment is the most uncomfortable one. Don't sell quality just because of a red number.`
+  },
+  {
+    stock: 'FILRT',
+    title: 'FILRT: Getting Paid to Wait',
+    content: `FILRT is flat in price — you're down 4.43%. But here's the full picture.
+
+THE DIVIDEND INCOME:
+• Q4 dividend: ₱0.06/share. Ex-date: ~March 11, 2026.
+• On 7,000 shares: ₱420 arriving in your account.
+• Annual: ₱0.24/share × 7,000 = ₱1,680/year in passive income.
+• Yield at current price: 8.1% — that's better than any bank savings account.
+
+THE VALUE CASE:
+• NAV: ₱4.21. Current price: ₱3.02. You're buying at a 28% discount to real estate value.
+• When BSP cuts rates: FILRT's borrowing costs fall → income rises → price re-rates toward NAV.
+
+THE LESSON — "Getting Paid to Wait":
+This is the core of REIT investing. You don't need the price to rise immediately.
+You collect 8.1% per year in cash dividends. After 3 years of collecting dividends, your effective buy price drops significantly.
+
+Real math: 8.1% × 3 years = 24.3% of your investment returned as cash, while you still own the shares.`
+  },
+];
+
+function loadLearnPage() {
+  renderGlossary(GLOSSARY);
+  renderConcepts(CONCEPTS);
+  renderPatterns(PATTERNS);
+  renderPortfolioSchool(PORTFOLIO_SCHOOL);
+  renderResources(RESOURCES);
+}
+
+function showLearnTab(tab, btn) {
+  document.querySelectorAll('.learn-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.learn-section').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('learn-' + tab).classList.add('active');
+}
+
+function filterGlossary(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.glossary-card').forEach(card => {
+    const text = card.textContent.toLowerCase();
+    card.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+
+function renderGlossary(items) {
+  const grid = document.getElementById('glossary-grid');
+  const categories = [...new Set(items.map(i => i.category))];
+  grid.innerHTML = categories.map(cat => `
+    <div class="glossary-category">
+      <h3 class="category-title">${cat}</h3>
+      <div class="category-cards">
+        ${items.filter(i => i.category === cat).map(item => `
+          <div class="glossary-card" onclick="this.classList.toggle('flipped')">
+            <div class="card-front">
+              <div class="term-name">${item.term}</div>
+              <div class="term-short">${item.short}</div>
+              <div class="term-level level-${item.level.toLowerCase()}">${item.level}</div>
+              <div class="card-hint">Tap to learn →</div>
+            </div>
+            <div class="card-back">
+              <div class="term-explanation">${item.explanation}</div>
+              ${item.example ? `<div class="term-example">📌 ${item.example}</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderConcepts(items) {
+  const list = document.getElementById('concepts-list');
+  list.innerHTML = items.map((c, i) => `
+    <div class="concept-card">
+      <div class="concept-header" onclick="toggleConcept(${i})">
+        <span class="concept-icon">${c.icon}</span>
+        <div>
+          <div class="concept-title">${c.title}</div>
+          <div class="concept-level level-${c.level.toLowerCase()}">${c.level}</div>
+        </div>
+        <span class="concept-toggle" id="concept-toggle-${i}">▼</span>
+      </div>
+      <div class="concept-body" id="concept-body-${i}" style="display:none">
+        <pre class="concept-content">${c.content}</pre>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleConcept(i) {
+  const body = document.getElementById('concept-body-' + i);
+  const toggle = document.getElementById('concept-toggle-' + i);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  toggle.textContent = open ? '▼' : '▲';
+}
+
+function renderPatterns(items) {
+  const grid = document.getElementById('patterns-grid');
+  grid.innerHTML = items.map(p => `
+    <div class="pattern-card">
+      <div class="pattern-emoji">${p.emoji}</div>
+      <div class="pattern-name">${p.name}</div>
+      <div class="pattern-type type-${p.type.includes('Bull') ? 'bull' : p.type.includes('Bear') ? 'bear' : 'neutral'}">${p.type}</div>
+      <div class="pattern-desc">${p.description}</div>
+      <div class="pattern-signal"><strong>Signal:</strong> ${p.signal}</div>
+      <div class="pattern-trade"><strong>How to trade:</strong> ${p.howToTrade}</div>
+      <div class="pattern-appearance"><strong>Looks like:</strong> ${p.appearance}</div>
+    </div>
+  `).join('');
+}
+
+function renderPortfolioSchool(items) {
+  const div = document.getElementById('portfolio-school-content');
+  div.innerHTML = items.map((item, i) => `
+    <div class="ps-card">
+      <div class="ps-header" onclick="togglePS(${i})">
+        <div>
+          <div class="ps-stock">${item.stock}</div>
+          <div class="ps-title">${item.title}</div>
+        </div>
+        <span class="ps-toggle" id="ps-toggle-${i}">▼</span>
+      </div>
+      <div class="ps-body" id="ps-body-${i}" style="display:none">
+        <pre class="ps-content">${item.content}</pre>
+      </div>
+    </div>
+  `).join('');
+}
+
+function togglePS(i) {
+  const body = document.getElementById('ps-body-' + i);
+  const toggle = document.getElementById('ps-toggle-' + i);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  toggle.textContent = open ? '▼' : '▲';
+}
+
+function renderResources(items) {
+  const grid = document.getElementById('resources-grid');
+  grid.innerHTML = items.map(cat => `
+    <div class="resource-category">
+      <h3>${cat.icon} ${cat.category}</h3>
+      ${cat.items.map(r => `
+        <a href="${r.url}" target="_blank" class="resource-card">
+          <div class="resource-name">${r.name} <span class="resource-tag">${r.tag}</span></div>
+          <div class="resource-desc">${r.description}</div>
+        </a>
+      `).join('')}
+    </div>
+  `).join('');
 }
 
