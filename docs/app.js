@@ -543,7 +543,7 @@ async function fetchOHLCVFromSupabase(symbol) {
   }
 }
 
-async function toggleCardChart(sym, btn) {
+function toggleCardChart(sym, btn) {
   const container = document.getElementById('card-chart-' + sym);
   const inner = document.getElementById('card-chart-inner-' + sym);
   const chevron = btn.querySelector('.chevron');
@@ -554,87 +554,45 @@ async function toggleCardChart(sym, btn) {
   chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
   btn.querySelector('span').textContent = isOpen ? '📈 View Chart' : '📉 Hide Chart';
 
-  // Only render chart once
+  // Only render once
   if (!isOpen && inner && !inner.dataset.rendered) {
     inner.dataset.rendered = '1';
-    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#475569;font-size:12px">Loading…</div>';
+    inner.style.height = '350px';
+    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:350px;color:#475569;font-size:12px">Loading TradingView chart…</div>';
 
-    // Fetch OHLCV from Supabase (no CORS issues)
-    let ohlcv = await fetchOHLCVFromSupabase(sym);
-    
-    // Append live Phisix price if available
-    try {
-      const pr = await fetch(`https://phisix-api3.appspot.com/stocks/${sym}.json`);
-      const pj = await pr.json();
-      const livePrice = parseFloat(pj.stock[0].price.amount);
-      const today = new Date().toISOString().split('T')[0];
-      // Update today's close or add new entry
-      if (ohlcv.length > 0) {
-        const lastEntry = ohlcv[ohlcv.length - 1];
-        if (lastEntry.date === today) {
-          lastEntry.close = livePrice;
-          lastEntry.high = Math.max(parseFloat(lastEntry.high), livePrice);
-          lastEntry.low = Math.min(parseFloat(lastEntry.low), livePrice);
-        } else {
-          ohlcv.push({ date: today, open: livePrice, high: livePrice, low: livePrice, close: livePrice });
-        }
+    // Wait for TradingView library then init widget
+    const tryInit = () => {
+      if (typeof TradingView === 'undefined') {
+        setTimeout(tryInit, 400);
+        return;
       }
-    } catch {}
+      inner.innerHTML = '';
+      const widgetDiv = document.createElement('div');
+      widgetDiv.id = 'tv-widget-' + sym;
+      inner.appendChild(widgetDiv);
 
-    inner.innerHTML = '';
-
-    if (ohlcv.length < 2) {
-      inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:200px;color:#475569;font-size:12px;text-align:center;padding:16px">Chart data unavailable.<br>Run fetch-ohlcv.js to populate.</div>';
-      return;
-    }
-
-    if (typeof LightweightCharts === 'undefined') {
-      inner.innerHTML = '<div style="color:#475569;font-size:12px;padding:16px;text-align:center">Charts loading…</div>';
-      return;
-    }
-
-    const chart = LightweightCharts.createChart(inner, {
-      width: inner.clientWidth || 300,
-      height: 200,
-      layout: { background: { color: '#0D1320' }, textColor: '#94A3B8' },
-      grid: { vertLines: { color: '#1E2A3A' }, horzLines: { color: '#1E2A3A' } },
-      timeScale: { borderColor: '#1E2A3A', timeVisible: false },
-      rightPriceScale: { borderColor: '#1E2A3A' },
-      crosshair: { mode: 1 },
-      handleScroll: false, handleScale: false
-    });
-
-    // Use candlestick series for OHLCV data
-    const candleSeries = chart.addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderDownColor: '#ef5350',
-      borderUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-      wickUpColor: '#26a69a'
-    });
-
-    candleSeries.setData(ohlcv.map(d => ({
-      time: d.date,
-      open: parseFloat(d.open),
-      high: parseFloat(d.high),
-      low: parseFloat(d.low),
-      close: parseFloat(d.close)
-    })));
-    
-    chart.timeScale().fitContent();
-
-    // Live price badge
-    const badge = document.createElement('div');
-    badge.style.cssText = 'position:absolute;top:6px;right:6px;background:rgba(255,215,0,0.15);color:#FFD700;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace;pointer-events:none;z-index:2';
-    const latestVal = parseFloat(ohlcv[ohlcv.length - 1].close);
-    badge.textContent = '₱' + latestVal.toFixed(2) + ' · 3mo';
-    inner.style.position = 'relative';
-    inner.appendChild(badge);
-
-    window.addEventListener('resize', () => {
-      if (inner.clientWidth > 0) chart.resize(inner.clientWidth, 200);
-    });
+      new TradingView.widget({
+        autosize: true,
+        symbol: 'PSE:' + sym,
+        interval: 'D',
+        timezone: 'Asia/Manila',
+        theme: 'dark',
+        style: '1',          // Candlestick
+        locale: 'en',
+        toolbar_bg: '#0A0E1A',
+        backgroundColor: '#0A0E1A',
+        gridColor: 'rgba(255,255,255,0.04)',
+        enable_publishing: false,
+        hide_top_toolbar: false,
+        hide_legend: false,
+        hide_side_toolbar: false,
+        allow_symbol_change: false,
+        save_image: false,
+        studies: ['RSI@tv-basicstudies', 'MACD@tv-basicstudies'],
+        container_id: 'tv-widget-' + sym
+      });
+    };
+    setTimeout(tryInit, 100);
   }
 }
 
@@ -2447,16 +2405,12 @@ async function submitTrade(e) {
         showToast('Symbol not in portfolio — trade saved to history only');
       }
     }
-    closeTradeLog();
-    showToast(`${action} ${symbol} logged — updating portfolio...`);
-    // Always refresh portfolio (regardless of which tab is active)
+    // Refresh portfolio BEFORE closing modal so user sees update
     portfolioData = await window.sbFetch('sterling_portfolio', { order: 'symbol.asc' });
-    loadedPages['portfolio'] = true; // ensure renderPortfolio runs fully
+    loadedPages['portfolio'] = true;
     renderPortfolio();
-    // Also refresh trade history section
-    if (typeof renderTradeHistory === 'function') {
-      renderTradeHistory();
-    }
+    closeTradeLog();
+    showToast(`✅ ${action} ${symbol} logged — portfolio updated`);
   } catch (err) {
     console.error('Trade submit error:', err);
     showToast('Error logging trade');
