@@ -2796,12 +2796,16 @@ async function submitTrade(e) {
         showToast('Symbol not in portfolio — trade saved to history only');
       }
     }
-    // Refresh portfolio BEFORE closing modal so user sees update
+    // Refresh portfolio and trigger fresh intelligence fetch
     portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     loadedPages['portfolio'] = true;
     renderPortfolio();
     closeTradeLog();
     showToast(`✅ ${action} ${symbol} logged — portfolio updated`);
+    // Invalidate intelligence cache so next render fetches fresh analysis
+    if (symbol && _intelligenceCache) delete _intelligenceCache[symbol];
+    // Sync user accounts to Supabase in background
+    syncAccountsToSupabase();
   } catch (err) {
     console.error('Trade submit error:', err);
     showToast('Error logging trade');
@@ -3334,6 +3338,7 @@ function getActiveUser() {
 }
 
 function initAccounts() {
+  loadAccountsFromSupabase().catch(() => {});
   let accounts = _getAccounts();
   // First ever load: seed Carlo as default
   if (!accounts.length) {
@@ -3470,9 +3475,39 @@ function createAccount() {
   if (!name) { err.textContent = 'Name is required'; return; }
   if (pin && (pin.length < 4 || !/^\d+$/.test(pin))) { err.textContent = 'PIN must be 4�6 digits'; return; }
   const accounts = _getAccounts();
-  const id = name.toLowerCase().replace(/\s+/g,'_') + '_' + Date.now();
+  const id = name.toLowerCase().replace(/[^a-z0-9]/g,'_');
+  if (accounts.find(a => a.id === id)) { err.textContent = 'Name already taken'; return; }
   accounts.push({ id, name, initials: init || name[0].toUpperCase(), color: _selectedNewColor, pin: pin || '' });
   _saveAccounts(accounts);
-  showToast(`Account "${name}" created ?`);
+  syncAccountsToSupabase();
+  showToast('Account created: ' + name);
   showAccountModal('switch');
+}
+
+async function syncAccountsToSupabase() {
+  try {
+    const accounts = _getAccounts();
+    const { url, anonKey } = window.SUPABASE_CONFIG;
+    for (const a of accounts) {
+      await fetch(url + '/rest/v1/sterling_users', {
+        method: 'POST',
+        headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({ id: a.id, name: a.name, initials: a.initials || a.name[0], color: a.color || '#EA580C', pin: a.pin || '' })
+      }).catch(() => {});
+    }
+  } catch(e) {}
+}
+
+async function loadAccountsFromSupabase() {
+  try {
+    const rows = await window.sbFetch('sterling_users', { order: 'created_at.asc' });
+    if (!rows || !rows.length) return;
+    const local = _getAccounts();
+    rows.forEach(r => {
+      if (!local.find(a => a.id === r.id)) {
+        local.push({ id: r.id, name: r.name, initials: r.initials || r.name[0], color: r.color || '#EA580C', pin: '' });
+      }
+    });
+    _saveAccounts(local);
+  } catch(e) {}
 }
