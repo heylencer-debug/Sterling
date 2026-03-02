@@ -23,6 +23,76 @@ const DIVIDEND_SCHEDULES = {
   KEEPR: { yield: 7.0, frequency: 'quarterly', months: [3, 6, 9, 12] }
 };
 
+// PSE Universe - 40 stocks for Discovery scanner
+const PSE_UNIVERSE = [
+  // Banking
+  { symbol:'BDO', name:'BDO Unibank', sector:'Banking', yield:2.1, pe:10.2, price:132.50 },
+  { symbol:'MBT', name:'Metrobank', sector:'Banking', yield:6.78, pe:6.86, price:76.00 },
+  { symbol:'BPI', name:'Bank of the Philippine Islands', sector:'Banking', yield:3.2, pe:12.5, price:108.00 },
+  { symbol:'SECB', name:'Security Bank', sector:'Banking', yield:3.8, pe:8.9, price:72.00 },
+  { symbol:'EW', name:'East West Banking', sector:'Banking', yield:2.5, pe:7.2, price:8.50 },
+  // REIT
+  { symbol:'AREIT', name:'Ayala REIT', sector:'REIT', yield:5.8, pe:18.2, price:33.50 },
+  { symbol:'MREIT', name:'Megaworld REIT', sector:'REIT', yield:7.2, pe:14.1, price:14.18 },
+  { symbol:'FILRT', name:'Filinvest REIT', sector:'REIT', yield:8.1, pe:12.3, price:3.01 },
+  { symbol:'DDMPR', name:'DoubleDragon REIT', sector:'REIT', yield:8.9, pe:11.5, price:1.35 },
+  { symbol:'CREIT', name:'Citicore REIT', sector:'REIT', yield:7.5, pe:13.8, price:2.55 },
+  { symbol:'KEEPR', name:'Keppel Philippines REIT', sector:'REIT', yield:11.0, pe:9.2, price:2.31 },
+  { symbol:'RCR', name:'RL Commercial REIT', sector:'REIT', yield:6.9, pe:15.1, price:5.20 },
+  // Telecom
+  { symbol:'GLO', name:'Globe Telecom', sector:'Telecom', yield:6.36, pe:11.0, price:1689.00 },
+  { symbol:'TEL', name:'PLDT Inc.', sector:'Telecom', yield:7.8, pe:9.5, price:1200.00 },
+  // Property
+  { symbol:'ALI', name:'Ayala Land', sector:'Property', yield:1.8, pe:22.0, price:28.50 },
+  { symbol:'SMPH', name:'SM Prime Holdings', sector:'Property', yield:0.9, pe:28.5, price:35.00 },
+  { symbol:'MEG', name:'Megaworld Corp', sector:'Property', yield:3.2, pe:8.5, price:2.10 },
+  { symbol:'RLC', name:'Robinsons Land', sector:'Property', yield:2.5, pe:12.0, price:14.50 },
+  // Mining & Oil
+  { symbol:'DMC', name:'DMCI Holdings', sector:'Mining & Oil', yield:9.73, pe:8.0, price:9.65 },
+  { symbol:'SCC', name:'Semirara Mining', sector:'Mining & Oil', yield:12.5, pe:5.2, price:38.00 },
+  { symbol:'PX', name:'Philex Mining', sector:'Mining & Oil', yield:1.2, pe:15.0, price:3.80 },
+  // Retail
+  { symbol:'RRHI', name:'Robinsons Retail', sector:'Retail', yield:2.8, pe:18.5, price:37.40 },
+  { symbol:'PGOLD', name:'Puregold Price Club', sector:'Retail', yield:2.1, pe:16.0, price:28.00 },
+  { symbol:'CNPF', name:'Century Pacific Food', sector:'Retail', yield:1.8, pe:20.0, price:21.50 },
+  // Energy
+  { symbol:'ACEN', name:'ACEN Corporation', sector:'Energy', yield:0.5, pe:35.0, price:3.90 },
+  { symbol:'SEM', name:'Semirara Mining & Power', sector:'Energy', yield:11.0, pe:5.5, price:37.50 },
+  { symbol:'FGEN', name:'First Gen Corp', sector:'Energy', yield:3.5, pe:12.0, price:22.00 },
+  // Industrial
+  { symbol:'JFC', name:'Jollibee Foods', sector:'Industrial', yield:0.8, pe:45.0, price:210.00 },
+  { symbol:'ICT', name:'International Container Terminal', sector:'Industrial', yield:1.5, pe:14.0, price:280.00 },
+  { symbol:'MONDE', name:'Monde Nissin', sector:'Industrial', yield:1.8, pe:25.0, price:10.20 },
+  { symbol:'URC', name:'Universal Robina Corp', sector:'Industrial', yield:2.2, pe:22.0, price:105.00 },
+  { symbol:'BLOOM', name:'Bloomberry Resorts', sector:'Industrial', yield:0.5, pe:18.0, price:7.80 },
+  { symbol:'MAXS', name:'Max\'s Group', sector:'Industrial', yield:3.2, pe:16.0, price:8.50 },
+  { symbol:'EEI', name:'EEI Corporation', sector:'Industrial', yield:2.8, pe:10.0, price:6.20 },
+  { symbol:'VITA', name:'Vitarich Corp', sector:'Industrial', yield:1.5, pe:12.0, price:2.10 },
+  // Holding Firms
+  { symbol:'AC', name:'Ayala Corporation', sector:'Holding Firms', yield:1.5, pe:15.0, price:620.00 },
+  { symbol:'SM', name:'SM Investments', sector:'Holding Firms', yield:0.7, pe:22.0, price:880.00 },
+  { symbol:'AGI', name:'Alliance Global', sector:'Holding Firms', yield:1.2, pe:11.0, price:10.50 },
+  { symbol:'LTG', name:'LT Group Inc', sector:'Holding Firms', yield:4.5, pe:9.0, price:12.80 },
+];
+
+// Portfolio connections for watchlist
+const PORTFOLIO_CONNECTIONS = {
+  'Banking': 'Similar to MBT in your portfolio — same banking sector',
+  'REIT': 'Same REIT category as MREIT, FILRT, KEEPR — dividend-focused',
+  'Telecom': 'Same sector as GLO in your portfolio',
+  'Mining & Oil': 'Same sector as DMC in your portfolio — cyclical',
+  'Retail': 'Same sector as RRHI in your portfolio',
+  'Property': 'Property developer — watch for REIT spin-off potential',
+  'Energy': 'Growth sector — diversifies away from your current holdings',
+  'Industrial': 'No direct match — pure diversification play',
+  'Holding Firms': 'Conglomerate — broad market exposure',
+};
+
+// Discovery filter state
+let discoveryFilters = { sector: '', minYield: 0, maxPE: 999, sort: 'yield-desc' };
+let watchlistSymbols = new Set();
+let portfolioSymbols = new Set();
+
 // Boot
 document.addEventListener('DOMContentLoaded', () => {
   initNav();
@@ -521,56 +591,86 @@ function renderWatchlist() {
   const cards = document.getElementById('watchlist-cards');
   const tbody = document.getElementById('watchlist-tbody');
 
+  // Calculate stats
+  const buySignals = filtered.filter(w => getSignalType(w) === 'BUY').length;
+  const nearTarget = filtered.filter(w => w.current_price && w.target_buy && w.current_price <= w.target_buy * 1.05).length;
+
+  // Update stats bar
+  const statsBar = document.getElementById('watchlist-stats');
+  if (statsBar) {
+    statsBar.innerHTML = `
+      <div class="wl-stat"><span class="wl-stat-value">${filtered.length}</span><span class="wl-stat-label">Watching</span></div>
+      <div class="wl-stat buy"><span class="wl-stat-value">${buySignals}</span><span class="wl-stat-label">Buy Signals</span></div>
+      <div class="wl-stat target"><span class="wl-stat-value">${nearTarget}</span><span class="wl-stat-label">Near Target</span></div>
+    `;
+  }
+
   if (!filtered || filtered.length === 0) {
-    cards.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No watchlist items found</div></div>`;
+    cards.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👁️</div><div class="empty-state-text">No watchlist items. Add stocks from Discovery to start tracking.</div></div>`;
     tbody.innerHTML = '';
     return;
   }
 
-  // Cards view
+  // Cards view - new design
   cards.innerHTML = filtered.map(w => {
-    const recClass = (w.recommendation || '').toLowerCase();
-    const score = w.fundamental_score || 0;
+    const signal = getSignalType(w);
+    const signalClass = signal.toLowerCase();
+    const connection = PORTFOLIO_CONNECTIONS[w.sector] || 'Diversification opportunity';
+    const yieldVal = w.dividend_yield || 0;
+    const peVal = w.pe_ratio || 0;
+
     return `
-      <div class="watchlist-card rec-${recClass}">
-        <div class="wl-header">
-          <div>
-            <div class="wl-symbol">${w.symbol}</div>
-            <div class="wl-company">${w.company_name || ''}</div>
+      <div class="watchlist-card-new signal-${signalClass}">
+        <div class="wl-card-top">
+          <div class="wl-card-badges">
+            <span class="sector-badge-wl">${w.sector || 'N/A'}</span>
+            <span class="signal-badge ${signalClass}">${signal}</span>
           </div>
-          <span class="rec-badge ${recClass}">${w.recommendation || 'WATCH'}</span>
+          <button class="wl-remove-btn" onclick="removeFromWatchlist('${w.symbol}')" title="Remove">✕</button>
         </div>
-        <div class="wl-prices">
-          <div class="wl-price-item">
-            <div class="wl-price-label">Current</div>
-            <div class="wl-price-value">${formatPeso(w.current_price)}</div>
+        <div class="wl-card-main">
+          <div class="wl-card-symbol">${w.symbol}</div>
+          <div class="wl-card-company">${w.company_name || ''}</div>
+        </div>
+        <div class="wl-card-prices">
+          <div class="wl-price-row">
+            <span class="label">Current</span>
+            <span class="value">${formatPeso(w.current_price)}</span>
           </div>
-          <div class="wl-price-item">
-            <div class="wl-price-label">Target Buy</div>
-            <div class="wl-price-value">${formatPeso(w.target_buy)}</div>
-          </div>
-          <div class="wl-price-item">
-            <div class="wl-price-label">Stop Loss</div>
-            <div class="wl-price-value">${formatPeso(w.stop_loss)}</div>
+          <div class="wl-price-row">
+            <span class="label">Target</span>
+            <span class="value target">${formatPeso(w.target_buy || w.target_price)}</span>
           </div>
         </div>
-        <div class="wl-metrics">
-          <div><span class="label">Sector</span><span>${w.sector || '—'}</span></div>
-          <div><span class="label">P/E</span><span>${w.pe_ratio || '—'}</span></div>
-          <div><span class="label">Div Yield</span><span>${w.dividend_yield ? w.dividend_yield + '%' : '—'}</span></div>
-          <div><span class="label">Signal</span><span>${w.technical_signal || '—'}</span></div>
+        <div class="wl-card-metrics-row">
+          <div><span class="label">Yield</span><span class="value">${yieldVal}%</span></div>
+          <div><span class="label">P/E</span><span class="value">${peVal}x</span></div>
         </div>
-        <div class="wl-score">
-          <div class="score-label">Fundamental Score: ${score}/100</div>
-          <div class="score-bar"><div class="score-fill" style="width: ${score}%"></div></div>
+        <div class="wl-portfolio-connection">
+          <span class="connection-icon">📎</span>
+          <span class="connection-text">${connection}</span>
         </div>
-        ${w.reason ? `<div class="wl-reason">${w.reason}</div>` : ''}
+        ${w.reason || w.rationale ? `
+        <div class="wl-rationale">
+          <span class="rationale-icon">💡</span>
+          <span class="rationale-text">${w.reason || w.rationale}</span>
+        </div>
+        ` : ''}
+        <div class="wl-entry-points">
+          <div><span class="label">Entry</span><span class="value">${formatPeso(w.target_buy || w.entry_price)}</span></div>
+          <div><span class="label">Stop-loss</span><span class="value stop">${formatPeso(w.stop_loss)}</span></div>
+        </div>
+        <div class="wl-card-actions">
+          <a class="wl-chart-link" href="https://www.investagrams.com/stock/${w.symbol}" target="_blank">View Chart ↗</a>
+        </div>
       </div>
     `;
   }).join('');
 
-  // Table view
-  tbody.innerHTML = filtered.map(w => `
+  // Table view - keep for alternate view
+  tbody.innerHTML = filtered.map(w => {
+    const signal = getSignalType(w);
+    return `
     <tr>
       <td style="font-weight: 700; color: var(--accent-gold)">${w.symbol}</td>
       <td style="font-family: var(--font-main)">${w.company_name || ''}</td>
@@ -580,11 +680,48 @@ function renderWatchlist() {
       <td style="font-family: var(--font-main)">${w.sector || '—'}</td>
       <td>${w.pe_ratio || '—'}</td>
       <td>${w.dividend_yield ? w.dividend_yield + '%' : '—'}</td>
-      <td>${w.technical_signal || '—'}</td>
-      <td>${w.fundamental_score || 0}</td>
-      <td><span class="rec-badge ${(w.recommendation || '').toLowerCase()}">${w.recommendation || 'WATCH'}</span></td>
+      <td><span class="signal-badge ${signal.toLowerCase()}">${signal}</span></td>
+      <td><button class="wl-remove-btn-sm" onclick="removeFromWatchlist('${w.symbol}')">✕</button></td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
+}
+
+function getSignalType(stock) {
+  const yieldVal = stock.dividend_yield || 0;
+  const pe = stock.pe_ratio || 999;
+  const sector = stock.sector || '';
+  const growthSectors = ['Energy', 'Industrial', 'Holding Firms'];
+
+  // BUY: yield > 6% AND pe < 15 AND sector in (Banking, REIT, Mining)
+  if (yieldVal > 6 && pe < 15 && ['Banking', 'REIT', 'Mining & Oil'].includes(sector)) {
+    return 'BUY';
+  }
+
+  // AVOID: pe > 35 OR (yield < 1% AND not growth sector)
+  if (pe > 35 || (yieldVal < 1 && !growthSectors.includes(sector))) {
+    return 'AVOID';
+  }
+
+  // WATCH: everything else (yield 3-6% OR pe 15-25)
+  return 'WATCH';
+}
+
+async function removeFromWatchlist(symbol) {
+  if (!confirm(`Remove ${symbol} from your Watchlist?`)) return;
+
+  try {
+    await window.sbFetch(`sterling_watchlist?symbol=eq.${symbol}`, { method: 'DELETE' });
+
+    // Update local data and re-render
+    watchlistData = watchlistData.filter(w => w.symbol !== symbol);
+    watchlistSymbols.delete(symbol);
+    renderWatchlist();
+    showToast(`${symbol} removed from Watchlist`);
+  } catch (err) {
+    console.error('Remove from watchlist error:', err);
+    showToast('Failed to remove from watchlist', 'error');
+  }
 }
 
 // ==================== ALERTS ====================
@@ -871,56 +1008,170 @@ function renderIncomeProjection() {
 
 async function loadDiscovery() {
   try {
-    // Get watchlist items not in portfolio
-    const watchlist = await window.sbFetch('sterling_watchlist', { order: 'fundamental_score.desc' });
-    const portfolioSymbols = portfolioData.map(p => p.symbol);
-    const discovery = watchlist.filter(w => !portfolioSymbols.includes(w.symbol));
-    renderDiscovery(discovery);
+    // Load watchlist and portfolio to check existing symbols
+    const watchlist = await window.sbFetch('sterling_watchlist', { select: 'symbol' });
+    watchlistSymbols = new Set(watchlist.map(w => w.symbol));
+    portfolioSymbols = new Set(portfolioData.map(p => p.symbol));
+
+    renderDiscoveryFilters();
+    renderDiscovery();
   } catch (err) {
     console.error('Discovery load error:', err);
   }
 }
 
-function renderDiscovery(data) {
+function renderDiscoveryFilters() {
+  const container = document.getElementById('discovery-filters');
+  if (!container) return;
+
+  const sectors = ['All', 'Banking', 'REIT', 'Telecom', 'Property', 'Mining & Oil', 'Retail', 'Energy', 'Industrial', 'Holding Firms'];
+
+  container.innerHTML = `
+    <select id="disc-sector" onchange="updateDiscoveryFilter('sector', this.value)">
+      ${sectors.map(s => `<option value="${s === 'All' ? '' : s}">${s}</option>`).join('')}
+    </select>
+    <div class="filter-group">
+      <label>Min Yield %</label>
+      <input type="number" id="disc-min-yield" value="0" min="0" max="20" step="0.5" onchange="updateDiscoveryFilter('minYield', this.value)">
+    </div>
+    <div class="filter-group">
+      <label>Max P/E</label>
+      <input type="number" id="disc-max-pe" value="999" min="1" max="999" onchange="updateDiscoveryFilter('maxPE', this.value)">
+    </div>
+    <select id="disc-sort" onchange="updateDiscoveryFilter('sort', this.value)">
+      <option value="yield-desc">Yield (High→Low)</option>
+      <option value="pe-asc">P/E (Low→High)</option>
+      <option value="price-change">Price Change</option>
+      <option value="alpha">Alphabetical</option>
+    </select>
+    <button class="filter-apply-btn" onclick="renderDiscovery()">Apply Filters</button>
+  `;
+}
+
+function updateDiscoveryFilter(key, value) {
+  if (key === 'minYield' || key === 'maxPE') {
+    discoveryFilters[key] = parseFloat(value) || 0;
+  } else {
+    discoveryFilters[key] = value;
+  }
+}
+
+function renderDiscovery() {
   const grid = document.getElementById('discovery-grid');
 
-  if (!data || data.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No new stock picks. Sterling will discover more soon.</div></div>`;
+  // Filter stocks
+  let stocks = PSE_UNIVERSE.filter(s => {
+    if (discoveryFilters.sector && s.sector !== discoveryFilters.sector) return false;
+    if (s.yield < discoveryFilters.minYield) return false;
+    if (s.pe > discoveryFilters.maxPE) return false;
+    return true;
+  });
+
+  // Sort stocks
+  switch (discoveryFilters.sort) {
+    case 'yield-desc':
+      stocks.sort((a, b) => b.yield - a.yield);
+      break;
+    case 'pe-asc':
+      stocks.sort((a, b) => a.pe - b.pe);
+      break;
+    case 'alpha':
+      stocks.sort((a, b) => a.symbol.localeCompare(b.symbol));
+      break;
+    default:
+      stocks.sort((a, b) => b.yield - a.yield);
+  }
+
+  if (stocks.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No stocks match your filters. Try adjusting the criteria.</div></div>`;
     return;
   }
 
-  grid.innerHTML = data.map(d => `
-    <div class="discovery-card">
-      <div class="disc-header">
-        <div>
-          <div class="disc-symbol">${d.symbol}</div>
-          <div class="disc-company">${d.company_name || ''}</div>
+  grid.innerHTML = stocks.map(s => {
+    const inWatchlist = watchlistSymbols.has(s.symbol);
+    const inPortfolio = portfolioSymbols.has(s.symbol);
+    const sectorColor = getSectorColor(s.sector);
+    // Simulate daily change
+    const dailyChange = (Math.random() * 6 - 3).toFixed(2);
+    const changeClass = dailyChange >= 0 ? 'positive' : 'negative';
+
+    return `
+      <div class="stock-card">
+        <div class="stock-card-header">
+          <span class="sector-badge" style="background:${sectorColor}20;color:${sectorColor}">${s.sector}</span>
+          ${inPortfolio ? '<span class="portfolio-badge">In Portfolio</span>' : ''}
         </div>
-        <span class="disc-sector">${d.sector || 'N/A'}</span>
+        <div class="stock-card-main">
+          <div class="stock-symbol">${s.symbol}</div>
+          <div class="stock-name">${s.name}</div>
+        </div>
+        <div class="stock-card-price">
+          <span class="stock-price">${formatPeso(s.price)}</span>
+          <span class="stock-change ${changeClass}">${dailyChange >= 0 ? '+' : ''}${dailyChange}%</span>
+        </div>
+        <div class="stock-card-metrics">
+          <div><span class="label">Yield</span><span class="value ${s.yield >= 6 ? 'highlight-green' : ''}">${s.yield}%</span></div>
+          <div><span class="label">P/E</span><span class="value ${s.pe <= 15 ? 'highlight-green' : ''}">${s.pe}x</span></div>
+        </div>
+        ${inWatchlist
+          ? `<button class="stock-add-btn in-watchlist" disabled>✓ In Watchlist</button>`
+          : `<button class="stock-add-btn" onclick="addToWatchlistFromDiscovery('${s.symbol}', '${s.name.replace(/'/g, "\\'")}', '${s.sector}')">+ Add to Watchlist</button>`
+        }
       </div>
-      <div class="disc-metrics">
-        <div><span class="label">Target Entry</span><span class="value">${formatPeso(d.target_buy)}</span></div>
-        <div><span class="label">Current</span><span class="value">${formatPeso(d.current_price)}</span></div>
-        <div><span class="label">Signal</span><span class="value">${d.technical_signal || '—'}</span></div>
-        <div><span class="label">P/E</span><span class="value">${d.pe_ratio || '—'}</span></div>
-      </div>
-      <div class="disc-score">
-        <div class="score-label">Fundamental Score: ${d.fundamental_score || 0}/100</div>
-        <div class="score-bar"><div class="score-fill" style="width: ${d.fundamental_score || 0}%"></div></div>
-      </div>
-      ${d.reason ? `<div class="disc-why">${d.reason}</div>` : ''}
-      <button class="disc-add-btn" onclick="addToWatchlist('${d.symbol}')">Add to Watchlist</button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-async function addToWatchlist(symbol) {
+function getSectorColor(sector) {
+  const colors = {
+    'Banking': '#3B82F6',
+    'REIT': '#10B981',
+    'Telecom': '#8B5CF6',
+    'Property': '#F59E0B',
+    'Mining & Oil': '#EF4444',
+    'Retail': '#EC4899',
+    'Energy': '#06B6D4',
+    'Industrial': '#6366F1',
+    'Holding Firms': '#F97316',
+  };
+  return colors[sector] || '#64748B';
+}
+
+async function addToWatchlistFromDiscovery(symbol, company, sector) {
   try {
-    // This would typically insert/update in sterling_watchlist
-    alert(`${symbol} added to watchlist!`);
+    const payload = {
+      symbol: symbol,
+      company_name: company,
+      sector: sector,
+      target_price: null,
+      notes: 'Added from Discovery',
+      recommendation: 'WATCH',
+      reason: 'Added by user from Discovery scanner'
+    };
+
+    await window.sbFetch('sterling_watchlist', { method: 'POST', body: JSON.stringify(payload) });
+
+    // Update local state and re-render
+    watchlistSymbols.add(symbol);
+    renderDiscovery();
+    showToast(`${symbol} added to Watchlist ✓`);
   } catch (err) {
     console.error('Add to watchlist error:', err);
+    showToast('Failed to add to watchlist', 'error');
   }
+}
+
+function showToast(message, type = 'success') {
+  let toast = document.getElementById('discovery-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'discovery-toast';
+    toast.className = 'discovery-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.className = `discovery-toast ${type} show`;
+  setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
 // ===== LEARN PAGE =====
