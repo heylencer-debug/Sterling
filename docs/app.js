@@ -339,7 +339,7 @@ function renderPortfolio() {
           <iframe id="main-chart-iframe"
             src="https://www.dragonfi.ph/market/stocks/${firstSym}"
             width="100%"
-            frameborder="0" scrolling="no"
+            frameborder="0" scrolling="yes"
             style="border:none;height:calc(100% + 72px);margin-top:-72px;display:block"
             loading="lazy"
             title="${firstSym} — DragonFi">
