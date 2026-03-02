@@ -335,7 +335,7 @@ function renderPortfolio() {
             Open full ↗
           </a>
         </div>
-        <div style="border-radius:12px;overflow:hidden;border:1px solid #1E2A3A;background:#0D1320;height:520px;position:relative">
+        <div style="border-radius:12px;overflow:hidden;border:1px solid #1E2A3A;background:#0D1320;height:780px;position:relative">
           <iframe id="main-chart-iframe"
             src="https://www.dragonfi.ph/market/stocks/${firstSym}"
             width="100%"
