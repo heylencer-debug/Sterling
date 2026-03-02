@@ -39,6 +39,9 @@
       <a href="#" class="nav-item" data-page="discovery">
         <span class="nav-icon">🔍</span> Discovery
       </a>
+      <a href="#" class="nav-item" data-page="learn">
+        <span class="nav-icon">📚</span> Learn
+      </a>
     </nav>
     <div class="sidebar-footer">
       <div class="sterling-status">
@@ -229,6 +232,53 @@
       </div>
       <div class="discovery-grid" id="discovery-grid">
         <!-- Discovery cards rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Page: Learn -->
+    <section class="page" id="page-learn">
+      <div class="page-header">
+        <h1 class="page-title">📚 Sterling's Trading School</h1>
+        <p class="page-subtitle">Learn how to read stocks — one concept at a time.</p>
+      </div>
+
+      <!-- Search -->
+      <div class="learn-search">
+        <input type="text" id="glossary-search" placeholder="Search terms, concepts, indicators..." oninput="filterGlossary(this.value)">
+      </div>
+
+      <!-- Tabs within Learn -->
+      <div class="learn-tabs">
+        <button class="learn-tab active" onclick="showLearnTab('glossary', this)">📖 Glossary</button>
+        <button class="learn-tab" onclick="showLearnTab('concepts', this)">💡 Concepts</button>
+        <button class="learn-tab" onclick="showLearnTab('patterns', this)">📊 Patterns</button>
+        <button class="learn-tab" onclick="showLearnTab('portfolio-school', this)">🎯 Your Portfolio</button>
+        <button class="learn-tab" onclick="showLearnTab('resources', this)">🔗 Resources</button>
+      </div>
+
+      <!-- Glossary Tab -->
+      <div class="learn-section active" id="learn-glossary">
+        <div class="glossary-grid" id="glossary-grid"></div>
+      </div>
+
+      <!-- Concepts Tab -->
+      <div class="learn-section" id="learn-concepts">
+        <div class="concepts-list" id="concepts-list"></div>
+      </div>
+
+      <!-- Patterns Tab -->
+      <div class="learn-section" id="learn-patterns">
+        <div class="patterns-grid" id="patterns-grid"></div>
+      </div>
+
+      <!-- Portfolio School Tab -->
+      <div class="learn-section" id="learn-portfolio-school">
+        <div class="portfolio-school-content" id="portfolio-school-content"></div>
+      </div>
+
+      <!-- Resources Tab -->
+      <div class="learn-section" id="learn-resources">
+        <div class="resources-grid" id="resources-grid"></div>
       </div>
     </section>
   </main>
