@@ -621,28 +621,33 @@ async function toggleCardChart(sym, btn) {
 
     inner.innerHTML = '';
 
-    if (!ohlcv || ohlcv.length < 2) {
-      inner.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:10px;padding:16px;text-align:center">
-          <div style="color:#FFD700;font-size:13px;font-weight:700">📊 Open Full Chart</div>
-          <div style="color:#64748B;font-size:11px;line-height:1.5">PSE charting via official sources</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:4px">
-            <a href="https://equip.pse.com.ph/charts#${sym}" target="_blank"
-               style="background:#1E3A5F;color:#93C5FD;font-size:11px;font-weight:600;padding:7px 14px;border-radius:6px;text-decoration:none;border:1px solid #2563EB">
-              PSE EQUIP ↗
-            </a>
-            <a href="https://www.investagrams.com/Stock/PSE:${sym}" target="_blank"
-               style="background:#1E3A5F;color:#93C5FD;font-size:11px;font-weight:600;padding:7px 14px;border-radius:6px;text-decoration:none;border:1px solid #2563EB">
-              Investagrams ↗
-            </a>
-            <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
-               style="background:#FFD700;color:#0A0E1A;font-size:11px;font-weight:700;padding:7px 14px;border-radius:6px;text-decoration:none">
-              TradingView ↗
-            </a>
-          </div>
-        </div>`;
-      return;
-    }
+    // Embed DragonFi chart (no iframe restrictions, real PSE data, Carlo's own broker)
+    inner.style.height = '420px';
+    inner.style.position = 'relative';
+    inner.innerHTML = `
+      <div style="position:absolute;top:0;left:0;right:0;bottom:32px;border-radius:8px;overflow:hidden;background:#0D1320">
+        <iframe
+          src="https://www.dragonfi.ph/market/stocks/${sym}"
+          width="100%" height="100%"
+          frameborder="0"
+          scrolling="yes"
+          style="border:none;border-radius:8px"
+          loading="lazy"
+          title="${sym} chart — DragonFi">
+        </iframe>
+      </div>
+      <div style="position:absolute;bottom:0;left:0;right:0;display:flex;gap:6px;justify-content:flex-end;padding:4px 0">
+        <span style="color:#475569;font-size:10px;align-self:center">📊 DragonFi live chart</span>
+        <a href="https://www.dragonfi.ph/market/stocks/${sym}" target="_blank"
+           style="background:#1a2035;color:#94A3B8;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #1E2A3A">
+          Open full ↗
+        </a>
+        <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
+           style="background:#1a2035;color:#94A3B8;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #1E2A3A">
+          TradingView ↗
+        </a>
+      </div>`;
+    return;
 
     if (typeof LightweightCharts === 'undefined') {
       inner.innerHTML = '<div style="color:#475569;font-size:12px;padding:16px;text-align:center">Charts loading…</div>';
