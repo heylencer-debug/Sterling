@@ -1,6 +1,6 @@
-// Sterling — Sterling PSE Dashboard v45
+// Sterling — Sterling PSE Dashboard v46
 // All page logic and Supabase data fetching
-// v45: Add Sterling Verdict section to Watchlist cards with action badge, reason, and timestamp
+// v46: AI-powered news - OpenRouter Sonnet summaries, ai_action badges, personalized Sterling analysis
 
 // State
 let loadedPages = {};
@@ -2400,6 +2400,12 @@ function renderNews() {
     loadLiveLesson('news');
   }
 
+  // Add AI Personalized badge to page header if not already present
+  const pageHeader = pageEl?.querySelector('.page-header');
+  if (pageHeader && !pageHeader.querySelector('.ai-personalized-badge')) {
+    pageHeader.insertAdjacentHTML('beforeend', '<span class="ai-personalized-badge">AI PERSONALIZED</span>');
+  }
+
   // Show staleness warning if newest article is > 24h old
   const staleWarningId = 'news-stale-warning';
   let existingWarn = document.getElementById(staleWarningId);
@@ -2439,17 +2445,39 @@ function renderNews() {
   feed.innerHTML = filtered.map(n => {
     const sentiment = n.sentiment || tagSentiment((n.headline || '') + ' ' + (n.summary || ''));
     const sentimentIcon = sentiment === 'bullish' ? '▲' : sentiment === 'bearish' ? '▼' : '●';
+
+    // AI action badge mapping
+    const actionBadgeClass = {
+      'BUY MORE': 'ai-action-buy',
+      'HOLD': 'ai-action-hold',
+      'REDUCE': 'ai-action-reduce',
+      'WATCH CLOSELY': 'ai-action-watch'
+    };
+    const aiAction = n.ai_action || null;
+    const actionClass = aiAction ? (actionBadgeClass[aiAction.toUpperCase()] || 'ai-action-hold') : '';
+
+    // AI summary section (only if summary exists and differs from headline)
+    const hasAISummary = n.summary && n.summary !== n.headline && n.summary.length > 50;
+    const aiSummaryHTML = hasAISummary ? `
+      <div class="news-ai-analysis">
+        <div class="news-ai-label">STERLING ANALYSIS</div>
+        <div class="news-ai-summary">${escapeHtml(n.summary)}</div>
+      </div>
+    ` : '';
+
     return `
     <div class="news-card ${sentiment}">
       <div class="news-header">
-        <div class="news-headline">${n.headline || 'No headline'}</div>
+        <div class="news-headline">${escapeHtml(n.headline || 'No headline')}</div>
         <div class="news-badges">
-          ${n.symbol ? `<span class="news-symbol-badge">${n.symbol}</span>` : ''}
+          ${n.symbol ? `<span class="news-symbol-badge">${escapeHtml(n.symbol)}</span>` : ''}
+          ${aiAction ? `<span class="ai-action-badge ${actionClass}">${escapeHtml(aiAction)}</span>` : ''}
           <span class="news-sentiment ${sentiment}">${sentimentIcon} ${sentiment.toUpperCase()}</span>
         </div>
       </div>
+      ${aiSummaryHTML}
       <div class="news-meta">
-        <span>${n.source || 'Unknown source'}</span>
+        <span>${escapeHtml(n.source || 'Unknown source')}</span>
         <span>${formatTime(n.published_at || n.created_at)}</span>
       </div>
     </div>`;
