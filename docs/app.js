@@ -1,6 +1,6 @@
-// Sterling — Sterling PSE Dashboard v49
+// Sterling — Sterling PSE Dashboard v50
 // All page logic and Supabase data fetching
-// v49: Fix triggerAnalysis column mappings (rsi14, current_price, day_change_pct, updated_at) + debug logging
+// v50: Hardwire OpenRouter API key - Analyze button works without manual key entry
 
 // State
 let loadedPages = {};
@@ -4654,12 +4654,8 @@ async function triggerAnalysis(symbol, btnEl) {
     btnEl.classList.remove('analyzing');
   };
 
-  // 2. Check OpenRouter key first
-  const orKey = localStorage.getItem('openrouter_key') || '';
-  if (!orKey) {
-    showAnalysisResult(symbol, btnEl, null, 'No OpenRouter key set. Click the ⚙️ icon in sidebar to add your key.');
-    return;
-  }
+  // 2. Get OpenRouter key (hardwired default for convenience)
+  const orKey = localStorage.getItem('openrouter_key') || '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';
 
   const { url, anonKey } = window.SUPABASE_CONFIG;
 
