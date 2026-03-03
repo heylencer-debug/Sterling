@@ -1208,3 +1208,7 @@ body {
 .tsc-ma-trend { font-size: 11px; color: #475569; margin-bottom: 6px; }
 .tsc-rationale { font-size: 12px; color: #374151; line-height: 1.5; }
 .tsc-why-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #0A0A0A; margin-right: 4px; }
+
+/* -- Action block freshness badge ------------------------------ */
+.action-freshness { font-size: 10px; font-weight: 700; color: #16A34A; background: #DCFCE7; padding: 2px 8px; border-radius: 4px; margin-left: auto; letter-spacing: 0.04em; white-space: nowrap; }
+.action-headline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
