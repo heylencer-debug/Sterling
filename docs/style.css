@@ -1161,6 +1161,36 @@ body {
 .news-card.bearish { border-left: 3px solid #DC2626; }
 .news-card.neutral { border-left: 3px solid #D1D5DB; }
 
+/* -- AI Action Badges (Sterling Analysis) ------------------------- */
+.ai-action-badge {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 3px 10px; border-radius: 4px; background: transparent; border: 1.5px solid;
+}
+.ai-action-badge.ai-action-buy { color: #16A34A; border-color: #16A34A; }
+.ai-action-badge.ai-action-hold { color: #6B7280; border-color: #6B7280; }
+.ai-action-badge.ai-action-reduce { color: #DC2626; border-color: #DC2626; }
+.ai-action-badge.ai-action-watch { color: #EA580C; border-color: #EA580C; }
+
+/* -- AI Personalized Badge ---------------------------------------- */
+.ai-personalized-badge {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 4px 10px; border-radius: 4px; background: transparent;
+  border: 1.5px solid #6B7280; color: #6B7280; margin-left: auto;
+}
+
+/* -- News AI Analysis Block --------------------------------------- */
+.news-ai-analysis {
+  margin: 10px 0; padding: 12px 14px;
+  background: #F9FAFB; border-radius: 6px; border: 1px solid #E5E7EB;
+}
+.news-ai-label {
+  font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.07em; color: #6B7280; margin-bottom: 6px;
+}
+.news-ai-summary {
+  font-size: 13px; line-height: 1.6; color: #374151;
+}
+
 /* Modal .active support (possize + dividend modals) */
 .trade-modal-overlay.active { display: flex; }
 
