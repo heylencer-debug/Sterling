@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ============================================================
-   STERLING — Minimalist · Wireframe · GenZ
-   Black sidebar · Offset shadows · Outlined badges · Mono numbers
+   STERLING ï¿½ Minimalist ï¿½ Wireframe ï¿½ GenZ
+   Black sidebar ï¿½ Offset shadows ï¿½ Outlined badges ï¿½ Mono numbers
    ============================================================ */
 
 :root {
@@ -626,7 +626,7 @@ body {
 }
 
 /* =============================================================
-   STERLING — REAL CLASS FIXES (matches actual app.js output)
+   STERLING ï¿½ REAL CLASS FIXES (matches actual app.js output)
    ============================================================= */
 
 /* -- Trade modal: uses .active not .open ----------------------- */
@@ -802,7 +802,7 @@ body {
 .broker-best-for { font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:0.04em; }
 .broker-pros { list-style:none;padding:0;margin:0 0 14px;display:flex;flex-direction:column;gap:6px; }
 .broker-pros li { font-size:13px;color:#1A1A1A;padding-left:14px;position:relative; }
-.broker-pros li::before { content:"—";position:absolute;left:0;color:#555555; }
+.broker-pros li::before { content:"ï¿½";position:absolute;left:0;color:#555555; }
 .broker-link { display:block;text-align:center;padding:10px;border-radius:6px;font-size:12px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.05em;border:1.5px solid;transition:box-shadow 0.15s; }
 .broker-link:hover { box-shadow:3px 3px 0 #0A0A0A; }
 
@@ -1232,3 +1232,162 @@ body {
 .disc-entry-chip.entry  { background: #F0FDF4; color: #15803D; }
 .disc-entry-chip.target { background: #EFF6FF; color: #1D4ED8; }
 .disc-entry-chip.stop   { background: #FEF2F2; color: #DC2626; }
+
+/* =============================================================
+   STERLING v43 â€” SMART TRADING FEATURES
+   ============================================================= */
+
+/* -- FEATURE 1: Risk/Reward Ratio Badge ------------------------ */
+.tsc-rr-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: 'Cutive Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1.5px solid;
+  border-radius: 4px;
+  background: transparent;
+  margin-top: 6px;
+}
+
+/* -- FEATURE 6: 52-Week Range Bar ------------------------------ */
+.tsc-52w-range {
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: #F5F5F5;
+  border-radius: 6px;
+}
+.tsc-52w-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #555555;
+  margin-bottom: 6px;
+  display: block;
+  font-family: 'Cutive Mono', monospace;
+}
+.tsc-52w-track {
+  position: relative;
+  height: 4px;
+  background: #E5E5E5;
+  border-radius: 2px;
+}
+.tsc-52w-dot {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #0A0A0A;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #FFFFFF;
+}
+
+/* -- FEATURE 7: Volume Spike Badge ----------------------------- */
+.tsc-vol-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1.5px solid;
+}
+.tsc-vol-badge.spike {
+  color: #EA580C;
+  border-color: #EA580C;
+}
+.tsc-vol-badge.surge {
+  color: #DC2626;
+  border-color: #DC2626;
+}
+
+/* -- FEATURE 3: Sector Concentration Warning ------------------- */
+.sector-warning-banner {
+  background: #FFF3CD;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0A0A0A;
+  line-height: 1.5;
+}
+.sector-warning-banner strong {
+  font-weight: 800;
+}
+
+.sector-concentration-card {
+  background: #FFFFFF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+.sector-concentration-header {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0A0A0A;
+  margin-bottom: 12px;
+}
+.sector-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sector-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sector-bar-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555555;
+  width: 100px;
+  flex-shrink: 0;
+}
+.sector-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #E5E5E5;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.sector-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.sector-bar-pct {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Cutive Mono', monospace;
+  color: #0A0A0A;
+  width: 45px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* -- FEATURE 2 & 4: DCA Hint and Drawdown styling -------------- */
+.detail-row.dca-hint {
+  background: #FFF7ED;
+  margin: 4px -8px -4px;
+  padding: 6px 8px;
+  border-radius: 0 0 4px 4px;
+}
+
+/* -- Responsive for new features ------------------------------- */
+@media (max-width: 480px) {
+  .sector-bar-label { width: 70px; font-size: 10px; }
+  .tsc-52w-label { font-size: 9px; }
+  .tsc-rr-badge { font-size: 10px; padding: 3px 8px; }
+}
