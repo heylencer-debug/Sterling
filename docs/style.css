@@ -1678,6 +1678,80 @@ body {
   animation: verdictPulse 0.4s ease 2;
 }
 
+/* Markdown formatting for analysis text */
+.sas-text strong {
+  font-weight: 800;
+  color: #0A0A0A;
+}
+.sas-section-header {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6B7280;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+.sas-section-header:first-child {
+  margin-top: 0;
+}
+.sas-text p {
+  margin: 0 0 8px 0;
+}
+
+/* AI Verdict wrapper (separate from Technical Signal) */
+.ai-verdict-wrapper {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #F0F9FF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+}
+.ai-verdict-wrapper .tsc-verdict-label {
+  color: #2563EB;
+}
+
+/* Verdict note explaining Technical vs AI */
+.sas-verdict-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #FFF7ED;
+  border-left: 3px solid #EA580C;
+  font-size: 11px;
+  color: #374151;
+  border-radius: 0 4px 4px 0;
+  line-height: 1.5;
+}
+.sas-verdict-note strong {
+  font-weight: 700;
+  color: #0A0A0A;
+}
+
+/* Portfolio card AI verdict display */
+.portfolio-ai-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 8px 0;
+  padding: 8px 10px;
+  background: #F0F9FF;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 6px;
+}
+.portfolio-ai-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #2563EB;
+}
+.portfolio-ai-ts {
+  font-size: 10px;
+  font-weight: 400;
+  color: #6B7280;
+  margin-left: auto;
+}
+
 /* Mobile responsive for analysis section */
 @media (max-width: 480px) {
   .sas-header { padding: 6px 10px; }
