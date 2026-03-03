@@ -1595,3 +1595,81 @@ body {
   .analyze-btn { padding: 6px 10px; font-size: 9px; }
   .analyze-text { font-size: 12px; }
 }
+
+/* ==================== OPTION C - COLLAPSIBLE STERLING ANALYSIS ==================== */
+
+/* Collapsible Sterling Analysis Section */
+.sterling-analysis-section {
+  margin-top: 10px;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.sas-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0A0A0A;
+  cursor: pointer;
+  user-select: none;
+}
+.sas-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #FFFFFF;
+  flex: 1;
+}
+.sas-ts {
+  font-size: 10px;
+  color: #9CA3AF;
+}
+.sas-toggle {
+  font-size: 10px;
+  color: #9CA3AF;
+  transition: transform 0.2s ease;
+}
+.sas-body {
+  display: none;
+  padding: 12px;
+  background: #FAFAFA;
+}
+.sterling-analysis-section.sas-open .sas-body {
+  display: block;
+}
+.sterling-analysis-section.sas-open .sas-toggle {
+  transform: rotate(180deg);
+}
+.sas-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #0A0A0A;
+  margin: 0;
+}
+
+/* Verdict freshness timestamp */
+.verdict-fresh-ts {
+  font-size: 10px;
+  font-weight: 400;
+  color: #6B7280;
+  margin-left: 8px;
+}
+
+/* Verdict pulse animation */
+@keyframes verdictPulse {
+  0%   { opacity: 1; transform: scale(1); }
+  50%  { opacity: 0.6; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.verdict-pulse {
+  animation: verdictPulse 0.4s ease 2;
+}
+
+/* Mobile responsive for analysis section */
+@media (max-width: 480px) {
+  .sas-header { padding: 6px 10px; }
+  .sas-body { padding: 10px; }
+  .sas-text { font-size: 12px; }
+}
