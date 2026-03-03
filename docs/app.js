@@ -1,6 +1,6 @@
-// Sterling — Sterling PSE Dashboard v44
+// Sterling — Sterling PSE Dashboard v45
 // All page logic and Supabase data fetching
-// v44: Bug fixes - XSS escaping, CSS opacity, verdict mapping, null guards, type checks
+// v45: Add Sterling Verdict section to Watchlist cards with action badge, reason, and timestamp
 
 // State
 let loadedPages = {};
@@ -1852,6 +1852,68 @@ function _buildTechCard(symbol, tech, intel, uid) {
     rrHtml = `<div class="tsc-rr-badge" style="color:${rrColor};border-color:${rrColor}">R:R 1:${rr}</div>`;
   }
 
+  // FEATURE: Sterling Verdict section
+  let verdictHtml = '';
+  if (tech && overall && overall !== '—') {
+    // Map overall_signal to verdict label
+    let verdictLabel, verdictReason, verdictClass;
+    if (overall === 'Strong Buy') {
+      verdictLabel = 'STRONG BUY';
+      verdictClass = 'verdict-strong-buy';
+      verdictReason = rsi !== null
+        ? `RSI ${rsi} + MA trend confirms upward momentum`
+        : 'All indicators align — strong buy signal';
+    } else if (overall === 'Buy') {
+      verdictLabel = 'BUY';
+      verdictClass = 'verdict-buy';
+      verdictReason = 'Price above key moving averages, momentum building';
+    } else if (overall === 'Neutral') {
+      verdictLabel = 'HOLD';
+      verdictClass = 'verdict-hold';
+      verdictReason = 'Consolidating — wait for breakout confirmation';
+    } else if (overall === 'Sell') {
+      verdictLabel = 'SELL';
+      verdictClass = 'verdict-sell';
+      verdictReason = rsi !== null && parseFloat(rsi) > 60
+        ? `RSI elevated at ${rsi} — consider reducing`
+        : 'RSI elevated or price below SMA50';
+    } else if (overall === 'Strong Sell') {
+      verdictLabel = 'STRONG SELL';
+      verdictClass = 'verdict-strong-sell';
+      verdictReason = 'Multiple sell signals — consider reducing position';
+    } else {
+      verdictLabel = 'MONITOR';
+      verdictClass = 'verdict-hold';
+      verdictReason = 'Insufficient data for clear signal';
+    }
+
+    // Calculate time ago
+    let verdictTimeAgo = '';
+    if (tech.updated_at) {
+      const mins = Math.round((Date.now() - new Date(tech.updated_at).getTime()) / 60000);
+      verdictTimeAgo = mins < 2 ? 'just now' : mins < 60 ? `${mins}m ago` : `${Math.round(mins/60)}h ago`;
+    }
+
+    verdictHtml = `
+      <div class="tsc-verdict-section">
+        <div class="tsc-verdict-label">STERLING VERDICT</div>
+        <div class="tsc-verdict-row">
+          <span class="tsc-verdict-badge ${verdictClass}">${verdictLabel}</span>
+          <span class="tsc-verdict-reason">${verdictReason}</span>
+        </div>
+        ${verdictTimeAgo ? `<div class="tsc-verdict-time">Updated ${verdictTimeAgo}</div>` : ''}
+      </div>`;
+  } else {
+    // No tech data - show pending
+    verdictHtml = `
+      <div class="tsc-verdict-section">
+        <div class="tsc-verdict-label">STERLING VERDICT</div>
+        <div class="tsc-verdict-row">
+          <span class="tsc-verdict-badge verdict-pending">ANALYSIS PENDING</span>
+        </div>
+      </div>`;
+  }
+
   // FEATURE 6: 52-week range bar
   let range52Html = '';
   const w52High = tech.week52_high != null ? parseFloat(tech.week52_high) : null;
@@ -1900,6 +1962,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
       ${stop   ? `<div class="tsc-entry-pill stop"><span class="tsc-ep-label">STOP LOSS</span><span class="tsc-ep-val">${stop}</span></div>` : ''}
       ${rrHtml}
     </div>
+    ${verdictHtml}
     ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
     ${how ? `<div class="tsc-rationale" style="margin-top:6px"><span class="tsc-why-label">HOW TO BUY:</span> ${how}</div>` : ''}
   </div>`;
