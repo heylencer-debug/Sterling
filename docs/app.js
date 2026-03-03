@@ -1697,20 +1697,20 @@ function _buildTechCard(symbol, tech, intel, uid) {
   let stop = intel.stop || null;
 
   if (!entry) {
-    const price = tech.current_price;
-    const sma50 = tech.sma50 ? parseFloat(tech.sma50) : null;
-    const sma200 = tech.sma200 ? parseFloat(tech.sma200) : null;
-    if (price && sma50) {
+    const price = tech.current_price != null ? parseFloat(tech.current_price) : null;
+    const sma50 = tech.sma50 != null ? parseFloat(tech.sma50) : null;
+    const sma200 = tech.sma200 != null ? parseFloat(tech.sma200) : null;
+    if (price != null && sma50 != null) {
       if (price > sma50 * 1.03) {
         entry = `Near ₱${sma50.toFixed(2)} (wait for SMA50 dip)`;
       } else {
-        entry = `~₱${parseFloat(price).toFixed(2)} (near SMA50 support)`;
+        entry = `~₱${price.toFixed(2)} (near SMA50 support)`;
       }
-    } else if (price) {
-      entry = `~₱${parseFloat(price).toFixed(2)} (current level)`;
+    } else if (price != null) {
+      entry = `~₱${price.toFixed(2)} (current level)`;
     }
-    if (!stop && sma200) stop = `₱${(sma200 * 0.95).toFixed(2)} (5% below SMA200)`;
-    if (!target && price) target = `₱${(parseFloat(price) * 1.12).toFixed(2)} (+12% swing target)`;
+    if (!stop && sma200 != null) stop = `₱${(sma200 * 0.95).toFixed(2)} (5% below SMA200)`;
+    if (!target && price != null) target = `₱${(price * 1.12).toFixed(2)} (+12% swing target)`;
   }
 
   return `<div id="tech-card-${uid}" class="tech-signal-card">
@@ -2214,7 +2214,7 @@ function renderNews() {
       </div>
       <div class="news-meta">
         <span>${n.source || 'Unknown source'}</span>
-        <span>${formatTime(n.created_at)}</span>
+        <span>${formatTime(n.published_at || n.created_at)}</span>
       </div>
     </div>`;
   }).join('');
@@ -2425,12 +2425,16 @@ async function renderDiscovery() {
   const grid = document.getElementById('discovery-grid');
   grid.innerHTML = `<div class="discovery-loading" style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">Loading PSE universe…</div>`;
 
-  // Load fundamentals from sterling_intelligence (keyed by symbol)
+  // Load fundamentals from sterling_intelligence — group by symbol+pillar
+  // sterling_intelligence has one row per pillar (fundamentals/news/technicals) per symbol
   let intelMap = {};
   try {
     const intelRows = await window.sbFetch('sterling_intelligence', { limit: '200' });
     if (intelRows && intelRows.length) {
-      intelRows.forEach(row => { intelMap[row.symbol] = row; });
+      intelRows.forEach(row => {
+        if (!intelMap[row.symbol]) intelMap[row.symbol] = {};
+        intelMap[row.symbol][row.pillar] = row;
+      });
     }
   } catch (e) { /* no intel, show N/A */ }
 
@@ -2460,12 +2464,14 @@ async function renderDiscovery() {
     const sectorColor = getSectorColor(s.sector);
     const intel = intelMap[s.symbol] || null;
 
-    // Parse fundamentals from intel JSONB
+    // Parse fundamentals from sterling_intelligence (pillar=fundamentals row)
     let pe = 'N/A', eps = 'N/A', divYield = 'N/A', verdict = null, analyzedDate = null, isStale = true;
-    if (intel) {
+    const fundamentalRow = intel && intel.fundamentals ? intel.fundamentals : null;
+    if (fundamentalRow) {
       try {
-        const f = typeof intel.fundamentals === 'string' ? JSON.parse(intel.fundamentals) : (intel.fundamentals || {});
-        const points = f.points || [];
+        const points = Array.isArray(fundamentalRow.points)
+          ? fundamentalRow.points
+          : (typeof fundamentalRow.points === 'string' ? JSON.parse(fundamentalRow.points) : []);
         // Extract P/E, EPS, yield from points text (best-effort)
         const pePoint = points.find(p => /P\/E|P-E|price.to.earn/i.test(p));
         const epsPoint = points.find(p => /EPS|earnings per share/i.test(p));
@@ -2476,9 +2482,9 @@ async function renderDiscovery() {
         if (peMatch) pe = peMatch[0];
         if (epsMatch) eps = '₱' + epsMatch[0];
         if (yldMatch) divYield = yldMatch[0];
-        verdict = f.verdict || null;
-        analyzedDate = intel.analyzed_at ? new Date(intel.analyzed_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : null;
-        isStale = intel.analyzed_at ? (Date.now() - new Date(intel.analyzed_at).getTime()) > 7 * 24 * 60 * 60 * 1000 : true;
+        verdict = fundamentalRow.verdict || null;
+        analyzedDate = fundamentalRow.analyzed_at ? new Date(fundamentalRow.analyzed_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : null;
+        isStale = fundamentalRow.analyzed_at ? (Date.now() - new Date(fundamentalRow.analyzed_at).getTime()) > 7 * 24 * 60 * 60 * 1000 : true;
       } catch (e) { /* parse fail, keep N/A */ }
     }
 
