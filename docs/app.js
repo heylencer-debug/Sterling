@@ -1405,6 +1405,48 @@ function togglePillar(id) {
   } catch(e) {}
 }
 
+// Build a dynamic Sterling verdict from live TradingView data + static intel
+function _buildConclusion(symbol, tech, staticIntel) {
+  const overall = tech.overall_signal || '';
+  const rsi = tech.rsi14 !== null ? parseFloat(tech.rsi14) : null;
+  const rsiSig = tech.rsi_signal || '';
+  const macdSig = tech.macd_signal || '';
+  const maTrend = tech.ma_trend || '';
+  const price = tech.current_price ? `₱${tech.current_price}` : '';
+  const chg = tech.day_change_pct != null ? `${parseFloat(tech.day_change_pct) >= 0 ? '+' : ''}${parseFloat(tech.day_change_pct).toFixed(2)}%` : '';
+
+  // Decide action word based on signal
+  let action, actionReason;
+  if (overall === 'Strong Buy') {
+    action = 'ADD'; actionReason = 'all indicators align — strong buy signal';
+  } else if (overall === 'Buy') {
+    action = 'CONSIDER ADDING'; actionReason = 'technicals lean bullish';
+  } else if (overall === 'Neutral') {
+    action = 'HOLD'; actionReason = 'mixed signals — no clear direction yet';
+  } else if (overall === 'Sell') {
+    action = 'REDUCE OR HOLD'; actionReason = 'technicals weakening';
+  } else if (overall === 'Strong Sell') {
+    action = 'REDUCE POSITION'; actionReason = 'broad selling pressure detected';
+  } else {
+    action = 'MONITOR'; actionReason = 'insufficient data';
+  }
+
+  const rsiNote = rsi !== null
+    ? (rsi < 30 ? `RSI at ${rsi} is oversold — potential bounce incoming.`
+      : rsi > 70 ? `RSI at ${rsi} is overbought — possible cooldown ahead.`
+      : `RSI at ${rsi} (${rsiSig}) — momentum is stable.`)
+    : '';
+
+  const macdNote = macdSig ? `MACD shows ${macdSig.toLowerCase()}.` : '';
+  const maNote = maTrend ? maTrend + '.' : '';
+
+  const staticNote = staticIntel && staticIntel.conclusion
+    ? `\n\nFundamentals context: ${staticIntel.conclusion}`
+    : '';
+
+  return `Current price ${price} (${chg} today). TradingView signal: ${overall}. ${rsiNote} ${macdNote} ${maNote}\n\n⚔️ Sterling says: ${action} — ${actionReason}.${staticNote}`.trim();
+}
+
 function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
   const uid = symbol;
@@ -1468,12 +1510,35 @@ function renderStockAction(symbol) {
   }, 300);
 
   if (a) {
-    // Static data available — render immediately
+    // Use live technicalsData (TradingView) for the technicals pillar if available
+    const liveTech = (technicalsData || []).find(t => t.symbol === symbol);
+    const liveTechPillar = liveTech ? {
+      verdict: liveTech.overall_signal && liveTech.overall_signal.includes('Buy') ? 'Positive' : liveTech.overall_signal && liveTech.overall_signal.includes('Sell') ? 'Negative' : 'Neutral',
+      ai_summary: `RSI ${liveTech.rsi14 !== null ? parseFloat(liveTech.rsi14).toFixed(1) : 'N/A'} (${liveTech.rsi_signal || '—'}). MACD: ${liveTech.macd_signal || '—'}. Signal: ${liveTech.overall_signal || '—'}.`,
+      points: [
+        `RSI(14): ${liveTech.rsi14 !== null ? parseFloat(liveTech.rsi14).toFixed(1) : 'N/A'} — ${liveTech.rsi_signal || 'N/A'}`,
+        `MACD: ${liveTech.macd_signal || 'N/A'}`,
+        `TradingView overall: ${liveTech.overall_signal || 'N/A'}`,
+        liveTech.ma_trend || null,
+        liveTech.sma50 ? `SMA50: ₱${liveTech.sma50} | SMA200: ₱${liveTech.sma200 || 'N/A'}` : null,
+      ].filter(Boolean),
+      sources: [{ name: `TradingView PSE:${symbol} Technicals`, url: `https://ph.tradingview.com/symbols/PSE-${symbol}/technicals/` }],
+      analyzed_at: liveTech.updated_at
+    } : null;
+
+    const techUpdatedAt = liveTech && liveTech.updated_at
+      ? (() => { const d = new Date(liveTech.updated_at); const mins = Math.round((Date.now() - d) / 60000); return mins < 2 ? 'just now' : mins < 60 ? `${mins}m ago` : `${Math.round(mins/60)}h ago`; })()
+      : null;
+
+    // Dynamic conclusion from live signal
+    const liveConclusion = liveTech ? _buildConclusion(symbol, liveTech, a) : (a.conclusion || '');
+
     return `
       <div class="action-block">
         <div class="action-headline">
           <span class="action-badge ${a.badgeClass}">${a.badge}</span>
           <span class="action-summary">${a.summary}</span>
+          ${techUpdatedAt ? `<span class="action-freshness">📡 Updated ${techUpdatedAt}</span>` : ''}
         </div>
         <div class="price-triggers">
           <div class="trigger-pill buy"><span class="trigger-label">ENTRY</span><span class="trigger-price">${a.entry}</span></div>
@@ -1483,14 +1548,14 @@ function renderStockAction(symbol) {
         <div class="pillars-section">
           <div id="pillar-f-${uid}">${renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, null, uid+'_f')}</div>
           <div id="pillar-n-${uid}">${renderPillar('📰', 'News & Catalysts', 'news', a.news, null, uid+'_n')}</div>
-          <div id="pillar-t-${uid}">${renderPillar('📈', 'Technicals', 'technicals', a.technicals, null, uid+'_t')}</div>
+          <div id="pillar-t-${uid}">${renderPillar('📈', 'Technicals', 'technicals', a.technicals, liveTechPillar, uid+'_t')}</div>
         </div>
         <div class="action-conclusion-block">
           <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
             <span>⚔️ Sterling&#39;s Verdict</span><span class="chevron">▸</span>
           </div>
           <div class="action-detail" style="display:none">
-            <p class="action-conclusion">${a.conclusion || ''}</p>
+            <p class="action-conclusion" id="conclusion-${uid}">${liveConclusion}</p>
           </div>
         </div>
       </div>`;
@@ -2070,6 +2135,24 @@ function renderNews() {
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('news'));
     loadLiveLesson('news');
+  }
+
+  // Show staleness warning if newest article is > 24h old
+  const staleWarningId = 'news-stale-warning';
+  let existingWarn = document.getElementById(staleWarningId);
+  if (existingWarn) existingWarn.remove();
+  if (newsData && newsData.length > 0) {
+    const newest = newsData[0];
+    const ageMs = Date.now() - new Date(newest.published_at || newest.created_at).getTime();
+    const ageH = Math.round(ageMs / 3600000);
+    if (ageMs > 24 * 3600000) {
+      const warn = document.createElement('div');
+      warn.id = staleWarningId;
+      warn.style.cssText = 'background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:12px;display:flex;align-items:center;gap:8px';
+      warn.innerHTML = `⚠️ <strong>News last refreshed ${ageH}h ago.</strong> Next auto-refresh at 8AM tomorrow. <a href="#" onclick="loadNews();return false;" style="color:#B45309;font-weight:700;margin-left:4px">Refresh now ↺</a>`;
+      const feed = document.getElementById('news-feed');
+      if (feed && feed.parentNode) feed.parentNode.insertBefore(warn, feed);
+    }
   }
 
   const symbol = document.getElementById('filter-news-symbol').value;
