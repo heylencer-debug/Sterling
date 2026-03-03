@@ -1,5 +1,6 @@
-// Sterling — Sterling PSE Dashboard v56
+// Sterling — Sterling PSE Dashboard v57
 // All page logic and Supabase data fetching
+// v57: 3-fix update — persistence via sterling_intelligence, markdown formatting, dual verdict (Technical + AI)
 // v56: Plain English analysis - rewrote AI prompt to remove jargon, added action glossary strip
 // v55: Analysis persistence - saves AI analysis to sterling_analysis, reloads on page render
 // v52: SECURITY - API keys fetched from Supabase app_settings (no localStorage)
@@ -418,7 +419,7 @@ async function loadIntelligence(symbol) {
 // ==================== PERSISTED ANALYSIS LOADER ====================
 
 async function loadAnalysisData(symbols) {
-  // Load persisted AI analysis from sterling_analysis table
+  // Load persisted AI analysis from sterling_intelligence table (pillar='on_demand')
   if (!symbols || symbols.length === 0) return;
 
   try {
@@ -427,7 +428,7 @@ async function loadAnalysisData(symbols) {
 
     const symbolList = symbols.map(s => `"${s}"`).join(',');
     const res = await fetch(
-      `${url}/rest/v1/sterling_analysis?symbol=in.(${symbolList})&select=symbol,analysis_text,action,analyzed_at&order=analyzed_at.desc`,
+      `${url}/rest/v1/sterling_intelligence?symbol=in.(${symbolList})&pillar=eq.on_demand&select=symbol,ai_summary,verdict,analyzed_at&order=analyzed_at.desc`,
       { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
     );
     if (!res.ok) {
@@ -439,9 +440,11 @@ async function loadAnalysisData(symbols) {
     // Build analysisData map (latest per symbol)
     rows.forEach(r => {
       if (!analysisData[r.symbol]) {
+        // Detect action from the saved analysis text
+        const detectedAction = detectActionFromAnalysis(r.ai_summary);
         analysisData[r.symbol] = {
-          analysis_text: r.analysis_text,
-          action: r.action,
+          analysis_text: r.ai_summary,
+          action: detectedAction.label,
           analyzed_at: r.analyzed_at
         };
       }
@@ -660,7 +663,7 @@ function renderPortfolio() {
       yieldOnCostHtml = `<div class="detail-row"><span class="detail-label">Yield on Cost</span><span class="detail-value" style="color:#059669">${yoc.toFixed(2)}%</span></div>`;
     }
 
-    // FEATURE 6: Persisted Sterling Analysis from sterling_analysis table
+    // FEATURE 6: Persisted Sterling Analysis from sterling_intelligence table
     let savedAnalysisHtml = '';
     let analyzeButtonText = '⚡ ANALYZE';
     const savedAnalysis = analysisData[h.symbol];
@@ -668,14 +671,22 @@ function renderPortfolio() {
       const savedTs = savedAnalysis.analyzed_at
         ? new Date(savedAnalysis.analyzed_at).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '';
+      const savedAction = detectActionFromAnalysis(savedAnalysis.analysis_text);
       savedAnalysisHtml = `
+        <div class="portfolio-ai-verdict">
+          <span class="portfolio-ai-label">AI ANALYSIS:</span>
+          <span class="tsc-verdict-badge verdict-${savedAction.cls}">${savedAction.label}</span>
+          <span class="portfolio-ai-ts">${savedTs}</span>
+        </div>
         <div class="sterling-analysis-section sas-open">
           <div class="sas-header" onclick="this.parentElement.classList.toggle('sas-open')">
             <span class="sas-label">⚡ STERLING ANALYSIS</span>
             <span class="sas-ts">${savedTs}</span>
             <span class="sas-toggle">▼</span>
           </div>
-          <div class="sas-body"><p class="sas-text">${savedAnalysis.analysis_text}</p></div>
+          <div class="sas-body"><p class="sas-text">${formatAnalysisText(savedAnalysis.analysis_text)}</p>
+            <div class="sas-verdict-note">📊 <strong>Technical Signal</strong> is based on price math only. <strong>AI Analysis</strong> considers news and broader context. Use both together.</div>
+          </div>
         </div>`;
       analyzeButtonText = '⚡ RE-ANALYZE';
     }
@@ -1989,7 +2000,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
 
     verdictHtml = `
       <div class="tsc-verdict-section">
-        <div class="tsc-verdict-label">STERLING VERDICT</div>
+        <div class="tsc-verdict-label">TECHNICAL SIGNAL</div>
         <div class="tsc-verdict-row">
           <span class="tsc-verdict-badge ${verdictClass}">${verdictLabel}</span>
           <span class="tsc-verdict-reason">${verdictReason}</span>
@@ -2000,7 +2011,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
     // No tech data - show pending
     verdictHtml = `
       <div class="tsc-verdict-section">
-        <div class="tsc-verdict-label">STERLING VERDICT</div>
+        <div class="tsc-verdict-label">TECHNICAL SIGNAL</div>
         <div class="tsc-verdict-row">
           <span class="tsc-verdict-badge verdict-pending">ANALYSIS PENDING</span>
         </div>
@@ -2036,14 +2047,25 @@ function _buildTechCard(symbol, tech, intel, uid) {
     }
   }
 
-  // FEATURE 8: Persisted Sterling Analysis from sterling_analysis table
+  // FEATURE 8: Persisted Sterling Analysis from sterling_intelligence table
   let savedAnalysisHtml = '';
+  let savedAiVerdictHtml = '';
   let analyzeButtonText = '⚡ ANALYZE';
   const savedAnalysis = analysisData[symbol];
   if (savedAnalysis && savedAnalysis.analysis_text) {
     const savedTs = savedAnalysis.analyzed_at
       ? new Date(savedAnalysis.analyzed_at).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       : '';
+    const savedAction = detectActionFromAnalysis(savedAnalysis.analysis_text);
+    // AI ANALYSIS badge (separate from Technical Signal)
+    savedAiVerdictHtml = `
+      <div class="ai-verdict-wrapper">
+        <div class="tsc-verdict-label">AI ANALYSIS</div>
+        <div class="tsc-verdict-row">
+          <span class="ai-verdict-badge tsc-verdict-badge verdict-${savedAction.cls}">${savedAction.label}</span>
+          <span class="verdict-fresh-ts">${savedTs}</span>
+        </div>
+      </div>`;
     savedAnalysisHtml = `
       <div class="sterling-analysis-section sas-open">
         <div class="sas-header" onclick="this.parentElement.classList.toggle('sas-open')">
@@ -2051,7 +2073,9 @@ function _buildTechCard(symbol, tech, intel, uid) {
           <span class="sas-ts">${savedTs}</span>
           <span class="sas-toggle">▼</span>
         </div>
-        <div class="sas-body"><p class="sas-text">${savedAnalysis.analysis_text}</p></div>
+        <div class="sas-body"><p class="sas-text">${formatAnalysisText(savedAnalysis.analysis_text)}</p>
+          <div class="sas-verdict-note">📊 <strong>Technical Signal</strong> is based on price math only. <strong>AI Analysis</strong> considers news and broader context. Use both together.</div>
+        </div>
       </div>`;
     analyzeButtonText = '⚡ RE-ANALYZE';
   }
@@ -2076,6 +2100,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
       ${rrHtml}
     </div>
     ${verdictHtml}
+    ${savedAiVerdictHtml}
     ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
     ${how ? `<div class="tsc-rationale" style="margin-top:6px"><span class="tsc-why-label">HOW TO BUY:</span> ${how}</div>` : ''}
     ${savedAnalysisHtml}
@@ -4919,43 +4944,11 @@ RULES:
   const detectedAction = detectActionFromAnalysis(analysis);
   const now = new Date().toISOString();
 
-  // 7a. Save analysis to Supabase sterling_analysis (best-effort, persisted for reload)
-  try {
-    const uid = typeof _uid === 'function' ? _uid() : null;
-    const saveBody = {
-      symbol: symbol,
-      analysis_text: analysis,
-      action: detectedAction.label,
-      recommend_all: tech.recommend_all,
-      analyzed_at: now
-    };
-    if (uid) saveBody.user_id = uid;
+  // 7a. Save analysis to sterling_intelligence (pillar='on_demand') for persistence
+  // Update local cache immediately
+  analysisData[symbol] = { analysis_text: analysis, action: detectedAction.label, analyzed_at: now };
 
-    fetch(url + '/rest/v1/sterling_analysis', {
-      method: 'POST',
-      headers: {
-        'apikey': anonKey,
-        'Authorization': 'Bearer ' + anonKey,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(saveBody)
-    }).then(res => {
-      if (res.ok) {
-        console.log('[Sterling] Analysis saved to sterling_analysis for', symbol);
-        // Update local cache
-        analysisData[symbol] = { analysis_text: analysis, action: detectedAction.label, analyzed_at: now };
-      } else {
-        console.warn('[Sterling] Failed to save analysis:', res.status);
-      }
-    }).catch(err => {
-      console.warn('[Sterling] Error saving analysis:', err.message);
-    });
-  } catch (e) {
-    console.warn('[Sterling] sterling_analysis save error:', e.message);
-  }
-
-  // 7b. Also save to sterling_intelligence (existing logic, for dashboard intel cards)
+  // 7b. Save to sterling_intelligence (for dashboard intel cards and persistence)
   fetch(url + '/rest/v1/sterling_intelligence', {
     method: 'POST',
     headers: {
@@ -4991,6 +4984,20 @@ function detectActionFromAnalysis(text) {
   return { label: 'HOLD', cls: 'hold' };
 }
 
+// Convert markdown-style formatting to HTML for analysis text
+function formatAnalysisText(text) {
+  if (!text) return '';
+  return text
+    // Convert **text** to <strong>text</strong>
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Convert section headers like "WHAT'S HAPPENING" on its own line to styled divs
+    .replace(/^(WHAT.S HAPPENING|SHOULD I DO ANYTHING\?|IF I BUY|ONE THING TO WATCH)/gm, '<div class="sas-section-header">$1</div>')
+    // Convert double line breaks to paragraph breaks
+    .replace(/\n\n/g, '</p><p class="sas-text">')
+    // Convert single line breaks to <br>
+    .replace(/\n/g, '<br>');
+}
+
 function showAnalysisResult(symbol, btnEl, analysis, error) {
   const card = btnEl.closest('.tsc-card') || btnEl.closest('.tech-signal-card') || btnEl.closest('.holding-card') || btnEl.closest('.portfolio-card') || btnEl.parentElement;
   const ts = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
@@ -5011,25 +5018,32 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
     return;
   }
 
-  // 1. Update the verdict badge on the card
-  const verdictBadge = card.querySelector('.tsc-verdict-badge');
-  if (verdictBadge && analysis) {
-    const action = detectActionFromAnalysis(analysis);
-    verdictBadge.textContent = action.label;
-    verdictBadge.className = 'tsc-verdict-badge verdict-' + action.cls;
-
-    // Add freshness timestamp next to badge
-    let tsEl = card.querySelector('.verdict-fresh-ts');
-    if (!tsEl) {
-      tsEl = document.createElement('span');
-      tsEl.className = 'verdict-fresh-ts';
-      verdictBadge.parentElement.appendChild(tsEl);
+  // 1. Add AI VERDICT badge (separate from Technical Signal)
+  // DO NOT overwrite the technical badge - it stays as pure math signal
+  const detectedAction = detectActionFromAnalysis(analysis);
+  const techVerdictSection = card.querySelector('.tsc-verdict-section');
+  if (techVerdictSection && analysis) {
+    // Find or create AI verdict wrapper
+    let aiVerdictEl = card.querySelector('.ai-verdict-wrapper');
+    if (!aiVerdictEl) {
+      aiVerdictEl = document.createElement('div');
+      aiVerdictEl.className = 'ai-verdict-wrapper';
+      // Insert after the technical verdict section
+      techVerdictSection.after(aiVerdictEl);
     }
-    tsEl.textContent = '⚡ ' + ts;
+    aiVerdictEl.innerHTML =
+      '<div class="tsc-verdict-label">AI ANALYSIS</div>' +
+      '<div class="tsc-verdict-row">' +
+      '<span class="ai-verdict-badge tsc-verdict-badge verdict-' + detectedAction.cls + '">' + detectedAction.label + '</span>' +
+      '<span class="verdict-fresh-ts">⚡ ' + ts + '</span>' +
+      '</div>';
 
-    // Pulse animation
-    verdictBadge.classList.add('verdict-pulse');
-    setTimeout(() => verdictBadge.classList.remove('verdict-pulse'), 1000);
+    // Pulse animation on AI badge
+    const aiBadge = aiVerdictEl.querySelector('.ai-verdict-badge');
+    if (aiBadge) {
+      aiBadge.classList.add('verdict-pulse');
+      setTimeout(() => aiBadge.classList.remove('verdict-pulse'), 1000);
+    }
   }
 
   // 2. Find or create the collapsible analysis section
@@ -5042,8 +5056,6 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   }
 
   // 3. Populate the collapsible section
-  const detectedAction = detectActionFromAnalysis(analysis);
-
   // Action glossary for plain English explanation
   const actionMeanings = {
     'STRONG BUY': 'Multiple signals say now is a great time to buy.',
@@ -5056,6 +5068,7 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   };
   const meaning = actionMeanings[detectedAction.label] || '';
   const meaningHtml = meaning ? '<div class="sas-meaning">💡 <strong>' + detectedAction.label + '</strong> means: ' + meaning + '</div>' : '';
+  const verdictNoteHtml = '<div class="sas-verdict-note">📊 <strong>Technical Signal</strong> is based on price math only. <strong>AI Analysis</strong> considers news and broader context. Use both together.</div>';
 
   analysisSection.innerHTML =
     '<div class="sas-header" onclick="this.parentElement.classList.toggle(\'sas-open\')">' +
@@ -5063,7 +5076,7 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
     '<span class="sas-ts">' + ts + '</span>' +
     '<span class="sas-toggle">▼</span>' +
     '</div>' +
-    '<div class="sas-body"><p class="sas-text">' + (analysis || '') + '</p>' + meaningHtml + '</div>';
+    '<div class="sas-body"><p class="sas-text">' + formatAnalysisText(analysis || '') + '</p>' + meaningHtml + verdictNoteHtml + '</div>';
   // Auto-open after new analysis
   analysisSection.classList.add('sas-open');
 
