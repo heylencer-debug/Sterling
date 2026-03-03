@@ -8,6 +8,7 @@ let watchlistData = [];
 let alertsData = [];
 let newsData = [];
 let briefsData = [];
+let technicalsData = [];
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 
@@ -1401,62 +1402,101 @@ function togglePillar(id) {
 
 function renderStockAction(symbol) {
   const a = STOCK_ACTIONS[symbol];
-  if (!a) return '';
   const uid = symbol;
-  
+
   // Async-load Supabase intelligence and patch pillars after initial render
   setTimeout(async () => {
     const intel = await loadIntelligence(symbol);
-    if (!Object.keys(intel).length) return; // No Supabase data, keep static
-    
-    const fContainer = document.getElementById(`pillar-f-${uid}`);
-    const nContainer = document.getElementById(`pillar-n-${uid}`);
-    const tContainer = document.getElementById(`pillar-t-${uid}`);
-    
-    if (fContainer) fContainer.innerHTML = renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, intel.fundamentals, uid+'_f');
-    if (nContainer) nContainer.innerHTML = renderPillar('📰', 'News & Catalysts', 'news', a.news, intel.news, uid+'_n');
-    if (tContainer) tContainer.innerHTML = renderPillar('📈', 'Technicals', 'technicals', a.technicals, intel.technicals, uid+'_t');
-  }, 500);
-  
-  return `
-    <div class="action-block">
 
-      <div class="action-headline">
-        <span class="action-badge ${a.badgeClass}">${a.badge}</span>
-        <span class="action-summary">${a.summary}</span>
+    if (a) {
+      // Patch static pillars with Supabase data if available
+      if (!Object.keys(intel).length) return;
+      const fContainer = document.getElementById(`pillar-f-${uid}`);
+      const nContainer = document.getElementById(`pillar-n-${uid}`);
+      const tContainer = document.getElementById(`pillar-t-${uid}`);
+      if (fContainer) fContainer.innerHTML = renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, intel.fundamentals, uid+'_f');
+      if (nContainer) nContainer.innerHTML = renderPillar('📰', 'News & Catalysts', 'news', a.news, intel.news, uid+'_n');
+      if (tContainer) tContainer.innerHTML = renderPillar('📈', 'Technicals', 'technicals', a.technicals, intel.technicals, uid+'_t');
+    } else {
+      // No static data — render full block from Supabase intel
+      const container = document.getElementById(`action-block-${uid}`);
+      if (!container) return;
+      if (Object.keys(intel).length) {
+        const f = intel.fundamentals || {};
+        const n = intel.news || {};
+        const t = intel.technicals || {};
+        container.innerHTML = `
+          <div class="action-block">
+            <div class="action-headline">
+              <span class="action-badge badge-hold">ANALYSIS</span>
+              <span class="action-summary">${t.ai_summary || f.ai_summary || 'Sterling analysis loaded.'}</span>
+            </div>
+            <div class="price-triggers">
+              <div class="trigger-pill buy"><span class="trigger-label">ENTRY</span><span class="trigger-price">See verdict</span></div>
+              <div class="trigger-pill tp"><span class="trigger-label">TARGET</span><span class="trigger-price">See verdict</span></div>
+              <div class="trigger-pill sl"><span class="trigger-label">STOP</span><span class="trigger-price">See verdict</span></div>
+            </div>
+            <div class="pillars-section">
+              <div>${renderPillar('📊', 'Fundamentals', 'fundamentals', null, f, uid+'_f')}</div>
+              <div>${renderPillar('📰', 'News & Catalysts', 'news', null, n, uid+'_n')}</div>
+              <div>${renderPillar('📈', 'Technicals', 'technicals', null, t, uid+'_t')}</div>
+            </div>
+            <div class="action-conclusion-block">
+              <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+                <span>⚔️ Sterling&#39;s Verdict</span><span class="chevron">▸</span>
+              </div>
+              <div class="action-detail" style="display:none">
+                <p class="action-conclusion">${t.verdict || f.verdict || 'Analysis in progress.'}</p>
+              </div>
+            </div>
+          </div>`;
+      } else {
+        // Queue for analysis
+        window.sbInsert('sterling_analysis_queue', { symbol, requested_by: _uid(), status: 'pending', created_at: new Date().toISOString() }).catch(() => {});
+        container.innerHTML = `
+          <div class="action-block analysis-pending">
+            <div style="font-size:12px;font-weight:700;color:#64748B;letter-spacing:0.05em;padding:12px 0 4px">⏳ ANALYSIS QUEUED</div>
+            <p style="font-size:12px;color:#94A3B8;margin:0">Sterling is generating a full 3-pillar analysis for ${symbol}. Refresh in a few minutes.</p>
+          </div>`;
+      }
+    }
+  }, 300);
+
+  if (a) {
+    // Static data available — render immediately
+    return `
+      <div class="action-block">
+        <div class="action-headline">
+          <span class="action-badge ${a.badgeClass}">${a.badge}</span>
+          <span class="action-summary">${a.summary}</span>
+        </div>
+        <div class="price-triggers">
+          <div class="trigger-pill buy"><span class="trigger-label">ENTRY</span><span class="trigger-price">${a.entry}</span></div>
+          <div class="trigger-pill tp"><span class="trigger-label">TARGET</span><span class="trigger-price">${a.target}</span></div>
+          <div class="trigger-pill sl"><span class="trigger-label">STOP</span><span class="trigger-price">${a.stop}</span></div>
+        </div>
+        <div class="pillars-section">
+          <div id="pillar-f-${uid}">${renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, null, uid+'_f')}</div>
+          <div id="pillar-n-${uid}">${renderPillar('📰', 'News & Catalysts', 'news', a.news, null, uid+'_n')}</div>
+          <div id="pillar-t-${uid}">${renderPillar('📈', 'Technicals', 'technicals', a.technicals, null, uid+'_t')}</div>
+        </div>
+        <div class="action-conclusion-block">
+          <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
+            <span>⚔️ Sterling&#39;s Verdict</span><span class="chevron">▸</span>
+          </div>
+          <div class="action-detail" style="display:none">
+            <p class="action-conclusion">${a.conclusion || ''}</p>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    // No static data — show loading shell, async fills it in
+    return `<div id="action-block-${uid}">
+      <div class="action-block analysis-pending">
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.07em;color:#94A3B8;padding:8px 0 4px">⏳ LOADING ANALYSIS…</div>
       </div>
-
-      <div class="price-triggers">
-        <div class="trigger-pill buy">
-          <span class="trigger-label">ENTRY</span>
-          <span class="trigger-price">${a.entry}</span>
-        </div>
-        <div class="trigger-pill tp">
-          <span class="trigger-label">TARGET</span>
-          <span class="trigger-price">${a.target}</span>
-        </div>
-        <div class="trigger-pill sl">
-          <span class="trigger-label">STOP</span>
-          <span class="trigger-price">${a.stop}</span>
-        </div>
-      </div>
-
-      <div class="pillars-section">
-        <div id="pillar-f-${uid}">${renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, null, uid+'_f')}</div>
-        <div id="pillar-n-${uid}">${renderPillar('📰', 'News & Catalysts', 'news', a.news, null, uid+'_n')}</div>
-        <div id="pillar-t-${uid}">${renderPillar('📈', 'Technicals', 'technicals', a.technicals, null, uid+'_t')}</div>
-      </div>
-
-      <div class="action-conclusion-block">
-        <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-          <span>⚔️ Sterling's Verdict</span><span class="chevron">▸</span>
-        </div>
-        <div class="action-detail" style="display:none">
-          <p class="action-conclusion">${a.conclusion || ''}</p>
-        </div>
-      </div>
-
     </div>`;
+  }
 }
 
 function renderSparkline(history) {
@@ -1750,11 +1790,8 @@ function renderWatchlist() {
           <span class="rationale-text">${w.reason || w.rationale}</span>
         </div>
         ` : ''}
-        <div class="wl-entry-points">
-          <div><span class="label">Entry</span><span class="value">${formatPeso(w.target_buy || w.entry_price)}</span></div>
-          <div><span class="label">Stop-loss</span><span class="value stop">${formatPeso(w.stop_loss)}</span></div>
-        </div>
-        <div class="wl-card-actions">
+        ${renderStockAction(w.symbol)}
+        <div class="wl-card-actions" style="margin-top:10px">
           <a class="wl-chart-link" href="https://www.investagrams.com/stock/${w.symbol}" target="_blank">View Chart ↗</a>
         </div>
       </div>
@@ -2184,7 +2221,7 @@ function updateDiscoveryFilter(key, value) {
   }
 }
 
-function renderDiscovery() {
+async function renderDiscovery() {
   // Inject mentor note at top of page
   const pageEl = document.getElementById('page-discovery');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
@@ -2193,6 +2230,14 @@ function renderDiscovery() {
   }
 
   const grid = document.getElementById('discovery-grid');
+
+  // Load live technicals if not already loaded
+  if (!technicalsData.length) {
+    try {
+      const rows = await window.sbFetch('sterling_technicals', { order: 'updated_at.desc' });
+      if (rows && rows.length) technicalsData = rows;
+    } catch (e) { /* use empty map */ }
+  }
 
   // Filter stocks
   let stocks = PSE_UNIVERSE.filter(s => {
@@ -2222,36 +2267,50 @@ function renderDiscovery() {
     return;
   }
 
+  // Build technicals lookup for live prices
+  const techMap = {};
+  if (typeof technicalsData !== 'undefined') {
+    technicalsData.forEach(t => { techMap[t.symbol] = t; });
+  }
+
   grid.innerHTML = stocks.map(s => {
     const inWatchlist = watchlistSymbols.has(s.symbol);
     const inPortfolio = portfolioSymbols.has(s.symbol);
     const sectorColor = getSectorColor(s.sector);
-    // Simulate daily change
-    const dailyChange = (Math.random() * 6 - 3).toFixed(2);
-    const changeClass = dailyChange >= 0 ? 'positive' : 'negative';
+    // Use real price from technicals, not random
+    const tech = techMap[s.symbol] || {};
+    const livePrice = tech.price || tech.current_price || null;
+    const dayChange = tech.day_change_pct !== undefined ? parseFloat(tech.day_change_pct).toFixed(2) : null;
+    const changeClass = dayChange !== null ? (dayChange >= 0 ? 'positive' : 'negative') : '';
 
     return `
       <div class="stock-card">
         <div class="stock-card-header">
           <span class="sector-badge" style="background:${sectorColor}20;color:${sectorColor}">${s.sector}</span>
           ${inPortfolio ? '<span class="portfolio-badge">In Portfolio</span>' : ''}
+          ${inWatchlist ? '<span class="portfolio-badge" style="background:#E0F2FE;color:#0284C7">Watching</span>' : ''}
         </div>
         <div class="stock-card-main">
           <div class="stock-symbol">${s.symbol}</div>
           <div class="stock-name">${s.name}</div>
         </div>
         <div class="stock-card-price">
-          <span class="stock-price">${formatPeso(s.price)}</span>
-          <span class="stock-change ${changeClass}">${dailyChange >= 0 ? '+' : ''}${dailyChange}%</span>
+          <span class="stock-price">${livePrice ? formatPeso(livePrice) : '—'}</span>
+          ${dayChange !== null
+            ? `<span class="stock-change ${changeClass}">${dayChange >= 0 ? '+' : ''}${dayChange}%</span>`
+            : '<span class="stock-change" style="color:#94A3B8">No price</span>'}
         </div>
         <div class="stock-card-metrics">
-          <div><span class="label">Yield</span><span class="value ${s.yield >= 6 ? 'highlight-green' : ''}">${s.yield}%</span></div>
-          <div><span class="label">P/E</span><span class="value ${s.pe <= 15 ? 'highlight-green' : ''}">${s.pe}x</span></div>
+          <div><span class="label">Sector</span><span class="value">${s.sector}</span></div>
+          ${tech.rsi ? `<div><span class="label">RSI</span><span class="value ${tech.rsi < 30 ? 'highlight-green' : tech.rsi > 70 ? 'highlight-red' : ''}">${parseFloat(tech.rsi).toFixed(1)}</span></div>` : ''}
         </div>
+        ${renderStockAction(s.symbol)}
+        <div style="margin-top:10px">
         ${inWatchlist
           ? `<button class="stock-add-btn in-watchlist" disabled>✓ In Watchlist</button>`
-          : `<button class="stock-add-btn" onclick="addToWatchlistFromDiscovery('${s.symbol}', '${s.name.replace(/'/g, "\\'")}', '${s.sector}')">+ Add to Watchlist</button>`
+          : `<button class="stock-add-btn" onclick="addToWatchlistFromDiscovery('${s.symbol}', '${s.name.replace(/'/g, '&#39;')}', '${s.sector}')">+ Add to Watchlist</button>`
         }
+        </div>
       </div>
     `;
   }).join('');
