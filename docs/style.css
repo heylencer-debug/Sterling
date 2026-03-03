@@ -1192,3 +1192,19 @@ body {
 
 /* -- Watchlist Live Price Badge -------------------------------- */
 .wl-change-badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
+
+/* -- Watchlist Tech Signal Card -------------------------------- */
+.tech-signal-card { border: 1.5px solid #E5E7EB; border-radius: 6px; padding: 12px; margin-top: 10px; background: #FAFAFA; }
+.tech-signal-card.loading { opacity: 0.5; }
+.tsc-loading { font-size: 11px; color: #94A3B8; text-align: center; padding: 8px 0; }
+.tsc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.tsc-source-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #64748B; }
+.tsc-updated { font-size: 10px; color: #94A3B8; }
+.tsc-signal-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.tsc-overall { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 4px 10px; border-radius: 4px; border: 1.5px solid; }
+.tsc-rsi { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tsc-rsi-label { font-weight: 400; font-size: 11px; }
+.tsc-macd-badge { font-size: 10px; font-weight: 700; color: #555; background: #F1F5F9; padding: 3px 8px; border-radius: 4px; }
+.tsc-ma-trend { font-size: 11px; color: #475569; margin-bottom: 6px; }
+.tsc-rationale { font-size: 12px; color: #374151; line-height: 1.5; }
+.tsc-why-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #0A0A0A; margin-right: 4px; }
