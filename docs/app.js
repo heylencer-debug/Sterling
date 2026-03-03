@@ -1,5 +1,6 @@
-// Sterling — Sterling PSE Dashboard v54
+// Sterling — Sterling PSE Dashboard v55
 // All page logic and Supabase data fetching
+// v55: Analysis persistence - saves AI analysis to sterling_analysis, reloads on page render
 // v52: SECURITY - API keys fetched from Supabase app_settings (no localStorage)
 
 // ==================== SECURE KEY LOADER ====================
@@ -658,6 +659,26 @@ function renderPortfolio() {
       yieldOnCostHtml = `<div class="detail-row"><span class="detail-label">Yield on Cost</span><span class="detail-value" style="color:#059669">${yoc.toFixed(2)}%</span></div>`;
     }
 
+    // FEATURE 6: Persisted Sterling Analysis from sterling_analysis table
+    let savedAnalysisHtml = '';
+    let analyzeButtonText = '⚡ ANALYZE';
+    const savedAnalysis = analysisData[h.symbol];
+    if (savedAnalysis && savedAnalysis.analysis_text) {
+      const savedTs = savedAnalysis.analyzed_at
+        ? new Date(savedAnalysis.analyzed_at).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '';
+      savedAnalysisHtml = `
+        <div class="sterling-analysis-section sas-open">
+          <div class="sas-header" onclick="this.parentElement.classList.toggle('sas-open')">
+            <span class="sas-label">⚡ STERLING ANALYSIS</span>
+            <span class="sas-ts">${savedTs}</span>
+            <span class="sas-toggle">▼</span>
+          </div>
+          <div class="sas-body"><p class="sas-text">${savedAnalysis.analysis_text}</p></div>
+        </div>`;
+      analyzeButtonText = '⚡ RE-ANALYZE';
+    }
+
     return `
       <div class="holding-card">
         <div class="holding-header">
@@ -712,7 +733,8 @@ function renderPortfolio() {
           </button>
           <button onclick="editPosition('${h.symbol}')" style="flex:0 0 auto;padding:8px 12px;font-size:11px;font-weight:700;border:1.5px solid #0A0A0A;border-radius:6px;background:#FFFFFF;cursor:pointer;font-family:inherit">✏️ Edit</button>
         </div>
-        <button class="analyze-btn" onclick="triggerAnalysis('${h.symbol}', this)" data-symbol="${h.symbol}">⚡ ANALYZE</button>
+        ${savedAnalysisHtml}
+        <button class="analyze-btn" onclick="triggerAnalysis('${h.symbol}', this)" data-symbol="${h.symbol}">${analyzeButtonText}</button>
       </div>
     `;
   }).join('');
