@@ -3575,7 +3575,7 @@ function _updateAddPosPreview() {
 
 async function submitAddPosition(e) {
   e.preventDefault();
-  const sym = document.getElementById('addpos-symbol').value.trim();
+  const sym = document.getElementById('addpos-symbol').value.trim().toUpperCase();
   const shares = parseFloat(document.getElementById('addpos-shares').value);
   const avg = parseFloat(document.getElementById('addpos-avgprice').value);
   if (!sym || !shares || !avg) { showToast('Fill in all fields.', 'error'); return; }
@@ -3584,42 +3584,47 @@ async function submitAddPosition(e) {
   btn.disabled = true;
   btn.textContent = 'Saving…';
 
-  // Find PSE_UNIVERSE entry for name/sector
-  const meta = PSE_UNIVERSE.find(s => s.symbol === sym) || { name: sym, sector: 'N/A' };
-  const isReit = ['REIT'].includes(meta.sector);
+  try {
+    // Find PSE_UNIVERSE entry for name/sector
+    const meta = PSE_UNIVERSE.find(s => s.symbol === sym) || { name: sym, sector: 'N/A' };
+    const isReit = meta.sector === 'REIT';
 
-  // Check if position already exists for this user
-  const existing = await window.sbFetch('sterling_portfolio', { filter: _uf(`symbol=eq.${sym}`) });
-  let result;
-  if (existing && existing.length > 0) {
-    // Update existing
-    result = await window.sbUpdate('sterling_portfolio', _uf(`symbol=eq.${sym}`), { qty: shares, avg_buy_price: avg });
-  } else {
-    // Insert new
-    result = await window.sbInsert('sterling_portfolio', {
-      user_id: _uid(),
-      symbol: sym,
-      company_name: meta.name,
-      sector: meta.sector,
-      is_reit: isReit,
-      qty: shares,
-      avg_buy_price: avg,
-      current_price: 0,
-      day_change_pct: 0
-    });
-  }
+    // Check if position already exists for this user
+    const existing = await window.sbFetch('sterling_portfolio', { filter: _uf(`symbol=eq.${sym}`) });
 
-  btn.disabled = false;
-  btn.textContent = 'Save Position';
+    if (existing && existing.length > 0) {
+      // Update existing position
+      await window.sbUpdate('sterling_portfolio', _uf(`symbol=eq.${sym}`), {
+        qty: shares,
+        avg_buy_price: avg
+      });
+    } else {
+      // Insert new position
+      await window.sbInsert('sterling_portfolio', {
+        user_id: _uid(),
+        symbol: sym,
+        company_name: meta.name,
+        sector: meta.sector,
+        is_reit: isReit,
+        qty: shares,
+        avg_buy_price: avg,
+        current_price: 0,
+        day_change_pct: 0
+      });
+    }
 
-  if (result && !result.error) {
     showToast(`${sym} position saved ✓`, 'success');
     closeAddPosition();
     // Reload portfolio
     const data = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     if (data) { portfolioData = data; renderPortfolio(); }
-  } else {
-    showToast('Save failed. Try again.', 'error');
+
+  } catch(err) {
+    console.error('Add position error:', err);
+    showToast('Save failed: ' + (err.message || 'Unknown error'), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Position';
   }
 }
 
