@@ -1,6 +1,6 @@
-// Sterling — Sterling PSE Dashboard v47
+// Sterling — Sterling PSE Dashboard v48
 // All page logic and Supabase data fetching
-// v47: On-demand Analyze button - triggerAnalysis() with TradingView + OpenRouter Claude Sonnet
+// v48: Fix Analyze button CORS - use Supabase sterling_technicals instead of TradingView direct fetch
 
 // State
 let loadedPages = {};
@@ -4643,56 +4643,91 @@ async function triggerAnalysis(symbol, btnEl) {
   btnEl.disabled = true;
   btnEl.classList.add('analyzing');
 
-  try {
-    // 2. Fetch live technicals from TradingView Scanner
-    const tvRes = await fetch('https://scanner.tradingview.com/philippines/scan', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        symbols: { tickers: ['PSE:' + symbol] },
-        columns: ['RSI', 'MACD.macd', 'MACD.signal', 'close', 'change', 'SMA20', 'SMA50', 'SMA200', 'Recommend.All', 'volume', 'average_volume_10d_calc', '52_week_high', '52_week_low']
-      })
-    });
-    const tvData = await tvRes.json();
-    const d = tvData.data?.[0]?.d || [];
-    const tech = {
-      rsi: d[0], macd: d[1], macd_signal: d[2],
-      close: d[3], change: d[4],
-      sma20: d[5], sma50: d[6], sma200: d[7],
-      recommend_all: d[8], volume: d[9],
-      avg_volume: d[10], high52: d[11], low52: d[12]
-    };
+  const resetBtn = () => {
+    btnEl.textContent = '⚡ ANALYZE';
+    btnEl.disabled = false;
+    btnEl.classList.remove('analyzing');
+  };
 
-    // 3. Fetch latest 3 news articles for this symbol from Supabase
-    const { url, anonKey } = window.SUPABASE_CONFIG;
-    const newsRes = await fetch(
-      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=title,summary,ai_action,published_at',
+  // 2. Check OpenRouter key first
+  const orKey = localStorage.getItem('openrouter_key') || '';
+  if (!orKey) {
+    showAnalysisResult(symbol, btnEl, null, 'No OpenRouter key set. Click the ⚙️ icon in sidebar to add your key.');
+    return;
+  }
+
+  const { url, anonKey } = window.SUPABASE_CONFIG;
+
+  // 3. Fetch technicals from Supabase sterling_technicals (CORS-safe, populated by server-side cron)
+  let tech;
+  try {
+    const techRes = await fetch(
+      url + '/rest/v1/sterling_technicals?symbol=eq.' + symbol + '&limit=1',
       { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
     );
-    const news = await newsRes.json();
+    if (!techRes.ok) throw new Error('HTTP ' + techRes.status);
+    const techData = await techRes.json();
+    if (!techData || techData.length === 0) {
+      showAnalysisResult(symbol, btnEl, null, 'No technicals data for ' + symbol + '. The cron job may not have fetched this stock yet.');
+      resetBtn();
+      return;
+    }
+    const row = techData[0];
+    tech = {
+      rsi: row.rsi,
+      close: row.close,
+      change: row.change_pct,
+      sma20: row.sma20,
+      sma50: row.sma50,
+      sma200: row.sma200,
+      recommend_all: row.tv_recommend_all,
+      volume: row.volume,
+      ma_trend: row.ma_trend,
+      fetched_at: row.fetched_at
+    };
+  } catch (e) {
+    console.error('triggerAnalysis technicals error:', e);
+    showAnalysisResult(symbol, btnEl, null, 'Failed to load technicals: ' + e.message);
+    resetBtn();
+    return;
+  }
 
-    // 4. Build prompt for OpenRouter
-    const overallSignal = tech.recommend_all >= 0.5 ? 'Strong Buy'
-      : tech.recommend_all >= 0.1 ? 'Buy'
-      : tech.recommend_all > -0.1 ? 'Neutral'
-      : tech.recommend_all > -0.5 ? 'Sell' : 'Strong Sell';
+  // 4. Fetch latest 3 news articles (optional, continue without if fails)
+  let news = [];
+  try {
+    const newsRes = await fetch(
+      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=title,ai_action',
+      { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
+    );
+    if (newsRes.ok) news = await newsRes.json();
+  } catch (e) {
+    // News is optional, continue without it
+    news = [];
+  }
 
-    const newsContext = news.length > 0
-      ? news.map(n => '- ' + n.title + (n.ai_action ? ' [' + n.ai_action + ']' : '')).join('\n')
-      : 'No recent news available.';
+  // 5. Build prompt for OpenRouter
+  const overallSignal = tech.recommend_all >= 0.5 ? 'Strong Buy'
+    : tech.recommend_all >= 0.1 ? 'Buy'
+    : tech.recommend_all > -0.1 ? 'Neutral'
+    : tech.recommend_all > -0.5 ? 'Sell' : 'Strong Sell';
 
-    const prompt = `You are Sterling, a trusted PSE broker-mentor for Carlo Rebadomia, a trader in Cebu, Philippines.
+  const newsContext = news.length > 0
+    ? news.map(n => '- ' + n.title + (n.ai_action ? ' [' + n.ai_action + ']' : '')).join('\n')
+    : 'No recent news available.';
+
+  const dataAge = tech.fetched_at ? Math.round((Date.now() - new Date(tech.fetched_at).getTime()) / 60000) + ' min ago' : 'unknown';
+
+  const prompt = `You are Sterling, a trusted PSE broker-mentor for Carlo Rebadomia, a trader in Cebu, Philippines.
 
 Carlo wants a fresh analysis of ${symbol} right now.
 
-LIVE TECHNICALS (just fetched):
+TECHNICALS (data fetched ${dataAge}):
 - Price: ₱${tech.close?.toFixed(2) || 'N/A'}
 - Change: ${tech.change?.toFixed(2) || 'N/A'}%
 - RSI: ${tech.rsi?.toFixed(1) || 'N/A'}
-- SMA50: ₱${tech.sma50?.toFixed(2) || 'N/A'} | SMA200: ₱${tech.sma200?.toFixed(2) || 'N/A'}
+- SMA20: ₱${tech.sma20?.toFixed(2) || 'N/A'} | SMA50: ₱${tech.sma50?.toFixed(2) || 'N/A'} | SMA200: ₱${tech.sma200?.toFixed(2) || 'N/A'}
+- MA Trend: ${tech.ma_trend || 'N/A'}
 - Overall Signal: ${overallSignal}
-- 52W Range: ₱${tech.low52?.toFixed(2) || 'N/A'} - ₱${tech.high52?.toFixed(2) || 'N/A'}
-- Volume vs Avg: ${tech.volume && tech.avg_volume ? (tech.volume / tech.avg_volume).toFixed(1) + 'x' : 'N/A'}
 
 RECENT NEWS:
 ${newsContext}
@@ -4705,13 +4740,9 @@ Write a concise broker analysis for Carlo covering:
 Be direct. No disclaimers. Speak like a broker who knows Carlo personally.
 Max 4 sentences total.`;
 
-    // 5. Call OpenRouter
-    const orKey = localStorage.getItem('openrouter_key') || '';
-    if (!orKey) {
-      showAnalysisResult(symbol, btnEl, null, 'No OpenRouter key set. Click the ⚙️ icon in sidebar to add your key.');
-      return;
-    }
-
+  // 6. Call OpenRouter
+  let analysis;
+  try {
     const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -4726,36 +4757,43 @@ Max 4 sentences total.`;
         max_tokens: 300
       })
     });
+    if (!orRes.ok) {
+      const errBody = await orRes.text();
+      throw new Error('HTTP ' + orRes.status + ': ' + errBody.substring(0, 100));
+    }
     const orData = await orRes.json();
-    const analysis = orData.choices?.[0]?.message?.content || 'Analysis unavailable.';
-
-    // 6. Save analysis to Supabase sterling_intelligence (best-effort)
-    const now = new Date().toISOString();
-    fetch(url + '/rest/v1/sterling_intelligence', {
-      method: 'POST',
-      headers: {
-        'apikey': anonKey,
-        'Authorization': 'Bearer ' + anonKey,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify({
-        symbol: symbol,
-        pillar: 'on_demand',
-        verdict: overallSignal,
-        ai_summary: analysis,
-        points: JSON.stringify([]),
-        sources: JSON.stringify([{ name: 'TradingView + OpenRouter Claude Sonnet', url: 'https://scanner.tradingview.com' }]),
-        analyzed_at: now
-      })
-    }).catch(() => {});
-
-    // 7. Show result
-    showAnalysisResult(symbol, btnEl, analysis, null);
-
-  } catch (err) {
-    showAnalysisResult(symbol, btnEl, null, 'Analysis failed: ' + err.message);
+    analysis = orData.choices?.[0]?.message?.content;
+    if (!analysis) throw new Error('Empty response from OpenRouter');
+  } catch (e) {
+    console.error('triggerAnalysis OpenRouter error:', e);
+    showAnalysisResult(symbol, btnEl, null, 'AI analysis failed: ' + e.message);
+    resetBtn();
+    return;
   }
+
+  // 7. Save analysis to Supabase sterling_intelligence (best-effort)
+  const now = new Date().toISOString();
+  fetch(url + '/rest/v1/sterling_intelligence', {
+    method: 'POST',
+    headers: {
+      'apikey': anonKey,
+      'Authorization': 'Bearer ' + anonKey,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify({
+      symbol: symbol,
+      pillar: 'on_demand',
+      verdict: overallSignal,
+      ai_summary: analysis,
+      points: JSON.stringify([]),
+      sources: JSON.stringify([{ name: 'Supabase Technicals + OpenRouter Claude Sonnet', url: '' }]),
+      analyzed_at: now
+    })
+  }).catch(() => {});
+
+  // 8. Show result
+  showAnalysisResult(symbol, btnEl, analysis, null);
 }
 
 function showAnalysisResult(symbol, btnEl, analysis, error) {
