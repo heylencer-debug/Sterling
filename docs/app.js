@@ -1,6 +1,32 @@
-// Sterling — Sterling PSE Dashboard v51
+// Sterling — Sterling PSE Dashboard v52
 // All page logic and Supabase data fetching
-// v51: SECURITY FIX - Remove hardwired OpenRouter API key (must use Settings)
+// v52: SECURITY - API keys fetched from Supabase app_settings (no localStorage)
+
+// ==================== SECURE KEY LOADER ====================
+// API keys are stored in Supabase app_settings table, not in code or localStorage
+let _appSettings = null;
+async function getAppSetting(key) {
+  if (!_appSettings) {
+    try {
+      const { url, anonKey } = window.SUPABASE_CONFIG || {};
+      if (!url || !anonKey) {
+        console.warn('[Sterling] SUPABASE_CONFIG not loaded');
+        _appSettings = {};
+        return null;
+      }
+      const res = await fetch(url + '/rest/v1/app_settings?select=key,value', {
+        headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey }
+      });
+      const rows = await res.json();
+      _appSettings = {};
+      (rows || []).forEach(r => { _appSettings[r.key] = r.value; });
+    } catch(e) {
+      console.warn('[Sterling] Failed to load app settings:', e.message);
+      _appSettings = {};
+    }
+  }
+  return _appSettings[key] || null;
+}
 
 // State
 let loadedPages = {};
@@ -4641,7 +4667,6 @@ async function triggerAnalysis(symbol, btnEl) {
   // Debug logging for troubleshooting
   console.log('[Sterling] triggerAnalysis called for:', symbol);
   console.log('[Sterling] SUPABASE_CONFIG:', typeof window.SUPABASE_CONFIG !== 'undefined' ? 'DEFINED' : 'UNDEFINED');
-  console.log('[Sterling] orKey:', localStorage.getItem('openrouter_key') ? 'SET' : 'NOT SET');
 
   // 1. Set button to loading state
   btnEl.textContent = 'ANALYZING...';
@@ -4654,15 +4679,16 @@ async function triggerAnalysis(symbol, btnEl) {
     btnEl.classList.remove('analyzing');
   };
 
-  // 2. Get OpenRouter key
-  const orKey = localStorage.getItem('openrouter_key') || '';
+  // 2. Get OpenRouter key from Supabase app_settings (secure, no localStorage)
+  const orKey = await getAppSetting('openrouter_api_key');
   if (!orKey) {
-    showAnalysisResult(symbol, btnEl, null, 'Enter your OpenRouter key in Settings (⚙️) to use AI analysis.');
+    showAnalysisResult(symbol, btnEl, null, 'OpenRouter key not configured. Ask your admin to add it in Supabase app_settings.');
     btnEl.textContent = '⚡ ANALYZE';
     btnEl.disabled = false;
     btnEl.classList.remove('analyzing');
     return;
   }
+  console.log('[Sterling] orKey: SET (from Supabase)');
 
   const { url, anonKey } = window.SUPABASE_CONFIG;
 
@@ -4832,7 +4858,7 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   }
 }
 
-// ==================== OPENROUTER KEY SETTINGS ====================
+// ==================== SETTINGS MODAL ====================
 
 function openSettingsModal() {
   let overlay = document.getElementById('settings-modal-overlay');
@@ -4845,37 +4871,19 @@ function openSettingsModal() {
       <div class="account-modal" style="max-width:380px">
         <div class="acct-logo">⚙️</div>
         <div class="acct-title">Sterling Settings</div>
-        <div style="text-align:left;margin-bottom:16px">
-          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#555;display:block;margin-bottom:6px">OpenRouter API Key</label>
-          <input type="password" id="settings-or-key" class="acct-input" placeholder="sk-or-v1-..." value="${localStorage.getItem('openrouter_key') || ''}" style="margin-bottom:4px">
-          <div style="font-size:11px;color:#888;line-height:1.4">Required for on-demand AI analysis. Get your key from <a href="https://openrouter.ai/keys" target="_blank" style="color:#2563EB">openrouter.ai/keys</a></div>
+        <div style="text-align:left;margin-bottom:16px;padding:16px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0">
+          <div style="font-size:12px;font-weight:600;color:#166534;margin-bottom:8px">API Keys Secured</div>
+          <div style="font-size:11px;color:#15803D;line-height:1.5">API keys are managed securely in the backend via Supabase. No manual configuration needed.</div>
         </div>
-        <div id="settings-status" style="font-size:12px;min-height:20px;margin-bottom:12px"></div>
-        <button class="acct-btn-primary" onclick="saveSettingsKey()">Save Key</button>
-        <button class="acct-btn-ghost" onclick="closeSettingsModal()">Cancel</button>
+        <button class="acct-btn-ghost" onclick="closeSettingsModal()">Close</button>
       </div>
     `;
     overlay.onclick = (e) => { if (e.target === overlay) closeSettingsModal(); };
     document.body.appendChild(overlay);
   }
-  // Update input value in case it changed
-  document.getElementById('settings-or-key').value = localStorage.getItem('openrouter_key') || '';
-  document.getElementById('settings-status').textContent = '';
   overlay.classList.add('active');
 }
 
 function closeSettingsModal() {
   document.getElementById('settings-modal-overlay')?.classList.remove('active');
-}
-
-function saveSettingsKey() {
-  const key = document.getElementById('settings-or-key').value.trim();
-  if (key) {
-    localStorage.setItem('openrouter_key', key);
-    document.getElementById('settings-status').innerHTML = '<span style="color:#16A34A">✓ Key saved successfully</span>';
-    setTimeout(() => closeSettingsModal(), 1000);
-  } else {
-    localStorage.removeItem('openrouter_key');
-    document.getElementById('settings-status').innerHTML = '<span style="color:#DC2626">Key removed</span>';
-  }
 }
