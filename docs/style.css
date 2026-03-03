@@ -1649,6 +1649,17 @@ body {
   margin: 0;
 }
 
+/* Action meaning glossary strip */
+.sas-meaning {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: #F0F9FF;
+  border-left: 3px solid #0A0A0A;
+  font-size: 12px;
+  color: #374151;
+  border-radius: 0 4px 4px 0;
+}
+
 /* Verdict freshness timestamp */
 .verdict-fresh-ts {
   font-size: 10px;
