@@ -1164,3 +1164,31 @@ body {
 /* Modal .active support (possize + dividend modals) */
 .trade-modal-overlay.active { display: flex; }
 
+
+/* -- Discovery Simplified Cards -------------------------------- */
+.disc-card { background: #fff; border: 1.5px solid #0A0A0A; border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px; transition: box-shadow 0.15s; }
+.disc-card:hover { box-shadow: 4px 4px 0 #0A0A0A; }
+.disc-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.disc-card-identity .disc-symbol { font-size: 20px; font-weight: 800; color: #0A0A0A; letter-spacing: -0.02em; }
+.disc-card-identity .disc-name { font-size: 12px; color: #64748B; margin-top: 2px; }
+.disc-fundamentals { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 4px; }
+.disc-metric { background: #F5F5F5; border-radius: 6px; padding: 8px; text-align: center; }
+.disc-metric-label { display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #888; }
+.disc-metric-value { display: block; font-size: 14px; font-weight: 700; color: #0A0A0A; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.disc-data-quality { font-size: 11px; color: #888; border-top: 1px solid #F0F0F0; padding-top: 8px; }
+.disc-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; padding: 2px 7px; border-radius: 4px; }
+.disc-tag.portfolio-tag { background: #FFF7ED; color: #EA580C; border: 1px solid #EA580C40; }
+.disc-tag.watch-tag { background: #EFF6FF; color: #2563EB; border: 1px solid #2563EB40; }
+.disc-wl-btn { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 5px 12px; border-radius: 6px; border: 1.5px solid #0A0A0A; background: #fff; cursor: pointer; white-space: nowrap; }
+.disc-wl-btn:hover { background: #0A0A0A; color: #fff; }
+.disc-wl-btn.in-wl { background: #F0FDF4; border-color: #16A34A; color: #16A34A; cursor: default; }
+
+/* -- Pillar Data Quality Panel --------------------------------- */
+.pillar-data-quality { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 5px; }
+.dq-row { display: flex; gap: 8px; align-items: flex-start; }
+.dq-icon { font-size: 13px; flex-shrink: 0; }
+.dq-text { font-size: 11px; color: #92400E; line-height: 1.4; }
+.dq-text strong { color: #78350F; }
+
+/* -- Watchlist Live Price Badge -------------------------------- */
+.wl-change-badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; margin-left: 4px; }
