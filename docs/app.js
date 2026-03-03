@@ -537,6 +537,20 @@ function renderPortfolio() {
     grid.insertAdjacentHTML('beforebegin', chartHTML);
   }
 
+  // FEATURE 3: Sector concentration warning
+  const sectorConcentrationHtml = renderSectorConcentration(portfolioData, totalValue);
+  let sectorBlock = document.getElementById('sector-concentration-block');
+  if (!sectorBlock) {
+    const mainChart = document.getElementById('main-chart-section');
+    if (mainChart) {
+      mainChart.insertAdjacentHTML('afterend', `<div id="sector-concentration-block">${sectorConcentrationHtml}</div>`);
+    } else {
+      grid.insertAdjacentHTML('beforebegin', `<div id="sector-concentration-block">${sectorConcentrationHtml}</div>`);
+    }
+  } else {
+    sectorBlock.innerHTML = sectorConcentrationHtml;
+  }
+
   // Render cards
   grid.innerHTML = portfolioData.map(h => {
     const currentVal = (h.current_price || 0) * (h.quantity || 0);
@@ -546,6 +560,34 @@ function renderPortfolio() {
     const dayChange = h.day_change_pct || 0;
     const changeClass = dayChange > 0 ? 'up' : dayChange < 0 ? 'down' : 'neutral';
     const plClass = pl >= 0 ? 'positive' : 'negative';
+
+    // FEATURE 2: Break-even tracker
+    const avgPrice = h.average_price || 0;
+    const curPrice = h.current_price || 0;
+    let breakEvenHtml = '';
+    if (avgPrice > 0) {
+      if (curPrice >= avgPrice) {
+        breakEvenHtml = `<div class="detail-row"><span class="detail-label">Break-even</span><span class="detail-value" style="color:#059669">✓ Above B/E</span></div>`;
+      } else {
+        breakEvenHtml = `<div class="detail-row"><span class="detail-label">Break-even</span><span class="detail-value">${formatPeso(avgPrice)}</span></div>
+          <div class="detail-row dca-hint"><span class="detail-label" style="font-size:9px">DCA TIP</span><span class="detail-value" style="font-size:11px;color:#555">DCA to lower avg cost</span></div>`;
+      }
+    }
+
+    // FEATURE 4: Max drawdown (from cost basis)
+    let drawdownHtml = '';
+    if (avgPrice > 0 && curPrice < avgPrice) {
+      const drawdownPct = ((avgPrice - curPrice) / avgPrice) * 100;
+      drawdownHtml = `<div class="detail-row"><span class="detail-label">Max Drawdown</span><span class="detail-value negative">-${drawdownPct.toFixed(1)}%</span></div>`;
+    }
+
+    // FEATURE 5: Yield on cost
+    let yieldOnCostHtml = '';
+    const annualDiv = ANNUALIZED_DIVIDENDS[h.symbol];
+    if (annualDiv && avgPrice > 0) {
+      const yoc = (annualDiv / avgPrice) * 100;
+      yieldOnCostHtml = `<div class="detail-row"><span class="detail-label">Yield on Cost</span><span class="detail-value" style="color:#059669">${yoc.toFixed(2)}%</span></div>`;
+    }
 
     return `
       <div class="holding-card">
@@ -590,6 +632,9 @@ function renderPortfolio() {
             <span class="detail-label">Value</span>
             <span class="detail-value">${formatPeso(currentVal)}</span>
           </div>
+          ${breakEvenHtml}
+          ${drawdownHtml}
+          ${yieldOnCostHtml}
         </div>
         ${renderStockAction(h.symbol)}
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -621,6 +666,59 @@ function renderPortfolio() {
 
   // Load and render trade history below the grid
   renderTradeHistory();
+}
+
+// FEATURE 3: Sector concentration helper
+function renderSectorConcentration(holdings, totalValue) {
+  if (!holdings || holdings.length === 0 || totalValue <= 0) return '';
+
+  // Calculate sector allocations
+  const sectorValues = {};
+  holdings.forEach(h => {
+    const val = (h.current_price || 0) * (h.quantity || 0);
+    // Look up sector from PSE_UNIVERSE or use holding's sector
+    let sector = h.sector;
+    if (!sector) {
+      const found = PSE_UNIVERSE.find(u => u.symbol === h.symbol);
+      sector = found?.sector || 'Other';
+    }
+    sectorValues[sector] = (sectorValues[sector] || 0) + val;
+  });
+
+  // Convert to percentages and sort
+  const sectors = Object.entries(sectorValues)
+    .map(([name, value]) => ({ name, value, pct: (value / totalValue) * 100 }))
+    .sort((a, b) => b.pct - a.pct);
+
+  // Check for concentration > 40%
+  const concentrated = sectors.filter(s => s.pct > 40);
+  let warningHtml = '';
+  if (concentrated.length > 0) {
+    warningHtml = concentrated.map(s => `
+      <div class="sector-warning-banner">
+        ⚠️ SECTOR RISK: <strong>${s.name}</strong> is ${s.pct.toFixed(1)}% of your portfolio. Consider diversifying.
+      </div>
+    `).join('');
+  }
+
+  // Sector breakdown bars
+  const barsHtml = sectors.map(s => `
+    <div class="sector-bar-row">
+      <span class="sector-bar-label">${s.name}</span>
+      <div class="sector-bar-track">
+        <div class="sector-bar-fill" style="width:${Math.min(s.pct, 100)}%;background:${s.pct > 40 ? '#DC2626' : s.pct > 25 ? '#EA580C' : '#059669'}"></div>
+      </div>
+      <span class="sector-bar-pct">${s.pct.toFixed(1)}%</span>
+    </div>
+  `).join('');
+
+  return `
+    ${warningHtml}
+    <div class="sector-concentration-card">
+      <div class="sector-concentration-header">SECTOR ALLOCATION</div>
+      <div class="sector-bars">${barsHtml}</div>
+    </div>
+  `;
 }
 
 function toggleMainChart() {
