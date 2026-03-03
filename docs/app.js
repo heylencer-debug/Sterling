@@ -1,5 +1,6 @@
-// Sterling — Sterling PSE Dashboard v55
+// Sterling — Sterling PSE Dashboard v56
 // All page logic and Supabase data fetching
+// v56: Plain English analysis - rewrote AI prompt to remove jargon, added action glossary strip
 // v55: Analysis persistence - saves AI analysis to sterling_analysis, reloads on page render
 // v52: SECURITY - API keys fetched from Supabase app_settings (no localStorage)
 
@@ -4844,28 +4845,40 @@ async function triggerAnalysis(symbol, btnEl) {
 
   const dataAge = tech.fetched_at ? Math.round((Date.now() - new Date(tech.fetched_at).getTime()) / 60000) + ' min ago' : 'unknown';
 
-  const prompt = `You are Sterling, a trusted PSE broker-mentor for Carlo Rebadomia, a trader in Cebu, Philippines.
+  const prompt = `You are Sterling, a trusted personal broker for Carlo Rebadomia — a trader in Cebu, Philippines.
+Carlo is NOT a finance expert. He needs simple, plain language he can act on immediately.
 
-Carlo wants a fresh analysis of ${symbol} right now.
-
-TECHNICALS (data fetched ${dataAge}):
-- Price: ₱${tech.close?.toFixed(2) || 'N/A'}
-- Change: ${tech.change?.toFixed(2) || 'N/A'}%
-- RSI: ${tech.rsi?.toFixed(1) || 'N/A'}
-- SMA20: ₱${tech.sma20?.toFixed(2) || 'N/A'} | SMA50: ₱${tech.sma50?.toFixed(2) || 'N/A'} | SMA200: ₱${tech.sma200?.toFixed(2) || 'N/A'}
-- MA Trend: ${tech.ma_trend || 'N/A'}
-- Overall Signal: ${overallSignal}
+STOCK: ${symbol}
+CURRENT PRICE: ₱${tech.close ? Number(tech.close).toFixed(2) : 'N/A'}
+TODAY'S CHANGE: ${tech.change ? (tech.change > 0 ? '+' : '') + Number(tech.change).toFixed(2) + '%' : 'N/A'}
+MOMENTUM SIGNAL: ${overallSignal}
+TREND: ${tech.ma_trend || 'N/A'}
 
 RECENT NEWS:
 ${newsContext}
 
-Write a concise broker analysis for Carlo covering:
-1. Current situation in 1-2 sentences (what is the stock doing right now)
-2. Key risk or opportunity to watch
-3. CLEAR ACTION: BUY / BUY MORE / HOLD / REDUCE / SELL — with entry price range, target, and stop loss if actionable
+Write your analysis in EXACTLY this format — plain English, no jargon:
 
-Be direct. No disclaimers. Speak like a broker who knows Carlo personally.
-Max 4 sentences total.`;
+**WHAT'S HAPPENING**
+[1-2 sentences. What is this stock doing right now? Is it going up, down, or sideways? Why? Pretend you're explaining to a friend who knows nothing about stocks.]
+
+**SHOULD I DO ANYTHING?**
+[Clear action in bold: BUY / BUY MORE / HOLD / REDUCE / SELL]
+[1 sentence explaining why in plain terms. No technical terms. Example: "The stock has been climbing steadily and looks like it has more room to go up."]
+
+**IF I BUY**
+Entry: ₱[price] — [plain reason, e.g. "this is a good price to get in"]
+Target: ₱[price] — [plain reason, e.g. "a realistic price to sell for profit"]
+Stop Loss: ₱[price] — [plain reason, e.g. "sell here to limit your loss if things go wrong"]
+
+**ONE THING TO WATCH**
+[1 sentence. The single most important thing Carlo should keep an eye on. Plain language.]
+
+RULES:
+- Never use: RSI, MACD, SMA, EMA, Bollinger, confluence, resistance, support, overbought, oversold, momentum divergence, or any other technical term
+- If you must reference a concept, explain it in plain words: instead of "SMA50" say "50-day average price"
+- Keep each section SHORT — 1-3 sentences max
+- Be direct. Carlo needs to make a decision, not read an essay.`;
 
   // 6. Call OpenRouter
   let analysis;
@@ -4881,7 +4894,7 @@ Max 4 sentences total.`;
       body: JSON.stringify({
         model: 'anthropic/claude-sonnet-4-5',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 300
+        max_tokens: 500
       })
     });
     if (!orRes.ok) {
@@ -5029,13 +5042,28 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   }
 
   // 3. Populate the collapsible section
+  const detectedAction = detectActionFromAnalysis(analysis);
+
+  // Action glossary for plain English explanation
+  const actionMeanings = {
+    'STRONG BUY': 'Multiple signals say now is a great time to buy.',
+    'BUY': 'Looks good to buy — conditions are favorable.',
+    'BUY MORE': 'If you already hold this stock, consider adding more shares.',
+    'HOLD': 'Keep what you have but do not add more yet. Wait and watch.',
+    'REDUCE': 'Consider selling some of your shares to lower your risk.',
+    'SELL': 'Consider selling your position. The outlook is not good right now.',
+    'STRONG SELL': 'Strong signals to exit. High risk of further losses.'
+  };
+  const meaning = actionMeanings[detectedAction.label] || '';
+  const meaningHtml = meaning ? '<div class="sas-meaning">💡 <strong>' + detectedAction.label + '</strong> means: ' + meaning + '</div>' : '';
+
   analysisSection.innerHTML =
     '<div class="sas-header" onclick="this.parentElement.classList.toggle(\'sas-open\')">' +
     '<span class="sas-label">⚡ STERLING ANALYSIS</span>' +
     '<span class="sas-ts">' + ts + '</span>' +
     '<span class="sas-toggle">▼</span>' +
     '</div>' +
-    '<div class="sas-body"><p class="sas-text">' + (analysis || '') + '</p></div>';
+    '<div class="sas-body"><p class="sas-text">' + (analysis || '') + '</p>' + meaningHtml + '</div>';
   // Auto-open after new analysis
   analysisSection.classList.add('sas-open');
 
