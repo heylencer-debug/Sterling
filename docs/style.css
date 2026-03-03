@@ -1307,6 +1307,81 @@ body {
   border-color: #DC2626;
 }
 
+/* -- Sterling Verdict Section ---------------------------------- */
+.tsc-verdict-section {
+  margin: 12px 0 8px 0;
+  padding: 10px 12px;
+  background: #FAFAFA;
+  border: 1.5px solid #0A0A0A;
+  border-radius: 8px;
+}
+.tsc-verdict-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6B7280;
+  margin-bottom: 8px;
+}
+.tsc-verdict-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tsc-verdict-badge {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 2px solid;
+  white-space: nowrap;
+}
+.tsc-verdict-badge.verdict-strong-buy {
+  background: #16A34A;
+  color: #FFFFFF;
+  border-color: #16A34A;
+}
+.tsc-verdict-badge.verdict-buy {
+  background: transparent;
+  color: #16A34A;
+  border-color: #16A34A;
+}
+.tsc-verdict-badge.verdict-hold {
+  background: transparent;
+  color: #6B7280;
+  border-color: #6B7280;
+}
+.tsc-verdict-badge.verdict-sell {
+  background: transparent;
+  color: #DC2626;
+  border-color: #DC2626;
+}
+.tsc-verdict-badge.verdict-strong-sell {
+  background: #DC2626;
+  color: #FFFFFF;
+  border-color: #DC2626;
+}
+.tsc-verdict-badge.verdict-pending {
+  background: transparent;
+  color: #9CA3AF;
+  border-color: #D1D5DB;
+}
+.tsc-verdict-reason {
+  font-size: 12px;
+  font-weight: 400;
+  color: #6B7280;
+  line-height: 1.4;
+}
+.tsc-verdict-time {
+  font-size: 10px;
+  font-weight: 500;
+  color: #9CA3AF;
+  margin-top: 6px;
+}
+
 /* -- FEATURE 3: Sector Concentration Warning ------------------- */
 .sector-warning-banner {
   background: #FFF3CD;
