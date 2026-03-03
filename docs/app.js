@@ -1,6 +1,6 @@
-// Sterling — Sterling PSE Dashboard v46
+// Sterling — Sterling PSE Dashboard v47
 // All page logic and Supabase data fetching
-// v46: AI-powered news - OpenRouter Sonnet summaries, ai_action badges, personalized Sterling analysis
+// v47: On-demand Analyze button - triggerAnalysis() with TradingView + OpenRouter Claude Sonnet
 
 // State
 let loadedPages = {};
@@ -643,6 +643,7 @@ function renderPortfolio() {
           </button>
           <button onclick="editPosition('${h.symbol}')" style="flex:0 0 auto;padding:8px 12px;font-size:11px;font-weight:700;border:1.5px solid #0A0A0A;border-radius:6px;background:#FFFFFF;cursor:pointer;font-family:inherit">✏️ Edit</button>
         </div>
+        <button class="analyze-btn" onclick="triggerAnalysis('${h.symbol}', this)" data-symbol="${h.symbol}">⚡ ANALYZE</button>
       </div>
     `;
   }).join('');
@@ -1965,6 +1966,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
     ${verdictHtml}
     ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
     ${how ? `<div class="tsc-rationale" style="margin-top:6px"><span class="tsc-why-label">HOW TO BUY:</span> ${how}</div>` : ''}
+    <button class="analyze-btn" onclick="triggerAnalysis('${symbol}', this)" data-symbol="${symbol}">⚡ ANALYZE</button>
   </div>`;
 }
 
@@ -4630,5 +4632,201 @@ async function updatePricesInPlace() {
       // Patch local cache
       h.current_price = price; h.day_change_pct = pct;
     } catch(e) {}
+  }
+}
+
+// ==================== ON-DEMAND ANALYZE ====================
+
+async function triggerAnalysis(symbol, btnEl) {
+  // 1. Set button to loading state
+  btnEl.textContent = 'ANALYZING...';
+  btnEl.disabled = true;
+  btnEl.classList.add('analyzing');
+
+  try {
+    // 2. Fetch live technicals from TradingView Scanner
+    const tvRes = await fetch('https://scanner.tradingview.com/philippines/scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        symbols: { tickers: ['PSE:' + symbol] },
+        columns: ['RSI', 'MACD.macd', 'MACD.signal', 'close', 'change', 'SMA20', 'SMA50', 'SMA200', 'Recommend.All', 'volume', 'average_volume_10d_calc', '52_week_high', '52_week_low']
+      })
+    });
+    const tvData = await tvRes.json();
+    const d = tvData.data?.[0]?.d || [];
+    const tech = {
+      rsi: d[0], macd: d[1], macd_signal: d[2],
+      close: d[3], change: d[4],
+      sma20: d[5], sma50: d[6], sma200: d[7],
+      recommend_all: d[8], volume: d[9],
+      avg_volume: d[10], high52: d[11], low52: d[12]
+    };
+
+    // 3. Fetch latest 3 news articles for this symbol from Supabase
+    const { url, anonKey } = window.SUPABASE_CONFIG;
+    const newsRes = await fetch(
+      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=title,summary,ai_action,published_at',
+      { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
+    );
+    const news = await newsRes.json();
+
+    // 4. Build prompt for OpenRouter
+    const overallSignal = tech.recommend_all >= 0.5 ? 'Strong Buy'
+      : tech.recommend_all >= 0.1 ? 'Buy'
+      : tech.recommend_all > -0.1 ? 'Neutral'
+      : tech.recommend_all > -0.5 ? 'Sell' : 'Strong Sell';
+
+    const newsContext = news.length > 0
+      ? news.map(n => '- ' + n.title + (n.ai_action ? ' [' + n.ai_action + ']' : '')).join('\n')
+      : 'No recent news available.';
+
+    const prompt = `You are Sterling, a trusted PSE broker-mentor for Carlo Rebadomia, a trader in Cebu, Philippines.
+
+Carlo wants a fresh analysis of ${symbol} right now.
+
+LIVE TECHNICALS (just fetched):
+- Price: ₱${tech.close?.toFixed(2) || 'N/A'}
+- Change: ${tech.change?.toFixed(2) || 'N/A'}%
+- RSI: ${tech.rsi?.toFixed(1) || 'N/A'}
+- SMA50: ₱${tech.sma50?.toFixed(2) || 'N/A'} | SMA200: ₱${tech.sma200?.toFixed(2) || 'N/A'}
+- Overall Signal: ${overallSignal}
+- 52W Range: ₱${tech.low52?.toFixed(2) || 'N/A'} - ₱${tech.high52?.toFixed(2) || 'N/A'}
+- Volume vs Avg: ${tech.volume && tech.avg_volume ? (tech.volume / tech.avg_volume).toFixed(1) + 'x' : 'N/A'}
+
+RECENT NEWS:
+${newsContext}
+
+Write a concise broker analysis for Carlo covering:
+1. Current situation in 1-2 sentences (what is the stock doing right now)
+2. Key risk or opportunity to watch
+3. CLEAR ACTION: BUY / BUY MORE / HOLD / REDUCE / SELL — with entry price range, target, and stop loss if actionable
+
+Be direct. No disclaimers. Speak like a broker who knows Carlo personally.
+Max 4 sentences total.`;
+
+    // 5. Call OpenRouter
+    const orKey = localStorage.getItem('openrouter_key') || '';
+    if (!orKey) {
+      showAnalysisResult(symbol, btnEl, null, 'No OpenRouter key set. Click the ⚙️ icon in sidebar to add your key.');
+      return;
+    }
+
+    const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + orKey,
+        'HTTP-Referer': 'https://heylencer-debug.github.io/Sterling',
+        'X-Title': 'Sterling PSE Dashboard'
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-sonnet-4-5',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 300
+      })
+    });
+    const orData = await orRes.json();
+    const analysis = orData.choices?.[0]?.message?.content || 'Analysis unavailable.';
+
+    // 6. Save analysis to Supabase sterling_intelligence (best-effort)
+    const now = new Date().toISOString();
+    fetch(url + '/rest/v1/sterling_intelligence', {
+      method: 'POST',
+      headers: {
+        'apikey': anonKey,
+        'Authorization': 'Bearer ' + anonKey,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        symbol: symbol,
+        pillar: 'on_demand',
+        verdict: overallSignal,
+        ai_summary: analysis,
+        points: JSON.stringify([]),
+        sources: JSON.stringify([{ name: 'TradingView + OpenRouter Claude Sonnet', url: 'https://scanner.tradingview.com' }]),
+        analyzed_at: now
+      })
+    }).catch(() => {});
+
+    // 7. Show result
+    showAnalysisResult(symbol, btnEl, analysis, null);
+
+  } catch (err) {
+    showAnalysisResult(symbol, btnEl, null, 'Analysis failed: ' + err.message);
+  }
+}
+
+function showAnalysisResult(symbol, btnEl, analysis, error) {
+  // Reset button
+  btnEl.textContent = '⚡ ANALYZE';
+  btnEl.disabled = false;
+  btnEl.classList.remove('analyzing');
+
+  // Find or create result container (sibling to button, inside same card)
+  const card = btnEl.closest('.tech-signal-card') || btnEl.closest('.holding-card') || btnEl.parentElement;
+  let resultEl = card.querySelector('.analyze-result');
+  if (!resultEl) {
+    resultEl = document.createElement('div');
+    resultEl.className = 'analyze-result';
+    btnEl.parentElement.appendChild(resultEl);
+  }
+
+  if (error) {
+    resultEl.innerHTML = '<span class="analyze-error">' + error + '</span>';
+  } else {
+    const ts = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    resultEl.innerHTML =
+      '<div class="analyze-label">⚡ STERLING ANALYSIS <span class="analyze-ts">' + ts + '</span></div>' +
+      '<div class="analyze-text">' + analysis + '</div>';
+  }
+}
+
+// ==================== OPENROUTER KEY SETTINGS ====================
+
+function openSettingsModal() {
+  let overlay = document.getElementById('settings-modal-overlay');
+  if (!overlay) {
+    // Create modal if not exists
+    overlay = document.createElement('div');
+    overlay.id = 'settings-modal-overlay';
+    overlay.className = 'account-modal-overlay';
+    overlay.innerHTML = `
+      <div class="account-modal" style="max-width:380px">
+        <div class="acct-logo">⚙️</div>
+        <div class="acct-title">Sterling Settings</div>
+        <div style="text-align:left;margin-bottom:16px">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#555;display:block;margin-bottom:6px">OpenRouter API Key</label>
+          <input type="password" id="settings-or-key" class="acct-input" placeholder="sk-or-v1-..." value="${localStorage.getItem('openrouter_key') || ''}" style="margin-bottom:4px">
+          <div style="font-size:11px;color:#888;line-height:1.4">Required for on-demand AI analysis. Get your key from <a href="https://openrouter.ai/keys" target="_blank" style="color:#2563EB">openrouter.ai/keys</a></div>
+        </div>
+        <div id="settings-status" style="font-size:12px;min-height:20px;margin-bottom:12px"></div>
+        <button class="acct-btn-primary" onclick="saveSettingsKey()">Save Key</button>
+        <button class="acct-btn-ghost" onclick="closeSettingsModal()">Cancel</button>
+      </div>
+    `;
+    overlay.onclick = (e) => { if (e.target === overlay) closeSettingsModal(); };
+    document.body.appendChild(overlay);
+  }
+  // Update input value in case it changed
+  document.getElementById('settings-or-key').value = localStorage.getItem('openrouter_key') || '';
+  document.getElementById('settings-status').textContent = '';
+  overlay.classList.add('active');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal-overlay')?.classList.remove('active');
+}
+
+function saveSettingsKey() {
+  const key = document.getElementById('settings-or-key').value.trim();
+  if (key) {
+    localStorage.setItem('openrouter_key', key);
+    document.getElementById('settings-status').innerHTML = '<span style="color:#16A34A">✓ Key saved successfully</span>';
+    setTimeout(() => closeSettingsModal(), 1000);
+  } else {
+    localStorage.removeItem('openrouter_key');
+    document.getElementById('settings-status').innerHTML = '<span style="color:#DC2626">Key removed</span>';
   }
 }
