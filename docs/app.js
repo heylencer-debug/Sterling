@@ -1580,6 +1580,68 @@ const MENTOR_NOTES = {
   }
 };
 
+// ── Watchlist Tech Signal Card ─────────────────────────────────────────────
+// Draws from sterling_technicals (TradingView source) for any symbol.
+// Used on Watchlist instead of renderStockAction() — no dependency on
+// STOCK_INTELLIGENCE having the full three-pillar format.
+function renderTechSignalCard(symbol) {
+  const uid = 'wl_' + symbol;
+  // Get from loaded technicalsData (may be populated after watchlist renders)
+  const tech = (technicalsData || []).find(t => t.symbol === symbol);
+  const intel = STOCK_INTELLIGENCE[symbol] || {};
+
+  if (!tech) {
+    // Async-load if not in memory yet
+    setTimeout(async () => {
+      try {
+        const rows = await window.sbFetch('sterling_technicals', { filter: `symbol=eq.${symbol}`, limit: '1' });
+        const t = rows && rows[0];
+        const card = document.getElementById('tech-card-' + uid);
+        if (card && t) card.outerHTML = _buildTechCard(symbol, t, intel, uid);
+      } catch(e) { /* leave skeleton */ }
+    }, 400);
+    return `<div id="tech-card-${uid}" class="tech-signal-card loading"><div class="tsc-loading">Loading technicals…</div></div>`;
+  }
+  return _buildTechCard(symbol, tech, intel, uid);
+}
+
+function _buildTechCard(symbol, tech, intel, uid) {
+  const overall = tech.overall_signal || '—';
+  const rsi = tech.rsi14 != null ? parseFloat(tech.rsi14).toFixed(1) : null;
+  const rsiSig = tech.rsi_signal || '';
+  const macdSig = tech.macd_signal || null;
+  const maTrend = tech.ma_trend || null;
+  const updatedAt = tech.updated_at ? new Date(tech.updated_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : null;
+
+  // Signal badge color
+  const sigColors = { 'Strong Buy': '#16A34A', 'Buy': '#16A34A', 'Neutral': '#64748B', 'Sell': '#DC2626', 'Strong Sell': '#DC2626' };
+  const sigBg = { 'Strong Buy': '#DCFCE7', 'Buy': '#F0FDF4', 'Neutral': '#F1F5F9', 'Sell': '#FEF2F2', 'Strong Sell': '#FEE2E2' };
+  const sc = sigColors[overall] || '#64748B';
+  const sb = sigBg[overall] || '#F1F5F9';
+
+  // RSI bar color
+  const rsiColor = rsi !== null ? (parseFloat(rsi) >= 70 ? '#DC2626' : parseFloat(rsi) <= 30 ? '#16A34A' : '#0A0A0A') : '#94A3B8';
+
+  // Rationale from STOCK_INTELLIGENCE (why/how or summary)
+  const why = intel.why || intel.summary || null;
+  const how = intel.how || null;
+
+  return `<div id="tech-card-${uid}" class="tech-signal-card">
+    <div class="tsc-header">
+      <span class="tsc-source-label">TECHNICALS — TRADINGVIEW</span>
+      ${updatedAt ? `<span class="tsc-updated">${updatedAt}</span>` : ''}
+    </div>
+    <div class="tsc-signal-row">
+      <span class="tsc-overall" style="background:${sb};color:${sc};border-color:${sc}40">${overall}</span>
+      ${rsi !== null ? `<span class="tsc-rsi" style="color:${rsiColor}">RSI ${rsi}<span class="tsc-rsi-label"> — ${rsiSig}</span></span>` : ''}
+      ${macdSig ? `<span class="tsc-macd-badge">MACD: ${macdSig}</span>` : ''}
+    </div>
+    ${maTrend ? `<div class="tsc-ma-trend">📊 ${maTrend}</div>` : ''}
+    ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
+    ${how ? `<div class="tsc-rationale" style="margin-top:4px"><span class="tsc-why-label">ENTRY PLAN:</span> ${how}</div>` : ''}
+  </div>`;
+}
+
 function renderMentorNote(page) {
   // Render placeholder immediately — replaced async by loadLiveLesson()
   const fallback = MENTOR_NOTES[page] || MENTOR_NOTES['portfolio'];
@@ -1796,7 +1858,7 @@ function renderWatchlist() {
           <span class="rationale-text">${w.reason || w.rationale}</span>
         </div>
         ` : ''}
-        ${renderStockAction(w.symbol)}
+        ${renderTechSignalCard(w.symbol)}
         <div class="wl-card-actions" style="margin-top:10px">
           <a class="wl-chart-link" href="https://www.investagrams.com/stock/${w.symbol}" target="_blank">View Chart ↗</a>
         </div>
