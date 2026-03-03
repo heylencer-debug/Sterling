@@ -1,5 +1,6 @@
-// Sterling — Sterling PSE Dashboard
+// Sterling — Sterling PSE Dashboard v44
 // All page logic and Supabase data fetching
+// v44: Bug fixes - XSS escaping, CSS opacity, verdict mapping, null guards, type checks
 
 // State
 let loadedPages = {};
@@ -22,6 +23,12 @@ const DIVIDEND_SCHEDULES = {
   GLO: { yield: 4.5, frequency: 'annual', months: [5] },
   DMC: { yield: 3.2, frequency: 'annual', months: [6] },
   KEEPR: { yield: 7.0, frequency: 'quarterly', months: [3, 6, 9, 12] }
+};
+
+// Annualized dividends (PHP per share per year) for yield-on-cost calculation
+const ANNUALIZED_DIVIDENDS = {
+  MREIT: 1.05, FILRT: 0.21, AREIT: 1.10, DDMPR: 0.48, CREIT: 0.36,
+  GLO: 80.00, MBT: 3.50, BDO: 4.50, KEEPR: 0.70, RCR: 0.60
 };
 
 // PSE Universe - 40 stocks for Discovery scanner
@@ -1336,11 +1343,14 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
     'analyst target':  "The price analysts at brokers think the stock should reach within 12 months.",
     'capital ratios':  "How much of a bank's own money it holds vs loans given out. Higher = safer bank.",
   };
+  function escapeAttr(s) {
+    return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
   function glossify(text) {
     let out = text;
     Object.entries(TERM_DEFS).forEach(([term, def]) => {
       out = out.replace(new RegExp(`\\b(${term})\\b`, 'g'),
-        `<span class="glossary-term" onclick="showGlossaryTip(this)" data-def="${def.replace(/"/g,"'")}">${term}</span>`);
+        `<span class="glossary-term" onclick="showGlossaryTip(this)" data-def="${escapeAttr(def)}">${term}</span>`);
     });
     return out;
   }
@@ -1371,7 +1381,7 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
           <span class="pillar-title">${title}</span>
           ${helpText ? `<span class="pillar-subtitle">${helpText}</span>` : ''}
         </div>
-        <span class="pillar-verdict" style="color:${vc};border-color:${vc}20;background:${vc}12">${verdict}</span>
+        <span class="pillar-verdict" style="color:${vc};border-color:rgba(0,0,0,0.12);background:rgba(0,0,0,0.07)">${verdict}</span>
         <span class="pillar-chevron" id="chev-${id}">▸</span>
       </div>
       <div class="pillar-body" id="body-${id}" style="display:none">
@@ -1493,7 +1503,7 @@ function renderStockAction(symbol) {
                 <span>⚔️ Sterling&#39;s Verdict</span><span class="chevron">▸</span>
               </div>
               <div class="action-detail" style="display:none">
-                <p class="action-conclusion">${t.verdict || f.verdict || 'Analysis in progress.'}</p>
+                <p class="action-conclusion">${({'Positive':'BUY','Negative':'SELL','Neutral':'HOLD'}[t.verdict || f.verdict]) || 'Analysis in progress.'}</p>
               </div>
             </div>
           </div>`;
@@ -1695,6 +1705,14 @@ function _buildTechCard(symbol, tech, intel, uid) {
   let entry = intel.entry || null;
   let target = intel.target || null;
   let stop = intel.stop || null;
+  let entryNum = null, targetNum = null, stopNum = null;
+
+  // Extract numeric values for R:R calculation
+  const extractPrice = (str) => {
+    if (!str) return null;
+    const match = str.match(/₱?([\d,.]+)/);
+    return match ? parseFloat(match[1].replace(/,/g, '')) : null;
+  };
 
   if (!entry) {
     const price = tech.current_price != null ? parseFloat(tech.current_price) : null;
@@ -1703,14 +1721,66 @@ function _buildTechCard(symbol, tech, intel, uid) {
     if (price != null && sma50 != null) {
       if (price > sma50 * 1.03) {
         entry = `Near ₱${sma50.toFixed(2)} (wait for SMA50 dip)`;
+        entryNum = sma50;
       } else {
         entry = `~₱${price.toFixed(2)} (near SMA50 support)`;
+        entryNum = price;
       }
     } else if (price != null) {
       entry = `~₱${price.toFixed(2)} (current level)`;
+      entryNum = price;
     }
-    if (!stop && sma200 != null) stop = `₱${(sma200 * 0.95).toFixed(2)} (5% below SMA200)`;
-    if (!target && price != null) target = `₱${(price * 1.12).toFixed(2)} (+12% swing target)`;
+    if (!stop && sma200 != null) {
+      stopNum = sma200 * 0.95;
+      stop = `₱${stopNum.toFixed(2)} (5% below SMA200)`;
+    }
+    if (!target && price != null) {
+      targetNum = price * 1.12;
+      target = `₱${targetNum.toFixed(2)} (+12% swing target)`;
+    }
+  } else {
+    entryNum = extractPrice(entry);
+    targetNum = extractPrice(target);
+    stopNum = extractPrice(stop);
+  }
+
+  // FEATURE 1: Risk/Reward Ratio calculation
+  let rrHtml = '';
+  if (entryNum && targetNum && stopNum && entryNum > stopNum) {
+    const reward = targetNum - entryNum;
+    const risk = entryNum - stopNum;
+    const rr = (reward / risk).toFixed(1);
+    const rrColor = parseFloat(rr) >= 2.0 ? '#059669' : parseFloat(rr) >= 1.0 ? '#EA580C' : '#DC2626';
+    rrHtml = `<div class="tsc-rr-badge" style="color:${rrColor};border-color:${rrColor}">R:R 1:${rr}</div>`;
+  }
+
+  // FEATURE 6: 52-week range bar
+  let range52Html = '';
+  const w52High = tech.week52_high != null ? parseFloat(tech.week52_high) : null;
+  const w52Low = tech.week52_low != null ? parseFloat(tech.week52_low) : null;
+  const curPrice = tech.current_price != null ? parseFloat(tech.current_price) : null;
+  if (w52High && w52Low && curPrice && w52High > w52Low) {
+    const range = w52High - w52Low;
+    const position = ((curPrice - w52Low) / range) * 100;
+    const posClamped = Math.max(0, Math.min(100, position));
+    range52Html = `
+      <div class="tsc-52w-range">
+        <div class="tsc-52w-label">52W: ₱${w52Low.toFixed(2)} — ₱${w52High.toFixed(2)}</div>
+        <div class="tsc-52w-track"><div class="tsc-52w-dot" style="left:${posClamped}%"></div></div>
+      </div>`;
+  }
+
+  // FEATURE 7: Volume spike badge
+  let volBadgeHtml = '';
+  const volume = tech.volume != null ? parseFloat(tech.volume) : null;
+  const avgVolume = tech.avg_volume_10d != null ? parseFloat(tech.avg_volume_10d) : null;
+  if (volume && avgVolume && avgVolume > 0) {
+    const volRatio = volume / avgVolume;
+    if (volRatio >= 3.0) {
+      volBadgeHtml = `<span class="tsc-vol-badge surge">VOL SURGE</span>`;
+    } else if (volRatio >= 1.8) {
+      volBadgeHtml = `<span class="tsc-vol-badge spike">VOL SPIKE</span>`;
+    }
   }
 
   return `<div id="tech-card-${uid}" class="tech-signal-card">
@@ -1722,12 +1792,15 @@ function _buildTechCard(symbol, tech, intel, uid) {
       <span class="tsc-overall" style="background:${sb};color:${sc};border-color:${sc}40">${overall}</span>
       ${rsi !== null ? `<span class="tsc-rsi" style="color:${rsiColor}">RSI ${rsi}<span class="tsc-rsi-label"> — ${rsiSig}</span></span>` : ''}
       ${macdSig ? `<span class="tsc-macd-badge">MACD: ${macdSig}</span>` : ''}
+      ${volBadgeHtml}
     </div>
     ${maTrend ? `<div class="tsc-ma-trend">📊 ${maTrend}</div>` : ''}
+    ${range52Html}
     <div class="tsc-entry-block">
       ${entry  ? `<div class="tsc-entry-pill entry"><span class="tsc-ep-label">BUY ENTRY</span><span class="tsc-ep-val">${entry}</span></div>` : ''}
       ${target ? `<div class="tsc-entry-pill target"><span class="tsc-ep-label">TARGET</span><span class="tsc-ep-val">${target}</span></div>` : ''}
       ${stop   ? `<div class="tsc-entry-pill stop"><span class="tsc-ep-label">STOP LOSS</span><span class="tsc-ep-val">${stop}</span></div>` : ''}
+      ${rrHtml}
     </div>
     ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
     ${how ? `<div class="tsc-rationale" style="margin-top:6px"><span class="tsc-why-label">HOW TO BUY:</span> ${how}</div>` : ''}
@@ -1872,8 +1945,10 @@ function renderWatchlist() {
     loadLiveLesson('watchlist');
   }
 
-  const sector = document.getElementById('filter-sector').value;
-  const rec = document.getElementById('filter-recommendation').value;
+  const sectorEl = document.getElementById('filter-sector');
+  const recEl = document.getElementById('filter-recommendation');
+  const sector = sectorEl ? sectorEl.value : '';
+  const rec = recEl ? recEl.value : '';
 
   let filtered = watchlistData.filter(w => {
     if (sector && w.sector !== sector) return false;
@@ -2523,9 +2598,9 @@ async function renderDiscovery() {
           const overall = tech.overall_signal || '';
           const sigC = overall.includes('Buy') ? '#16A34A' : overall.includes('Sell') ? '#DC2626' : '#64748B';
           let entryText, targetText, stopText;
-          if (price && sma50) {
+          if (price != null && sma50 != null) {
             entryText = price > sma50 * 1.03 ? `Near ₱${sma50.toFixed(2)} (SMA50 dip)` : `~₱${parseFloat(price).toFixed(2)} (near support)`;
-          } else if (price) {
+          } else if (price != null) {
             entryText = `~₱${parseFloat(price).toFixed(2)}`;
           }
           if (price) targetText = `₱${(parseFloat(price) * 1.12).toFixed(2)} (+12%)`;
