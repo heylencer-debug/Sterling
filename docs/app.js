@@ -36,6 +36,7 @@ let alertsData = [];
 let newsData = [];
 let briefsData = [];
 let technicalsData = [];
+let analysisData = {}; // Persisted AI analysis from sterling_analysis table: { symbol: { analysis_text, action, analyzed_at } }
 let calendarMonth = new Date().getMonth();
 let calendarYear = new Date().getFullYear();
 
@@ -412,6 +413,43 @@ async function loadIntelligence(symbol) {
   } catch { return {}; }
 }
 
+// ==================== PERSISTED ANALYSIS LOADER ====================
+
+async function loadAnalysisData(symbols) {
+  // Load persisted AI analysis from sterling_analysis table
+  if (!symbols || symbols.length === 0) return;
+
+  try {
+    const { url, anonKey } = window.SUPABASE_CONFIG || {};
+    if (!url || !anonKey) return;
+
+    const symbolList = symbols.map(s => `"${s}"`).join(',');
+    const res = await fetch(
+      `${url}/rest/v1/sterling_analysis?symbol=in.(${symbolList})&select=symbol,analysis_text,action,analyzed_at&order=analyzed_at.desc`,
+      { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
+    );
+    if (!res.ok) {
+      console.warn('[Sterling] Failed to load analysis data:', res.status);
+      return;
+    }
+    const rows = await res.json();
+
+    // Build analysisData map (latest per symbol)
+    rows.forEach(r => {
+      if (!analysisData[r.symbol]) {
+        analysisData[r.symbol] = {
+          analysis_text: r.analysis_text,
+          action: r.action,
+          analyzed_at: r.analyzed_at
+        };
+      }
+    });
+    console.log('[Sterling] Loaded persisted analysis for', Object.keys(analysisData).length, 'symbols');
+  } catch (e) {
+    console.warn('[Sterling] Error loading analysis data:', e.message);
+  }
+}
+
 // ==================== PORTFOLIO ====================
 
 async function loadPortfolio() {
@@ -422,6 +460,11 @@ async function loadPortfolio() {
 
     // Fetch portfolio
     portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
+
+    // Load persisted analysis for portfolio symbols
+    const portfolioSymbols = portfolioData.map(h => h.symbol).filter(Boolean);
+    await loadAnalysisData(portfolioSymbols);
+
     renderPortfolio();
     updateLastUpdate();
     startLivePrices();
@@ -1970,6 +2013,26 @@ function _buildTechCard(symbol, tech, intel, uid) {
     }
   }
 
+  // FEATURE 8: Persisted Sterling Analysis from sterling_analysis table
+  let savedAnalysisHtml = '';
+  let analyzeButtonText = '⚡ ANALYZE';
+  const savedAnalysis = analysisData[symbol];
+  if (savedAnalysis && savedAnalysis.analysis_text) {
+    const savedTs = savedAnalysis.analyzed_at
+      ? new Date(savedAnalysis.analyzed_at).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
+    savedAnalysisHtml = `
+      <div class="sterling-analysis-section sas-open">
+        <div class="sas-header" onclick="this.parentElement.classList.toggle('sas-open')">
+          <span class="sas-label">⚡ STERLING ANALYSIS</span>
+          <span class="sas-ts">${savedTs}</span>
+          <span class="sas-toggle">▼</span>
+        </div>
+        <div class="sas-body"><p class="sas-text">${savedAnalysis.analysis_text}</p></div>
+      </div>`;
+    analyzeButtonText = '⚡ RE-ANALYZE';
+  }
+
   return `<div id="tech-card-${uid}" class="tech-signal-card">
     <div class="tsc-header">
       <span class="tsc-source-label">TECHNICALS — TRADINGVIEW</span>
@@ -1992,7 +2055,8 @@ function _buildTechCard(symbol, tech, intel, uid) {
     ${verdictHtml}
     ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
     ${how ? `<div class="tsc-rationale" style="margin-top:6px"><span class="tsc-why-label">HOW TO BUY:</span> ${how}</div>` : ''}
-    <button class="analyze-btn" onclick="triggerAnalysis('${symbol}', this)" data-symbol="${symbol}">⚡ ANALYZE</button>
+    ${savedAnalysisHtml}
+    <button class="analyze-btn" onclick="triggerAnalysis('${symbol}', this)" data-symbol="${symbol}">${analyzeButtonText}</button>
   </div>`;
 }
 
@@ -2096,6 +2160,11 @@ function toggleBrief(index) {
 async function loadWatchlist() {
   try {
     watchlistData = await window.sbFetch('sterling_watchlist', { filter: _uf(), order: 'fundamental_score.desc' });
+
+    // Load persisted analysis for watchlist symbols
+    const watchlistSymbols = watchlistData.map(w => w.symbol).filter(Boolean);
+    await loadAnalysisData(watchlistSymbols);
+
     populateWatchlistFilters();
     renderWatchlist();
   } catch (err) {
@@ -4811,8 +4880,47 @@ Max 4 sentences total.`;
     return;
   }
 
-  // 7. Save analysis to Supabase sterling_intelligence (best-effort)
+  // 7. Detect action from analysis text
+  const detectedAction = detectActionFromAnalysis(analysis);
   const now = new Date().toISOString();
+
+  // 7a. Save analysis to Supabase sterling_analysis (best-effort, persisted for reload)
+  try {
+    const uid = typeof _uid === 'function' ? _uid() : null;
+    const saveBody = {
+      symbol: symbol,
+      analysis_text: analysis,
+      action: detectedAction.label,
+      recommend_all: tech.recommend_all,
+      analyzed_at: now
+    };
+    if (uid) saveBody.user_id = uid;
+
+    fetch(url + '/rest/v1/sterling_analysis', {
+      method: 'POST',
+      headers: {
+        'apikey': anonKey,
+        'Authorization': 'Bearer ' + anonKey,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(saveBody)
+    }).then(res => {
+      if (res.ok) {
+        console.log('[Sterling] Analysis saved to sterling_analysis for', symbol);
+        // Update local cache
+        analysisData[symbol] = { analysis_text: analysis, action: detectedAction.label, analyzed_at: now };
+      } else {
+        console.warn('[Sterling] Failed to save analysis:', res.status);
+      }
+    }).catch(err => {
+      console.warn('[Sterling] Error saving analysis:', err.message);
+    });
+  } catch (e) {
+    console.warn('[Sterling] sterling_analysis save error:', e.message);
+  }
+
+  // 7b. Also save to sterling_intelligence (existing logic, for dashboard intel cards)
   fetch(url + '/rest/v1/sterling_intelligence', {
     method: 'POST',
     headers: {
