@@ -1381,9 +1381,9 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
           ${isStale ? '<span class="pillar-stale">⚠️ Update needed</span>' : '<span class="pillar-fresh">✓ Current</span>'}
         </div>` : ''}
         ${pillarKey === 'technicals' ? `<div class="pillar-data-quality">
-          <div class="dq-row"><span class="dq-icon">📡</span><span class="dq-text"><strong>Price data:</strong> Phisix API (live price + daily % change only)</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '🟡' : '🔴'}</span><span class="dq-text"><strong>RSI (14):</strong> ${supabaseData && supabaseData.rsi14 ? 'Available — based on accumulated daily closes' : 'Not yet reliable — needs 14 trading days of price history (~3 weeks)'}</span></div>
-          <div class="dq-row"><span class="dq-icon">ℹ️</span><span class="dq-text">Technical signals improve daily as price history accumulates. RSI and MACD will be reliable from mid-March 2026.</span></div>
+          <div class="dq-row"><span class="dq-icon">📡</span><span class="dq-text"><strong>Source:</strong> TradingView Scanner — RSI, MACD, MAs computed from PSE daily price history</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '🟢' : '🔴'}</span><span class="dq-text"><strong>RSI (14):</strong> ${supabaseData && supabaseData.rsi14 ? `${parseFloat(supabaseData.rsi14).toFixed(1)} — ${supabaseData.rsi_signal || 'computed'}` : 'Not available for this stock'}</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.overall_signal ? '🟢' : '⚪'}</span><span class="dq-text"><strong>Overall signal:</strong> ${supabaseData && supabaseData.overall_signal ? supabaseData.overall_signal : 'Pending — will update on next hourly run'}</span></div>
         </div>` : ''}
         <div class="pillar-points">${pointsHTML}</div>
         ${sourcesHTML ? `<div class="pillar-sources">${sourcesHTML}</div>` : ''}
