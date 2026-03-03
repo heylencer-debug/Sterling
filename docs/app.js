@@ -458,6 +458,7 @@ function renderPortfolio() {
   const pageEl = document.getElementById('page-portfolio');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('portfolio'));
+    loadLiveLesson('portfolio');
   }
 
   if (!portfolioData || portfolioData.length === 0) {
@@ -1535,16 +1536,36 @@ const MENTOR_NOTES = {
 };
 
 function renderMentorNote(page) {
-  const note = MENTOR_NOTES[page];
-  if (!note) return '';
+  // Render placeholder immediately — replaced async by loadLiveLesson()
+  const fallback = MENTOR_NOTES[page] || MENTOR_NOTES['portfolio'];
   return `
-    <div class="mentor-note">
+    <div class="mentor-note" id="mentor-note-${page}">
       <div class="mentor-header">
-        <span class="mentor-icon">${note.icon}</span>
-        <span class="mentor-title">${note.title}</span>
+        <span class="mentor-icon">${fallback.icon}</span>
+        <span class="mentor-title" id="mentor-title-${page}">${fallback.title}</span>
       </div>
-      <p class="mentor-body">${note.body}</p>
+      <p class="mentor-body" id="mentor-body-${page}">${fallback.body}</p>
     </div>`;
+}
+
+async function loadLiveLesson(page) {
+  try {
+    const rows = await window.sbFetch('sterling_lessons', {
+      filter: _uf(`page=eq.${page}`),
+      order: 'created_at.desc',
+      limit: '1'
+    });
+    if (!rows || !rows.length) return;
+    const lesson = rows[0];
+    const titleEl = document.getElementById(`mentor-title-${page}`);
+    const bodyEl = document.getElementById(`mentor-body-${page}`);
+    const iconEl = document.querySelector(`#mentor-note-${page} .mentor-icon`);
+    if (titleEl) titleEl.textContent = lesson.lesson_title;
+    if (bodyEl) bodyEl.textContent = lesson.lesson_body;
+    if (iconEl && lesson.lesson_icon) iconEl.textContent = lesson.lesson_icon;
+  } catch (e) {
+    // Silently fall back to static — already rendered
+  }
 }
 
 // ==================== MORNING BRIEF ====================
@@ -1578,6 +1599,7 @@ function renderBriefs() {
   const pageEl = document.getElementById('page-brief');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('brief'));
+    loadLiveLesson('brief');
   }
 
   if (!briefsData || briefsData.length === 0) {
@@ -1648,6 +1670,7 @@ function renderWatchlist() {
   const pageEl = document.getElementById('page-watchlist');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('watchlist'));
+    loadLiveLesson('watchlist');
   }
 
   const sector = document.getElementById('filter-sector').value;
@@ -1834,6 +1857,7 @@ function renderAlerts() {
   const pageEl = document.getElementById('page-alerts');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('alerts'));
+    loadLiveLesson('alerts');
   }
 
   if (!alertsData || alertsData.length === 0) {
@@ -1912,6 +1936,7 @@ function renderNews() {
   const pageEl = document.getElementById('page-news');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('news'));
+    loadLiveLesson('news');
   }
 
   const symbol = document.getElementById('filter-news-symbol').value;
@@ -1961,6 +1986,7 @@ async function loadDividends() {
     const pageEl = document.getElementById('page-dividends');
     if (pageEl && !pageEl.querySelector('.mentor-note')) {
       pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('dividends'));
+      loadLiveLesson('dividends');
     }
 
     if (!portfolioData || portfolioData.length === 0) {
@@ -2163,6 +2189,7 @@ function renderDiscovery() {
   const pageEl = document.getElementById('page-discovery');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('discovery'));
+    loadLiveLesson('discovery');
   }
 
   const grid = document.getElementById('discovery-grid');
@@ -3641,6 +3668,7 @@ function loadGoldPage() {
   const pageEl = document.getElementById('page-gold');
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('gold'));
+    loadLiveLesson('gold');
   }
   window.applyGlossary(document.getElementById('page-gold'));
 }
