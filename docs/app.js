@@ -1591,7 +1591,7 @@ function renderMentorNote(page) {
 async function loadLiveLesson(page) {
   try {
     const rows = await window.sbFetch('sterling_lessons', {
-      filter: _uf(`page=eq.${page}`),
+      filter: `page=eq.${page}`,
       order: 'created_at.desc',
       limit: '1'
     });
@@ -2279,9 +2279,11 @@ async function renderDiscovery() {
     const sectorColor = getSectorColor(s.sector);
     // Use real price from technicals, not random
     const tech = techMap[s.symbol] || {};
-    const livePrice = tech.price || tech.current_price || null;
-    const dayChange = tech.day_change_pct !== undefined ? parseFloat(tech.day_change_pct).toFixed(2) : null;
-    const changeClass = dayChange !== null ? (dayChange >= 0 ? 'positive' : 'negative') : '';
+    const livePrice = tech.current_price || null;
+    const dayChange = (tech.day_change_pct != null) ? parseFloat(tech.day_change_pct).toFixed(2) : null;
+    const changeClass = dayChange !== null ? (parseFloat(dayChange) >= 0 ? 'positive' : 'negative') : '';
+    const rsiVal = tech.rsi14 || null;
+    const signalVal = tech.overall_signal || null;
 
     return `
       <div class="stock-card">
@@ -2297,12 +2299,12 @@ async function renderDiscovery() {
         <div class="stock-card-price">
           <span class="stock-price">${livePrice ? formatPeso(livePrice) : '—'}</span>
           ${dayChange !== null
-            ? `<span class="stock-change ${changeClass}">${dayChange >= 0 ? '+' : ''}${dayChange}%</span>`
+            ? `<span class="stock-change ${changeClass}">${parseFloat(dayChange) >= 0 ? '+' : ''}${dayChange}%</span>`
             : '<span class="stock-change" style="color:#94A3B8">No price</span>'}
         </div>
         <div class="stock-card-metrics">
-          <div><span class="label">Sector</span><span class="value">${s.sector}</span></div>
-          ${tech.rsi ? `<div><span class="label">RSI</span><span class="value ${tech.rsi < 30 ? 'highlight-green' : tech.rsi > 70 ? 'highlight-red' : ''}">${parseFloat(tech.rsi).toFixed(1)}</span></div>` : ''}
+          ${rsiVal ? `<div><span class="label">RSI</span><span class="value ${rsiVal < 30 ? 'highlight-green' : rsiVal > 70 ? 'highlight-red' : ''}">${parseFloat(rsiVal).toFixed(1)}</span></div>` : ''}
+          ${signalVal ? `<div><span class="label">Signal</span><span class="value">${signalVal}</span></div>` : ''}
         </div>
         ${renderStockAction(s.symbol)}
         <div style="margin-top:10px">
