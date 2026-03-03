@@ -1212,3 +1212,23 @@ body {
 /* -- Action block freshness badge ------------------------------ */
 .action-freshness { font-size: 10px; font-weight: 700; color: #16A34A; background: #DCFCE7; padding: 2px 8px; border-radius: 4px; margin-left: auto; letter-spacing: 0.04em; white-space: nowrap; }
 .action-headline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* -- Watchlist / Discovery Entry Pills ------------------------- */
+.tsc-entry-block { display: flex; flex-direction: column; gap: 5px; margin: 8px 0; }
+.tsc-entry-pill { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 6px; border: 1.5px solid; }
+.tsc-entry-pill.entry  { border-color: #16A34A; background: #F0FDF4; }
+.tsc-entry-pill.target { border-color: #2563EB; background: #EFF6FF; }
+.tsc-entry-pill.stop   { border-color: #DC2626; background: #FEF2F2; }
+.tsc-ep-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+.tsc-ep-val   { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: #0A0A0A; }
+.tsc-entry-pill.entry  .tsc-ep-val { color: #15803D; }
+.tsc-entry-pill.target .tsc-ep-val { color: #1D4ED8; }
+.tsc-entry-pill.stop   .tsc-ep-val { color: #DC2626; }
+
+/* -- Discovery signal + entry chips ---------------------------- */
+.disc-signal-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.disc-signal-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; }
+.disc-entry-chip { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.disc-entry-chip.entry  { background: #F0FDF4; color: #15803D; }
+.disc-entry-chip.target { background: #EFF6FF; color: #1D4ED8; }
+.disc-entry-chip.stop   { background: #FEF2F2; color: #DC2626; }
