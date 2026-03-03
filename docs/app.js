@@ -1,6 +1,6 @@
-// Sterling — Sterling PSE Dashboard v50
+// Sterling — Sterling PSE Dashboard v51
 // All page logic and Supabase data fetching
-// v50: Hardwire OpenRouter API key - Analyze button works without manual key entry
+// v51: SECURITY FIX - Remove hardwired OpenRouter API key (must use Settings)
 
 // State
 let loadedPages = {};
@@ -4654,8 +4654,15 @@ async function triggerAnalysis(symbol, btnEl) {
     btnEl.classList.remove('analyzing');
   };
 
-  // 2. Get OpenRouter key (hardwired default for convenience)
-  const orKey = localStorage.getItem('openrouter_key') || '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';
+  // 2. Get OpenRouter key
+  const orKey = localStorage.getItem('openrouter_key') || '';
+  if (!orKey) {
+    showAnalysisResult(symbol, btnEl, null, 'Enter your OpenRouter key in Settings (⚙️) to use AI analysis.');
+    btnEl.textContent = '⚡ ANALYZE';
+    btnEl.disabled = false;
+    btnEl.classList.remove('analyzing');
+    return;
+  }
 
   const { url, anonKey } = window.SUPABASE_CONFIG;
 
