@@ -1,4 +1,4 @@
-// Sterling — Sterling PSE Dashboard v52
+// Sterling — Sterling PSE Dashboard v53
 // All page logic and Supabase data fetching
 // v52: SECURITY - API keys fetched from Supabase app_settings (no localStorage)
 
@@ -4681,14 +4681,13 @@ async function triggerAnalysis(symbol, btnEl) {
 
   // 2. Get OpenRouter key from Supabase app_settings (secure, no localStorage)
   const orKey = await getAppSetting('openrouter_api_key');
-  if (!orKey) {
-    showAnalysisResult(symbol, btnEl, null, 'OpenRouter key not configured. Ask your admin to add it in Supabase app_settings.');
-    btnEl.textContent = '⚡ ANALYZE';
-    btnEl.disabled = false;
-    btnEl.classList.remove('analyzing');
+  if (!orKey || orKey === 'null' || orKey.length < 20) {
+    showAnalysisResult(symbol, btnEl, null, 'OpenRouter key not found in settings. Please contact admin.');
+    resetBtn();
     return;
   }
-  console.log('[Sterling] orKey: SET (from Supabase)');
+  const cleanOrKey = orKey.trim();
+  console.log('[Sterling] OR key length:', cleanOrKey.length, '| starts with:', cleanOrKey.substring(0, 10));
 
   const { url, anonKey } = window.SUPABASE_CONFIG;
 
@@ -4784,7 +4783,7 @@ Max 4 sentences total.`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + orKey,
+        'Authorization': 'Bearer ' + cleanOrKey,
         'HTTP-Referer': 'https://heylencer-debug.github.io/Sterling',
         'X-Title': 'Sterling PSE Dashboard'
       },
@@ -4796,6 +4795,10 @@ Max 4 sentences total.`;
     });
     if (!orRes.ok) {
       const errBody = await orRes.text();
+      // Specific handling for 401 auth errors
+      if (orRes.status === 401) {
+        throw new Error('OpenRouter key is invalid or expired. Admin needs to update it in Supabase.');
+      }
       throw new Error('HTTP ' + orRes.status + ': ' + errBody.substring(0, 100));
     }
     const orData = await orRes.json();
