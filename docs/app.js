@@ -1,4 +1,4 @@
-// Sterling — Sterling PSE Dashboard v53
+// Sterling — Sterling PSE Dashboard v54
 // All page logic and Supabase data fetching
 // v52: SECURITY - API keys fetched from Supabase app_settings (no localStorage)
 
@@ -4836,29 +4836,83 @@ Max 4 sentences total.`;
   showAnalysisResult(symbol, btnEl, analysis, null);
 }
 
-function showAnalysisResult(symbol, btnEl, analysis, error) {
-  // Reset button
-  btnEl.textContent = '⚡ ANALYZE';
-  btnEl.disabled = false;
-  btnEl.classList.remove('analyzing');
+function detectActionFromAnalysis(text) {
+  if (!text) return { label: 'HOLD', cls: 'hold' };
+  const t = text.toUpperCase();
+  if (t.includes('STRONG BUY'))   return { label: 'STRONG BUY',  cls: 'strong-buy' };
+  if (t.includes('BUY MORE'))     return { label: 'BUY MORE',    cls: 'buy' };
+  if (t.includes('STRONG SELL'))  return { label: 'STRONG SELL', cls: 'strong-sell' };
+  if (t.includes(': BUY') || t.includes('ACTION: BUY') || t.match(/\bBUY\b/)) return { label: 'BUY', cls: 'buy' };
+  if (t.includes('REDUCE'))       return { label: 'REDUCE',      cls: 'sell' };
+  if (t.includes(': SELL') || t.includes('ACTION: SELL') || t.match(/\bSELL\b/)) return { label: 'SELL', cls: 'sell' };
+  return { label: 'HOLD', cls: 'hold' };
+}
 
-  // Find or create result container (sibling to button, inside same card)
-  const card = btnEl.closest('.tech-signal-card') || btnEl.closest('.holding-card') || btnEl.parentElement;
-  let resultEl = card.querySelector('.analyze-result');
-  if (!resultEl) {
-    resultEl = document.createElement('div');
-    resultEl.className = 'analyze-result';
-    btnEl.parentElement.appendChild(resultEl);
-  }
+function showAnalysisResult(symbol, btnEl, analysis, error) {
+  const card = btnEl.closest('.tsc-card') || btnEl.closest('.tech-signal-card') || btnEl.closest('.holding-card') || btnEl.closest('.portfolio-card') || btnEl.parentElement;
+  const ts = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
 
   if (error) {
+    // Error state: show error, reset button
+    btnEl.textContent = '⚡ ANALYZE';
+    btnEl.disabled = false;
+    btnEl.classList.remove('analyzing');
+
+    let resultEl = card.querySelector('.analyze-result');
+    if (!resultEl) {
+      resultEl = document.createElement('div');
+      resultEl.className = 'analyze-result';
+      btnEl.parentElement.appendChild(resultEl);
+    }
     resultEl.innerHTML = '<span class="analyze-error">' + error + '</span>';
-  } else {
-    const ts = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
-    resultEl.innerHTML =
-      '<div class="analyze-label">⚡ STERLING ANALYSIS <span class="analyze-ts">' + ts + '</span></div>' +
-      '<div class="analyze-text">' + analysis + '</div>';
+    return;
   }
+
+  // 1. Update the verdict badge on the card
+  const verdictBadge = card.querySelector('.tsc-verdict-badge');
+  if (verdictBadge && analysis) {
+    const action = detectActionFromAnalysis(analysis);
+    verdictBadge.textContent = action.label;
+    verdictBadge.className = 'tsc-verdict-badge verdict-' + action.cls;
+
+    // Add freshness timestamp next to badge
+    let tsEl = card.querySelector('.verdict-fresh-ts');
+    if (!tsEl) {
+      tsEl = document.createElement('span');
+      tsEl.className = 'verdict-fresh-ts';
+      verdictBadge.parentElement.appendChild(tsEl);
+    }
+    tsEl.textContent = '⚡ ' + ts;
+
+    // Pulse animation
+    verdictBadge.classList.add('verdict-pulse');
+    setTimeout(() => verdictBadge.classList.remove('verdict-pulse'), 1000);
+  }
+
+  // 2. Find or create the collapsible analysis section
+  let analysisSection = card.querySelector('.sterling-analysis-section');
+  if (!analysisSection) {
+    analysisSection = document.createElement('div');
+    analysisSection.className = 'sterling-analysis-section';
+    // Insert before the analyze button
+    btnEl.parentElement.insertBefore(analysisSection, btnEl);
+  }
+
+  // 3. Populate the collapsible section
+  analysisSection.innerHTML =
+    '<div class="sas-header" onclick="this.parentElement.classList.toggle(\'sas-open\')">' +
+    '<span class="sas-label">⚡ STERLING ANALYSIS</span>' +
+    '<span class="sas-ts">' + ts + '</span>' +
+    '<span class="sas-toggle">▼</span>' +
+    '</div>' +
+    '<div class="sas-body"><p class="sas-text">' + (analysis || '') + '</p></div>';
+  // Auto-open after new analysis
+  analysisSection.classList.add('sas-open');
+
+  // 4. Update button to RE-ANALYZE
+  btnEl.textContent = '⚡ RE-ANALYZE';
+  btnEl.disabled = false;
+  btnEl.classList.remove('analyzing');
 }
 
 // ==================== SETTINGS MODAL ====================
