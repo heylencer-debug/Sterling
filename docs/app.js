@@ -190,7 +190,7 @@ const PORTFOLIO_CONNECTIONS = {
 };
 
 // Discovery filter state
-let discoveryFilters = { sector: '', minYield: 0, maxPE: 999, sort: 'yield-desc' };
+let discoveryFilters = { sector: '', search: '', sort: 'alpha' };
 let watchlistSymbols = new Set();
 let portfolioSymbols = new Set();
 
@@ -1380,6 +1380,11 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
           <span class="pillar-date">🕐 Analyzed ${analyzedDate}</span>
           ${isStale ? '<span class="pillar-stale">⚠️ Update needed</span>' : '<span class="pillar-fresh">✓ Current</span>'}
         </div>` : ''}
+        ${pillarKey === 'technicals' ? `<div class="pillar-data-quality">
+          <div class="dq-row"><span class="dq-icon">📡</span><span class="dq-text"><strong>Price data:</strong> Phisix API (live price + daily % change only)</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '🟡' : '🔴'}</span><span class="dq-text"><strong>RSI (14):</strong> ${supabaseData && supabaseData.rsi14 ? 'Available — based on accumulated daily closes' : 'Not yet reliable — needs 14 trading days of price history (~3 weeks)'}</span></div>
+          <div class="dq-row"><span class="dq-icon">ℹ️</span><span class="dq-text">Technical signals improve daily as price history accumulates. RSI and MACD will be reliable from mid-March 2026.</span></div>
+        </div>` : ''}
         <div class="pillar-points">${pointsHTML}</div>
         ${sourcesHTML ? `<div class="pillar-sources">${sourcesHTML}</div>` : ''}
       </div>
@@ -1769,7 +1774,8 @@ function renderWatchlist() {
         <div class="wl-card-prices">
           <div class="wl-price-row">
             <span class="label">Current</span>
-            <span class="value">${formatPeso(w.current_price)}</span>
+            <span class="value" id="wl-price-${w.symbol}">${w.current_price ? formatPeso(w.current_price) : '—'}</span>
+            <span class="wl-change-badge" id="wl-chg-${w.symbol}"></span>
           </div>
           <div class="wl-price-row">
             <span class="label">Target</span>
@@ -1798,6 +1804,9 @@ function renderWatchlist() {
     `;
   }).join('');
 
+  // Fetch live prices from Phisix for watchlist stocks
+  _fetchWatchlistLivePrices(filtered);
+
   // Table view - keep for alternate view
   tbody.innerHTML = filtered.map(w => {
     const signal = getSignalType(w);
@@ -1817,6 +1826,31 @@ function renderWatchlist() {
   `;
   }).join('');
   window.applyGlossary(document.getElementById('page-watchlist'));
+}
+
+async function _fetchWatchlistLivePrices(stocks) {
+  if (!stocks || !stocks.length) return;
+  // Only PSE symbols (skip Gold, indices)
+  const pse = stocks.filter(w => w.symbol && !w.symbol.includes('/') && !w.symbol.startsWith('^'));
+  for (const w of pse) {
+    try {
+      const res = await fetch(`https://phisix-api3.appspot.com/stocks/${w.symbol}.json`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const stock = data && data.stock && data.stock[0];
+      if (!stock) continue;
+      const price = stock.price && stock.price.amount;
+      const pct = stock.percent_change != null ? stock.percent_change : (stock.percentChange != null ? stock.percentChange : null);
+      const priceEl = document.getElementById(`wl-price-${w.symbol}`);
+      const chgEl = document.getElementById(`wl-chg-${w.symbol}`);
+      if (priceEl && price) priceEl.textContent = formatPeso(price);
+      if (chgEl && pct != null) {
+        const pctNum = parseFloat(pct);
+        chgEl.textContent = (pctNum >= 0 ? '+' : '') + pctNum.toFixed(2) + '%';
+        chgEl.style.cssText = `font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;background:${pctNum >= 0 ? '#DCFCE7' : '#FEE2E2'};color:${pctNum >= 0 ? '#16A34A' : '#DC2626'}`;
+      }
+    } catch (e) { /* network error — leave stale price */ }
+  }
 }
 
 function getSignalType(stock) {
@@ -2192,33 +2226,20 @@ function renderDiscoveryFilters() {
   const sectors = ['All', 'Banking', 'REIT', 'Telecom', 'Property', 'Mining & Oil', 'Retail', 'Energy', 'Industrial', 'Holding Firms'];
 
   container.innerHTML = `
+    <input type="text" id="disc-search" placeholder="Search symbol or company…" oninput="updateDiscoveryFilter('search', this.value)" style="padding:8px 12px;border:1.5px solid #0A0A0A;border-radius:6px;font-size:13px;flex:1;min-width:180px">
     <select id="disc-sector" onchange="updateDiscoveryFilter('sector', this.value)">
       ${sectors.map(s => `<option value="${s === 'All' ? '' : s}">${s}</option>`).join('')}
     </select>
-    <div class="filter-group">
-      <label>Min Yield %</label>
-      <input type="number" id="disc-min-yield" value="0" min="0" max="20" step="0.5" onchange="updateDiscoveryFilter('minYield', this.value)">
-    </div>
-    <div class="filter-group">
-      <label>Max P/E</label>
-      <input type="number" id="disc-max-pe" value="999" min="1" max="999" onchange="updateDiscoveryFilter('maxPE', this.value)">
-    </div>
     <select id="disc-sort" onchange="updateDiscoveryFilter('sort', this.value)">
-      <option value="yield-desc">Yield (High→Low)</option>
-      <option value="pe-asc">P/E (Low→High)</option>
-      <option value="price-change">Price Change</option>
       <option value="alpha">Alphabetical</option>
+      <option value="sector">By Sector</option>
     </select>
-    <button class="filter-apply-btn" onclick="renderDiscovery()">Apply Filters</button>
   `;
 }
 
 function updateDiscoveryFilter(key, value) {
-  if (key === 'minYield' || key === 'maxPE') {
-    discoveryFilters[key] = parseFloat(value) || 0;
-  } else {
-    discoveryFilters[key] = value;
-  }
+  discoveryFilters[key] = value;
+  renderDiscovery();
 }
 
 async function renderDiscovery() {
@@ -2230,89 +2251,94 @@ async function renderDiscovery() {
   }
 
   const grid = document.getElementById('discovery-grid');
+  grid.innerHTML = `<div class="discovery-loading" style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">Loading PSE universe…</div>`;
 
-  // Load live technicals if not already loaded
-  if (!technicalsData.length) {
-    try {
-      const rows = await window.sbFetch('sterling_technicals', { order: 'updated_at.desc' });
-      if (rows && rows.length) technicalsData = rows;
-    } catch (e) { /* use empty map */ }
-  }
+  // Load fundamentals from sterling_intelligence (keyed by symbol)
+  let intelMap = {};
+  try {
+    const intelRows = await window.sbFetch('sterling_intelligence', { limit: '200' });
+    if (intelRows && intelRows.length) {
+      intelRows.forEach(row => { intelMap[row.symbol] = row; });
+    }
+  } catch (e) { /* no intel, show N/A */ }
 
   // Filter stocks
+  const search = (discoveryFilters.search || '').toLowerCase();
   let stocks = PSE_UNIVERSE.filter(s => {
     if (discoveryFilters.sector && s.sector !== discoveryFilters.sector) return false;
-    if (s.yield < discoveryFilters.minYield) return false;
-    if (s.pe > discoveryFilters.maxPE) return false;
+    if (search && !s.symbol.toLowerCase().includes(search) && !s.name.toLowerCase().includes(search)) return false;
     return true;
   });
 
-  // Sort stocks
-  switch (discoveryFilters.sort) {
-    case 'yield-desc':
-      stocks.sort((a, b) => b.yield - a.yield);
-      break;
-    case 'pe-asc':
-      stocks.sort((a, b) => a.pe - b.pe);
-      break;
-    case 'alpha':
-      stocks.sort((a, b) => a.symbol.localeCompare(b.symbol));
-      break;
-    default:
-      stocks.sort((a, b) => b.yield - a.yield);
+  // Sort
+  if (discoveryFilters.sort === 'sector') {
+    stocks.sort((a, b) => a.sector.localeCompare(b.sector) || a.symbol.localeCompare(b.symbol));
+  } else {
+    stocks.sort((a, b) => a.symbol.localeCompare(b.symbol));
   }
 
   if (stocks.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No stocks match your filters. Try adjusting the criteria.</div></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No stocks match your search. Try a different symbol or sector.</div></div>`;
     return;
-  }
-
-  // Build technicals lookup for live prices
-  const techMap = {};
-  if (typeof technicalsData !== 'undefined') {
-    technicalsData.forEach(t => { techMap[t.symbol] = t; });
   }
 
   grid.innerHTML = stocks.map(s => {
     const inWatchlist = watchlistSymbols.has(s.symbol);
     const inPortfolio = portfolioSymbols.has(s.symbol);
     const sectorColor = getSectorColor(s.sector);
-    // Use real price from technicals, not random
-    const tech = techMap[s.symbol] || {};
-    const livePrice = tech.current_price || null;
-    const dayChange = (tech.day_change_pct != null) ? parseFloat(tech.day_change_pct).toFixed(2) : null;
-    const changeClass = dayChange !== null ? (parseFloat(dayChange) >= 0 ? 'positive' : 'negative') : '';
-    const rsiVal = tech.rsi14 || null;
-    const signalVal = tech.overall_signal || null;
+    const intel = intelMap[s.symbol] || null;
+
+    // Parse fundamentals from intel JSONB
+    let pe = 'N/A', eps = 'N/A', divYield = 'N/A', verdict = null, analyzedDate = null, isStale = true;
+    if (intel) {
+      try {
+        const f = typeof intel.fundamentals === 'string' ? JSON.parse(intel.fundamentals) : (intel.fundamentals || {});
+        const points = f.points || [];
+        // Extract P/E, EPS, yield from points text (best-effort)
+        const pePoint = points.find(p => /P\/E|P-E|price.to.earn/i.test(p));
+        const epsPoint = points.find(p => /EPS|earnings per share/i.test(p));
+        const yldPoint = points.find(p => /yield|dividend/i.test(p));
+        const peMatch = pePoint && pePoint.match(/[\d.]+x/);
+        const epsMatch = epsPoint && epsPoint.match(/[\d.]+/);
+        const yldMatch = yldPoint && yldPoint.match(/[\d.]+%/);
+        if (peMatch) pe = peMatch[0];
+        if (epsMatch) eps = '₱' + epsMatch[0];
+        if (yldMatch) divYield = yldMatch[0];
+        verdict = f.verdict || null;
+        analyzedDate = intel.analyzed_at ? new Date(intel.analyzed_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : null;
+        isStale = intel.analyzed_at ? (Date.now() - new Date(intel.analyzed_at).getTime()) > 7 * 24 * 60 * 60 * 1000 : true;
+      } catch (e) { /* parse fail, keep N/A */ }
+    }
+
+    const verdictColor = verdict === 'Positive' ? '#16A34A' : verdict === 'Negative' ? '#DC2626' : '#94A3B8';
 
     return `
-      <div class="stock-card">
-        <div class="stock-card-header">
-          <span class="sector-badge" style="background:${sectorColor}20;color:${sectorColor}">${s.sector}</span>
-          ${inPortfolio ? '<span class="portfolio-badge">In Portfolio</span>' : ''}
-          ${inWatchlist ? '<span class="portfolio-badge" style="background:#E0F2FE;color:#0284C7">Watching</span>' : ''}
+      <div class="disc-card">
+        <div class="disc-card-top">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            <span class="sector-badge" style="background:${sectorColor}18;color:${sectorColor};border:1px solid ${sectorColor}40">${s.sector}</span>
+            ${inPortfolio ? '<span class="disc-tag portfolio-tag">IN PORTFOLIO</span>' : ''}
+            ${inWatchlist ? '<span class="disc-tag watch-tag">WATCHING</span>' : ''}
+          </div>
+          ${inWatchlist
+            ? `<button class="disc-wl-btn in-wl" disabled>✓ Watching</button>`
+            : `<button class="disc-wl-btn" onclick="addToWatchlistFromDiscovery('${s.symbol}', '${s.name.replace(/'/g, '&#39;')}', '${s.sector}')">+ Watch</button>`
+          }
         </div>
-        <div class="stock-card-main">
-          <div class="stock-symbol">${s.symbol}</div>
-          <div class="stock-name">${s.name}</div>
+        <div class="disc-card-identity">
+          <div class="disc-symbol">${s.symbol}</div>
+          <div class="disc-name">${s.name}</div>
         </div>
-        <div class="stock-card-price">
-          <span class="stock-price">${livePrice ? formatPeso(livePrice) : '—'}</span>
-          ${dayChange !== null
-            ? `<span class="stock-change ${changeClass}">${parseFloat(dayChange) >= 0 ? '+' : ''}${dayChange}%</span>`
-            : '<span class="stock-change" style="color:#94A3B8">No price</span>'}
+        <div class="disc-fundamentals">
+          <div class="disc-metric"><span class="disc-metric-label">P/E</span><span class="disc-metric-value">${pe}</span></div>
+          <div class="disc-metric"><span class="disc-metric-label">EPS</span><span class="disc-metric-value">${eps}</span></div>
+          <div class="disc-metric"><span class="disc-metric-label">DIV YIELD</span><span class="disc-metric-value">${divYield}</span></div>
         </div>
-        <div class="stock-card-metrics">
-          ${rsiVal ? `<div><span class="label">RSI</span><span class="value ${rsiVal < 30 ? 'highlight-green' : rsiVal > 70 ? 'highlight-red' : ''}">${parseFloat(rsiVal).toFixed(1)}</span></div>` : ''}
-          ${signalVal ? `<div><span class="label">Signal</span><span class="value">${signalVal}</span></div>` : ''}
-        </div>
-        ${renderStockAction(s.symbol)}
-        <div style="margin-top:10px">
-        ${inWatchlist
-          ? `<button class="stock-add-btn in-watchlist" disabled>✓ In Watchlist</button>`
-          : `<button class="stock-add-btn" onclick="addToWatchlistFromDiscovery('${s.symbol}', '${s.name.replace(/'/g, '&#39;')}', '${s.sector}')">+ Add to Watchlist</button>`
+        ${verdict ? `<div class="disc-verdict" style="border-left:3px solid ${verdictColor};padding:6px 10px;margin-top:10px;background:${verdictColor}08;font-size:12px;color:${verdictColor};font-weight:700;letter-spacing:0.05em">${verdict.toUpperCase()}</div>` : ''}
+        ${analyzedDate
+          ? `<div class="disc-data-quality">${isStale ? '⚠️' : '✓'} Fundamentals as of ${analyzedDate}${isStale ? ' — update needed' : ''}</div>`
+          : `<div class="disc-data-quality" style="color:#DC2626">⚠️ No analysis yet — add to Watchlist to queue</div>`
         }
-        </div>
       </div>
     `;
   }).join('');
