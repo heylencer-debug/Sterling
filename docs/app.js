@@ -1691,6 +1691,28 @@ function _buildTechCard(symbol, tech, intel, uid) {
   const why = intel.why || intel.summary || null;
   const how = intel.how || null;
 
+  // Entry / Target / Stop — from STOCK_INTELLIGENCE or derived from TradingView SMA levels
+  let entry = intel.entry || null;
+  let target = intel.target || null;
+  let stop = intel.stop || null;
+
+  if (!entry) {
+    const price = tech.current_price;
+    const sma50 = tech.sma50 ? parseFloat(tech.sma50) : null;
+    const sma200 = tech.sma200 ? parseFloat(tech.sma200) : null;
+    if (price && sma50) {
+      if (price > sma50 * 1.03) {
+        entry = `Near ₱${sma50.toFixed(2)} (wait for SMA50 dip)`;
+      } else {
+        entry = `~₱${parseFloat(price).toFixed(2)} (near SMA50 support)`;
+      }
+    } else if (price) {
+      entry = `~₱${parseFloat(price).toFixed(2)} (current level)`;
+    }
+    if (!stop && sma200) stop = `₱${(sma200 * 0.95).toFixed(2)} (5% below SMA200)`;
+    if (!target && price) target = `₱${(parseFloat(price) * 1.12).toFixed(2)} (+12% swing target)`;
+  }
+
   return `<div id="tech-card-${uid}" class="tech-signal-card">
     <div class="tsc-header">
       <span class="tsc-source-label">TECHNICALS — TRADINGVIEW</span>
@@ -1702,8 +1724,13 @@ function _buildTechCard(symbol, tech, intel, uid) {
       ${macdSig ? `<span class="tsc-macd-badge">MACD: ${macdSig}</span>` : ''}
     </div>
     ${maTrend ? `<div class="tsc-ma-trend">📊 ${maTrend}</div>` : ''}
+    <div class="tsc-entry-block">
+      ${entry  ? `<div class="tsc-entry-pill entry"><span class="tsc-ep-label">BUY ENTRY</span><span class="tsc-ep-val">${entry}</span></div>` : ''}
+      ${target ? `<div class="tsc-entry-pill target"><span class="tsc-ep-label">TARGET</span><span class="tsc-ep-val">${target}</span></div>` : ''}
+      ${stop   ? `<div class="tsc-entry-pill stop"><span class="tsc-ep-label">STOP LOSS</span><span class="tsc-ep-val">${stop}</span></div>` : ''}
+    </div>
     ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
-    ${how ? `<div class="tsc-rationale" style="margin-top:4px"><span class="tsc-why-label">ENTRY PLAN:</span> ${how}</div>` : ''}
+    ${how ? `<div class="tsc-rationale" style="margin-top:6px"><span class="tsc-why-label">HOW TO BUY:</span> ${how}</div>` : ''}
   </div>`;
 }
 
@@ -2480,6 +2507,30 @@ async function renderDiscovery() {
           <div class="disc-metric"><span class="disc-metric-label">DIV YIELD</span><span class="disc-metric-value">${divYield}</span></div>
         </div>
         ${verdict ? `<div class="disc-verdict" style="border-left:3px solid ${verdictColor};padding:6px 10px;margin-top:10px;background:${verdictColor}08;font-size:12px;color:${verdictColor};font-weight:700;letter-spacing:0.05em">${verdict.toUpperCase()}</div>` : ''}
+        ${(() => {
+          // Entry suggestion from sterling_technicals if loaded
+          const tech = (technicalsData || []).find(t => t.symbol === s.symbol);
+          if (!tech) return '';
+          const price = tech.current_price;
+          const sma50 = tech.sma50 ? parseFloat(tech.sma50) : null;
+          const sma200 = tech.sma200 ? parseFloat(tech.sma200) : null;
+          const overall = tech.overall_signal || '';
+          const sigC = overall.includes('Buy') ? '#16A34A' : overall.includes('Sell') ? '#DC2626' : '#64748B';
+          let entryText, targetText, stopText;
+          if (price && sma50) {
+            entryText = price > sma50 * 1.03 ? `Near ₱${sma50.toFixed(2)} (SMA50 dip)` : `~₱${parseFloat(price).toFixed(2)} (near support)`;
+          } else if (price) {
+            entryText = `~₱${parseFloat(price).toFixed(2)}`;
+          }
+          if (price) targetText = `₱${(parseFloat(price) * 1.12).toFixed(2)} (+12%)`;
+          if (sma200) stopText = `₱${(sma200 * 0.95).toFixed(2)} (−5% SMA200)`;
+          return `<div class="disc-signal-row">
+            <span class="disc-signal-badge" style="background:${sigC}18;color:${sigC};border:1px solid ${sigC}40">${overall || '—'}</span>
+            ${entryText ? `<span class="disc-entry-chip entry">BUY: ${entryText}</span>` : ''}
+            ${targetText ? `<span class="disc-entry-chip target">TP: ${targetText}</span>` : ''}
+            ${stopText ? `<span class="disc-entry-chip stop">SL: ${stopText}</span>` : ''}
+          </div>`;
+        })()}
         ${analyzedDate
           ? `<div class="disc-data-quality">${isStale ? '⚠️' : '✓'} Fundamentals as of ${analyzedDate}${isStale ? ' — update needed' : ''}</div>`
           : `<div class="disc-data-quality" style="color:#DC2626">⚠️ No analysis yet — add to Watchlist to queue</div>`
