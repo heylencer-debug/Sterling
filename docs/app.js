@@ -1,6 +1,6 @@
-// Sterling — Sterling PSE Dashboard v48
+// Sterling — Sterling PSE Dashboard v49
 // All page logic and Supabase data fetching
-// v48: Fix Analyze button CORS - use Supabase sterling_technicals instead of TradingView direct fetch
+// v49: Fix triggerAnalysis column mappings (rsi14, current_price, day_change_pct, updated_at) + debug logging
 
 // State
 let loadedPages = {};
@@ -4638,6 +4638,11 @@ async function updatePricesInPlace() {
 // ==================== ON-DEMAND ANALYZE ====================
 
 async function triggerAnalysis(symbol, btnEl) {
+  // Debug logging for troubleshooting
+  console.log('[Sterling] triggerAnalysis called for:', symbol);
+  console.log('[Sterling] SUPABASE_CONFIG:', typeof window.SUPABASE_CONFIG !== 'undefined' ? 'DEFINED' : 'UNDEFINED');
+  console.log('[Sterling] orKey:', localStorage.getItem('openrouter_key') ? 'SET' : 'NOT SET');
+
   // 1. Set button to loading state
   btnEl.textContent = 'ANALYZING...';
   btnEl.disabled = true;
@@ -4667,6 +4672,7 @@ async function triggerAnalysis(symbol, btnEl) {
     );
     if (!techRes.ok) throw new Error('HTTP ' + techRes.status);
     const techData = await techRes.json();
+    console.log('[Sterling] techData for', symbol, ':', techData);
     if (!techData || techData.length === 0) {
       showAnalysisResult(symbol, btnEl, null, 'No technicals data for ' + symbol + '. The cron job may not have fetched this stock yet.');
       resetBtn();
@@ -4674,16 +4680,18 @@ async function triggerAnalysis(symbol, btnEl) {
     }
     const row = techData[0];
     tech = {
-      rsi: row.rsi,
-      close: row.close,
-      change: row.change_pct,
+      rsi: row.rsi14,                    // Column is rsi14, not rsi
+      close: row.current_price,          // Column is current_price, not close
+      change: row.day_change_pct,        // Column is day_change_pct, not change_pct
       sma20: row.sma20,
       sma50: row.sma50,
       sma200: row.sma200,
       recommend_all: row.tv_recommend_all,
-      volume: row.volume,
+      volume: row.volume || 0,
       ma_trend: row.ma_trend,
-      fetched_at: row.fetched_at
+      rsi_signal: row.rsi_signal,        // Include RSI signal for better analysis
+      overall_signal: row.overall_signal, // Include overall signal
+      fetched_at: row.updated_at         // Column is updated_at, not fetched_at
     };
   } catch (e) {
     console.error('triggerAnalysis technicals error:', e);
