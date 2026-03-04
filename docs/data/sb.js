@@ -36,12 +36,36 @@ window.sbInsert = async function(table, data) {
       'apikey': anonKey,
       'Authorization': `Bearer ${anonKey}`,
       'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
+      'Prefer': 'return=minimal'
     },
     body: JSON.stringify(data)
   });
-  if (!res.ok) throw new Error(`Supabase insert error: ${res.status}`);
-  return res.json();
+  if (!res.ok) {
+    const txt = await res.text().catch(() => res.status);
+    throw new Error(`Supabase insert error: ${res.status} ${txt}`);
+  }
+  return true;
+};
+
+// Helper: Supabase upsert
+window.sbUpsert = async function(table, data, conflict) {
+  const { url, anonKey } = window.SUPABASE_CONFIG;
+  const qs = conflict ? `?on_conflict=${conflict}` : '';
+  const res = await fetch(`${url}/rest/v1/${table}${qs}`, {
+    method: 'POST',
+    headers: {
+      'apikey': anonKey,
+      'Authorization': `Bearer ${anonKey}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
+    },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => res.status);
+    throw new Error(`Supabase upsert error: ${res.status} ${txt}`);
+  }
+  return true;
 };
 
 // Helper: Supabase update
