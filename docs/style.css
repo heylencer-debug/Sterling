@@ -643,8 +643,8 @@ body {
 .wl-stat.buy .wl-stat-value { color:#059669; }
 .wl-stat.target .wl-stat-value { color:#EA580C; }
 
-/* -- Watchlist cards grid -------------------------------------- */
-.watchlist-cards { display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px; }
+/* -- Watchlist cards grid — max 3 per row -------------------- */
+.watchlist-cards { display:grid;grid-template-columns:repeat(3,1fr);gap:16px; }
 
 /* -- Watchlist card: actual class is .watchlist-card-new ------- */
 .watchlist-card-new {
@@ -1840,3 +1840,10 @@ body {
 .sv-wait    { background: #64748B; color: #fff; }
 .sv-note    { font-size: 11px; color: #94A3B8; margin-top: 5px; font-style: italic; }
 .tsc-disclaimer { font-size: 10px; color: #64748B; margin-top: 6px; font-style: italic; border-top: 1px solid #1E293B; padding-top: 6px; }
+
+/* -- Pillar header timestamp ----------------------------------- */
+.pillar-header-ts { font-size: 10px; color: #94A3B8; margin-left: auto; margin-right: 6px; font-weight: 500; white-space: nowrap; }
+
+/* -- Technicals explanation block ------------------------------ */
+.dq-title { font-size: 11px; font-weight: 800; color: #0A0A0A; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #E2E8F0; }
+.dq-note { font-size: 11px; color: #4338CA; background: #EEF2FF; border-radius: 6px; padding: 8px 10px; margin-top: 8px; line-height: 1.5; }
