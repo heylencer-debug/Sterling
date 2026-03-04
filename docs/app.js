@@ -1732,6 +1732,9 @@ function renderStockAction(symbol) {
     const liveTechPillar = liveTech ? {
       verdict: liveTech.overall_signal && liveTech.overall_signal.includes('Buy') ? 'Positive' : liveTech.overall_signal && liveTech.overall_signal.includes('Sell') ? 'Negative' : 'Neutral',
       ai_summary: `RSI ${liveTech.rsi14 !== null ? parseFloat(liveTech.rsi14).toFixed(1) : 'N/A'} (${liveTech.rsi_signal || '-'}). MACD: ${liveTech.macd_signal || '-'}. Signal: ${liveTech.overall_signal || '-'}.`,
+      rsi14: liveTech.rsi14,
+      macd_signal: liveTech.macd_signal,
+      overall_signal: liveTech.overall_signal,
       points: [
         `RSI(14): ${liveTech.rsi14 !== null ? parseFloat(liveTech.rsi14).toFixed(1) : 'N/A'} - ${liveTech.rsi_signal || 'N/A'}`,
         `MACD: ${liveTech.macd_signal || 'N/A'}`,
@@ -2107,6 +2110,30 @@ function _buildTechCard(symbol, tech, intel, uid) {
       </div>
     </div>`;
 
+  // Build RSI plain-English reading
+  const rsiExplain = rsi !== null
+    ? (parseFloat(rsi) < 30 ? `${rsi} — Oversold. Stock has fallen fast; potential entry point for dividend buyers.`
+      : parseFloat(rsi) < 40 ? `${rsi} — Getting oversold. May be approaching a good entry zone.`
+      : parseFloat(rsi) > 70 ? `${rsi} — Overbought. Price ran up fast; consider waiting for a dip to add.`
+      : parseFloat(rsi) > 60 ? `${rsi} — Elevated. Momentum is up but watch for short-term pullback.`
+      : `${rsi} — Neutral. No strong momentum signal either way.`)
+    : null;
+  const macdExplain = macdSig
+    ? (macdSig.toLowerCase().includes('buy') ? 'Positive — upward price pressure building.'
+      : macdSig.toLowerCase().includes('sell') ? 'Negative — short-term downward pressure. Not a sell signal for long-term holders.'
+      : `${macdSig}`)
+    : null;
+
+  const techExplainerHtml = `
+    <div class="tsc-explainer">
+      <div class="tsc-explainer-title">📖 What this means for your dividends</div>
+      <div class="tsc-explainer-row"><strong>Technicals = entry timing only.</strong> Use this to decide <em>when</em> to buy more, not whether to hold. Your dividend income doesn't depend on short-term price moves.</div>
+      ${rsiExplain ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">RSI (Momentum):</span> ${rsiExplain}</div>` : ''}
+      ${macdExplain ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">MACD (Trend):</span> ${macdExplain}</div>` : ''}
+      ${maTrend ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">Moving Averages:</span> ${maTrend}</div>` : ''}
+      <div class="tsc-explainer-note">💡 A SELL signal means short-term momentum is down — often a <strong>buying opportunity</strong> if the company still pays dividends.</div>
+    </div>`;
+
   return `<div id="tech-card-${uid}" class="tech-signal-card">
     <div class="tsc-header">
       <span class="tsc-source-label">TECHNICALS - TRADINGVIEW</span>
@@ -2120,6 +2147,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
     </div>
     ${maTrend ? `<div class="tsc-ma-trend">📊 ${maTrend}</div>` : ''}
     ${range52Html}
+    ${techExplainerHtml}
     <div class="tsc-entry-block">
       ${entry  ? `<div class="tsc-entry-pill entry"><span class="tsc-ep-label">BUY ENTRY</span><span class="tsc-ep-val">${entry}</span></div>` : ''}
       ${target ? `<div class="tsc-entry-pill target"><span class="tsc-ep-label">TARGET</span><span class="tsc-ep-val">${target}</span></div>` : ''}
