@@ -2541,17 +2541,25 @@ async function dismissAlert(id) {
 // ==================== NEWS ====================
 
 async function loadNews() {
+  const feed = document.getElementById('news-feed');
+  if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading news...</div></div>';
   try {
-    newsData = await window.sbFetch('sterling_news', { order: 'published_at.desc', limit: '50' });
-    // Pre-tag sentiment so filter works correctly
-    newsData = (newsData || []).map(n => ({
+    const { url, anonKey } = window.SUPABASE_CONFIG;
+    const res = await fetch(`${url}/rest/v1/sterling_news?select=*&order=scraped_at.desc&limit=60`, {
+      headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    newsData = (rows || []).map(n => ({
       ...n,
       sentiment: n.sentiment || tagSentiment((n.headline || '') + ' ' + (n.summary || ''))
     }));
+    console.log('[Sterling] News loaded:', newsData.length, 'articles');
     populateNewsFilters();
     renderNews();
   } catch (err) {
-    console.error('News load error:', err);
+    console.error('[Sterling] News load error:', err);
+    if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load news: ' + err.message + '</div></div>';
   }
 }
 
