@@ -2093,6 +2093,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
       <div class="tsc-verdict-row">
         <span class="sterling-verdict-badge ${sv.cls}">${sv.label}</span>
       </div>
+      <div class="sv-note">${sv.note}</div>
       <div class="sv-sub-signals">
         <span class="sv-sub">Technical: <strong>${techSubLine}</strong></span>
         <span class="sv-sub-sep">·</span>
@@ -5010,26 +5011,38 @@ function detectActionFromAnalysis(text) {
   return { label: 'HOLD', cls: 'hold' };
 }
 
-function computeSterlingVerdict(techSignal, aiLabel) {
-  const TECH_SCORE = { 'Strong Buy': 2, 'Buy': 1, 'Neutral': 0, 'Sell': -1, 'Strong Sell': -2 };
-  const AI_SCORE = { 'STRONG BUY': 2, 'BUY MORE': 1.5, 'BUY': 1, 'HOLD': 0, 'REDUCE': -1, 'SELL': -1.5, 'STRONG SELL': -2 };
+function computeSterlingVerdict(techSignal, aiLabel, fundamentalData) {
+  // Technical signal = ENTRY TIMING ONLY (30% weight)
+  const TECH_SCORE = { 'Strong Buy': 2, 'Buy': 1, 'Neutral': 0, 'Sell': -0.5, 'Strong Sell': -1 };
+  // AI label (news + fundamentals context) = 70% weight
+  const AI_SCORE = { 'ACCUMULATE': 2, 'ADD ON DIP': 1.5, 'HOLD': 0.5, 'MONITOR': -0.5, 'REDUCE': -1, 'WAIT': 0 };
+
+  // Map old AI labels to new ones if needed
+  const AI_REMAP = {
+    'STRONG BUY': 'ACCUMULATE', 'BUY MORE': 'ADD ON DIP', 'BUY': 'ADD ON DIP',
+    'HOLD': 'HOLD', 'WATCH CLOSELY': 'MONITOR', 'REDUCE': 'REDUCE', 'SELL': 'MONITOR', 'STRONG SELL': 'MONITOR'
+  };
+  const normalizedAI = AI_REMAP[aiLabel] || aiLabel;
+
   const techScore = TECH_SCORE[techSignal] ?? null;
-  const aiScore = AI_SCORE[aiLabel] ?? null;
+  const aiScore = AI_SCORE[normalizedAI] ?? null;
+
   let combined;
   if (techScore !== null && aiScore !== null) {
-    combined = (techScore * 0.45) + (aiScore * 0.55);
-  } else if (techScore !== null) {
-    combined = techScore;
+    combined = (techScore * 0.30) + (aiScore * 0.70);
   } else if (aiScore !== null) {
     combined = aiScore;
+  } else if (techScore !== null) {
+    combined = techScore * 0.5; // tech alone is weak signal for dividend investor
   } else {
-    return { label: 'AWAITING DATA', cls: 'sv-awaiting' };
+    return { label: 'AWAITING DATA', cls: 'sv-awaiting', note: 'Collecting data...' };
   }
-  if (combined >= 1.5)  return { label: 'STRONG BUY', cls: 'sv-strong-buy' };
-  if (combined >= 0.6)  return { label: 'BUY',        cls: 'sv-buy' };
-  if (combined >= -0.5) return { label: 'HOLD',       cls: 'sv-hold' };
-  if (combined >= -1.2) return { label: 'REDUCE',     cls: 'sv-reduce' };
-  return                       { label: 'SELL',        cls: 'sv-sell' };
+
+  if (combined >= 1.4)  return { label: 'ACCUMULATE',     cls: 'sv-strong-buy', note: 'Strong fundamentals — good time to add shares' };
+  if (combined >= 0.7)  return { label: 'ADD ON DIP',     cls: 'sv-buy',        note: 'Solid holding — buy more on price weakness' };
+  if (combined >= 0.2)  return { label: 'HOLD & COLLECT', cls: 'sv-hold',       note: 'Thesis intact — hold and collect dividends' };
+  if (combined >= -0.4) return { label: 'MONITOR',        cls: 'sv-monitor',    note: 'Watch for changes to dividend or fundamentals' };
+  return                       { label: 'WAIT',           cls: 'sv-wait',       note: 'Unfavorable entry — wait for better price' };
 }
 
 // Convert markdown-style formatting to HTML for analysis text
