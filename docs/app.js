@@ -2616,8 +2616,13 @@ function renderNews() {
 
     // AI action badge mapping
     const actionBadgeClass = {
-      'BUY MORE': 'ai-action-buy',
+      'ACCUMULATE': 'ai-action-buy',
+      'ADD ON DIP': 'ai-action-buy',
+      'HOLD & COLLECT': 'ai-action-hold',
       'HOLD': 'ai-action-hold',
+      'MONITOR': 'ai-action-watch',
+      'WAIT': 'ai-action-reduce',
+      'BUY MORE': 'ai-action-buy',
       'REDUCE': 'ai-action-reduce',
       'WATCH CLOSELY': 'ai-action-watch'
     };
@@ -2625,11 +2630,12 @@ function renderNews() {
     const actionClass = aiAction ? (actionBadgeClass[aiAction.toUpperCase()] || 'ai-action-hold') : '';
 
     // AI summary section (only if summary exists and differs from headline)
-    const hasAISummary = n.summary && n.summary !== n.headline && n.summary.length > 50;
+    const aiSummaryText = n.ai_summary || n.summary || '';
+    const hasAISummary = aiSummaryText && aiSummaryText !== n.headline && aiSummaryText.length > 50;
     const aiSummaryHTML = hasAISummary ? `
       <div class="news-ai-analysis">
-        <div class="news-ai-label">STERLING ANALYSIS</div>
-        <div class="news-ai-summary">${escapeHtml(n.summary)}</div>
+        <div class="news-ai-label">DIVIDEND THESIS</div>
+        <div class="news-ai-summary">${escapeHtml(aiSummaryText)}</div>
       </div>
     ` : '';
 
@@ -5133,7 +5139,13 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   };
   const meaning = actionMeanings[detectedAction.label] || '';
   const meaningHtml = meaning ? '<div class="sas-meaning">💡 <strong>' + detectedAction.label + '</strong> means: ' + meaning + '</div>' : '';
-  const verdictNoteHtml = '<div class="sas-verdict-note">📊 <strong>Entry Timing</strong> is based on price math only. <strong>Dividend Thesis</strong> considers news, yield, and fundamentals. As a long-term investor, focus on the thesis - not short-term price moves.</div>';
+  const verdictNoteHtml = `<div class="sas-verdict-note">
+    <div style="font-weight:700;margin-bottom:6px">📖 What do these signals mean?</div>
+    <div style="margin-bottom:4px">🎯 <strong>Sterling Verdict</strong> — Your single recommended action. This is what you should act on.</div>
+    <div style="margin-bottom:4px">💰 <strong>Dividend Thesis</strong> — AI's view on whether the dividend is safe and worth holding long-term. Based on news + fundamentals.</div>
+    <div style="margin-bottom:4px">⏱ <strong>Entry Timing</strong> — Price momentum signal (not a buy/sell decision). Use this only to decide <em>when</em> to add shares, not <em>whether</em> to.</div>
+    <div>📊 <strong>Technicals</strong> — Raw price math: RSI, moving averages, MACD. Background data only. As a dividend investor, your edge is in fundamentals — not charts.</div>
+  </div>`;
 
   analysisSection.innerHTML =
     '<div class="sas-header" onclick="this.parentElement.classList.toggle(\'sas-open\')">' +
@@ -5149,6 +5161,24 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   btnEl.textContent = '⚡ RE-ANALYZE';
   btnEl.disabled = false;
   btnEl.classList.remove('analyzing');
+
+  // 5. Live-update Dividend Thesis badge in portfolio holding card header
+  const holdingCard = btnEl.closest('.holding-card');
+  if (holdingCard && analysis) {
+    const detectedAct = detectActionFromAnalysis(analysis);
+    const ts2 = new Date().toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    let verdictEl = holdingCard.querySelector('.portfolio-ai-verdict');
+    if (!verdictEl) {
+      verdictEl = document.createElement('div');
+      verdictEl.className = 'portfolio-ai-verdict';
+      const detailsEl = holdingCard.querySelector('.holding-details');
+      if (detailsEl) detailsEl.prepend(verdictEl);
+    }
+    verdictEl.innerHTML =
+      '<span class="portfolio-ai-label">DIVIDEND THESIS:</span>' +
+      '<span class="tsc-verdict-badge verdict-' + detectedAct.cls + '">' + detectedAct.label + '</span>' +
+      '<span class="portfolio-ai-ts">' + ts2 + ' — just now</span>';
+  }
 }
 
 // ==================== SETTINGS MODAL ====================
