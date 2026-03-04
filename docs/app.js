@@ -3651,51 +3651,84 @@ function _updateAddPosPreview() {
 async function submitAddPosition(e) {
   e.preventDefault();
   const sym = document.getElementById('addpos-symbol').value.trim().toUpperCase();
-  const shares = parseFloat(document.getElementById('addpos-shares').value);
-  const avg = parseFloat(document.getElementById('addpos-avgprice').value);
-  if (!sym || !shares || !avg) { showToast('Fill in all fields.', 'error'); return; }
+  const sharesRaw = parseFloat(document.getElementById('addpos-shares').value);
+  const avgRaw = parseFloat(document.getElementById('addpos-avgprice').value);
+
+  // Fix #3: validate positive numbers only
+  if (!sym) { showToast('Please select a valid symbol.', 'error'); return; }
+  if (!sharesRaw || sharesRaw <= 0) { showToast('Shares must be a positive number.', 'error'); return; }
+  if (!avgRaw || avgRaw <= 0) { showToast('Average price must be a positive number.', 'error'); return; }
+
+  const shares = sharesRaw;
+  const avg = avgRaw;
+  const isEditMode = !!_addPosSymbol; // true if editing existing position
 
   const btn = document.getElementById('addpos-submit-btn');
   btn.disabled = true;
   btn.textContent = 'Saving…';
 
   try {
-    const meta = PSE_UNIVERSE.find(s => s.symbol === sym) || { name: sym, sector: 'N/A' };
+    // Fix #5: use _addPosSymbol (hidden state) as source of truth for symbol in edit mode
+    const finalSym = isEditMode ? _addPosSymbol : sym;
+    const meta = PSE_UNIVERSE.find(s => s.symbol === finalSym) || { name: finalSym, sector: 'N/A' };
     const isReit = meta.sector === 'REIT';
     const uid = _uid();
 
+    // Fix #2: preserve existing current_price — only update position fields
+    // Fetch existing price so we don't overwrite with 0
+    let existingPrice = 0;
+    try {
+      const existing = await window.sbFetch('sterling_portfolio', { filter: `user_id=eq.${uid}&symbol=eq.${finalSym}` });
+      if (existing && existing.length > 0) existingPrice = existing[0].current_price || 0;
+    } catch (_) {}
+
+    // Also check live price cache
+    const liveEntry = portfolioData?.find(p => p.symbol === finalSym);
+    if (liveEntry?.current_price > 0) existingPrice = liveEntry.current_price;
+
     await window.sbUpsert('sterling_portfolio', {
       user_id: uid,
-      symbol: sym,
+      symbol: finalSym,
       company_name: meta.name,
       sector: meta.sector,
       is_reit: isReit,
       qty: shares,
       avg_buy_price: avg,
-      current_price: 0
+      current_price: existingPrice   // preserve live price, don't wipe it
     }, 'user_id,symbol');
 
-    showToast(`${sym} position saved ✓`, 'success');
-    closeAddPosition();
-    // Reload portfolio
+    showToast(`${finalSym} position saved ✓`, 'success');
+
+    // Fix #6: reload portfolio BEFORE closing modal so flash is seamless
     const data = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     if (data) { portfolioData = data; renderPortfolio(); }
+
+    closeAddPosition();
 
   } catch(err) {
     console.error('Add position error:', err);
     showToast('Save failed: ' + (err.message || 'Unknown error'), 'error');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Save Position';
+    // Fix #6b: restore button label correctly for both modes
+    btn.textContent = isEditMode ? 'Update Position' : 'Save Position';
   }
 }
 
 // Trigger preview recalc when shares/price inputs change
+// Fix #4/#8: sync _addPosSymbol when user types manually in symbol field
 document.addEventListener('DOMContentLoaded', () => {
   ['addpos-shares','addpos-avgprice'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', _updateAddPosPreview);
   });
+  const symInput = document.getElementById('addpos-symbol-input');
+  if (symInput) {
+    symInput.addEventListener('change', () => {
+      const v = symInput.value.trim().toUpperCase();
+      if (v) { _addPosSymbol = v; document.getElementById('addpos-symbol').value = v; }
+    });
+  }
 });
 
 function openTradeLog() {
@@ -3936,13 +3969,7 @@ async function submitTrade(e) {
   btn.disabled = false;
 }
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  if (!t) return;
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
+// duplicate showToast removed — use the full-featured one at top of file
 
 // ==================== INLINE GLOSSARY TOOLTIPS ====================
 
