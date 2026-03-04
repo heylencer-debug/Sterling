@@ -4877,7 +4877,7 @@ async function triggerAnalysis(symbol, btnEl) {
   let news = [];
   try {
     const newsRes = await fetch(
-      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=title,ai_action',
+      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=headline,ai_summary,ai_action',
       { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
     );
     if (newsRes.ok) news = await newsRes.json();
@@ -4893,45 +4893,43 @@ async function triggerAnalysis(symbol, btnEl) {
     : tech.recommend_all > -0.5 ? 'Sell' : 'Strong Sell';
 
   const newsContext = news.length > 0
-    ? news.map(n => '- ' + n.title + (n.ai_action ? ' [' + n.ai_action + ']' : '')).join('\n')
+    ? news.map(n => '- ' + (n.headline || n.title || '') + (n.ai_action ? ' [' + n.ai_action + ']' : '')).join('\n')
     : 'No recent news available.';
 
   const dataAge = tech.fetched_at ? Math.round((Date.now() - new Date(tech.fetched_at).getTime()) / 60000) + ' min ago' : 'unknown';
 
-  const prompt = `You are Sterling, a trusted personal broker for Carlo Rebadomia - a trader in Cebu, Philippines.
-Carlo is NOT a finance expert. He needs simple, plain language he can act on immediately.
+  const prompt = `You are Sterling, a trusted broker-mentor for Carlo Rebadomia — a long-term dividend investor in Cebu, Philippines. He holds PSE REITs, banks, and conglomerates for income + capital appreciation over 1–5 years. He does NOT day trade.
 
 STOCK: ${symbol}
 CURRENT PRICE: ₱${tech.close ? Number(tech.close).toFixed(2) : 'N/A'}
 TODAY'S CHANGE: ${tech.change ? (tech.change > 0 ? '+' : '') + Number(tech.change).toFixed(2) + '%' : 'N/A'}
-MOMENTUM SIGNAL: ${overallSignal}
-TREND: ${tech.ma_trend || 'N/A'}
+ENTRY TIMING SIGNAL: ${overallSignal} (for timing your entry only — not a sell trigger)
+DATA AGE: ${dataAge}
 
 RECENT NEWS:
 ${newsContext}
 
-Write your analysis in EXACTLY this format - plain English, no jargon:
+Write your analysis in EXACTLY this format — plain English, no jargon:
 
-**WHAT'S HAPPENING**
-[1-2 sentences. What is this stock doing right now? Is it going up, down, or sideways? Why? Pretend you're explaining to a friend who knows nothing about stocks.]
+**DIVIDEND THESIS**
+[1-2 sentences. Is the dividend still safe? Is this a good long-term income play? What does today's price or news mean for the thesis?]
 
-**SHOULD I DO ANYTHING?**
-[Clear action in bold: BUY / BUY MORE / HOLD / REDUCE / SELL]
-[1 sentence explaining why in plain terms. No technical terms. Example: "The stock has been climbing steadily and looks like it has more room to go up."]
+**TODAY'S CALL**
+[One of: ACCUMULATE / ADD ON DIP / HOLD & COLLECT / MONITOR / WAIT]
+[1 sentence explaining why. Focus on yield, value, and dividend safety — not short-term price moves.]
 
-**IF I BUY**
-Entry: ₱[price] - [plain reason, e.g. "this is a good price to get in"]
-Target: ₱[price] - [plain reason, e.g. "a realistic price to sell for profit"]
-Stop Loss: ₱[price] - [plain reason, e.g. "sell here to limit your loss if things go wrong"]
+**IF ADDING SHARES**
+Good entry: ₱[price] — [plain reason, e.g. "yield is attractive at this price"]
+Target (1–2 yr): ₱[price] — [plain reason]
 
 **ONE THING TO WATCH**
-[1 sentence. The single most important thing Carlo should keep an eye on. Plain language.]
+[1 sentence. Most important thing for the dividend thesis. Plain language.]
 
 RULES:
-- Never use: RSI, MACD, SMA, EMA, Bollinger, confluence, resistance, support, overbought, oversold, momentum divergence, or any other technical term
-- If you must reference a concept, explain it in plain words: instead of "SMA50" say "50-day average price"
-- Keep each section SHORT - 1-3 sentences max
-- Be direct. Carlo needs to make a decision, not read an essay.`;
+- Never recommend selling based on price action alone — only if the dividend or fundamentals are at risk
+- Never use: RSI, MACD, SMA, EMA, or any technical jargon — explain in plain words
+- Keep each section SHORT — 1-3 sentences max
+- Be direct. Carlo needs a clear dividend-investor action, not an essay.`;
 
   // 6. Call OpenRouter
   let analysis;
@@ -4977,21 +4975,20 @@ RULES:
   analysisData[symbol] = { analysis_text: analysis, action: detectedAction.label, analyzed_at: now };
 
   // 7b. Save to sterling_intelligence (for dashboard intel cards and persistence)
-  fetch(url + '/rest/v1/sterling_intelligence', {
+  fetch(url + '/rest/v1/sterling_intelligence?on_conflict=symbol,pillar', {
     method: 'POST',
     headers: {
       'apikey': anonKey,
       'Authorization': 'Bearer ' + anonKey,
       'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates'
+      'Prefer': 'resolution=merge-duplicates,return=minimal'
     },
     body: JSON.stringify({
       symbol: symbol,
       pillar: 'on_demand',
-      verdict: overallSignal,
+      verdict: detectedAction.label,
       ai_summary: analysis,
-      points: JSON.stringify([]),
-      sources: JSON.stringify([{ name: 'Supabase Technicals + OpenRouter Claude Sonnet', url: '' }]),
+      points: [],
       analyzed_at: now
     })
   }).catch(() => {});
@@ -5001,15 +4998,18 @@ RULES:
 }
 
 function detectActionFromAnalysis(text) {
-  if (!text) return { label: 'HOLD', cls: 'hold' };
+  if (!text) return { label: 'HOLD & COLLECT', cls: 'hold' };
   const t = text.toUpperCase();
-  if (t.includes('STRONG BUY'))   return { label: 'STRONG BUY',  cls: 'strong-buy' };
-  if (t.includes('BUY MORE'))     return { label: 'BUY MORE',    cls: 'buy' };
-  if (t.includes('STRONG SELL'))  return { label: 'STRONG SELL', cls: 'strong-sell' };
-  if (t.includes(': BUY') || t.includes('ACTION: BUY') || t.match(/\bBUY\b/)) return { label: 'BUY', cls: 'buy' };
-  if (t.includes('REDUCE'))       return { label: 'REDUCE',      cls: 'sell' };
-  if (t.includes(': SELL') || t.includes('ACTION: SELL') || t.match(/\bSELL\b/)) return { label: 'SELL', cls: 'sell' };
-  return { label: 'HOLD', cls: 'hold' };
+  if (t.includes('ACCUMULATE'))       return { label: 'ACCUMULATE',     cls: 'strong-buy' };
+  if (t.includes('ADD ON DIP'))       return { label: 'ADD ON DIP',     cls: 'buy' };
+  if (t.includes('HOLD & COLLECT'))   return { label: 'HOLD & COLLECT', cls: 'hold' };
+  if (t.includes('MONITOR'))          return { label: 'MONITOR',        cls: 'hold' };
+  if (t.includes('WAIT'))             return { label: 'WAIT',           cls: 'sell' };
+  // Legacy fallbacks
+  if (t.includes('STRONG BUY'))       return { label: 'ACCUMULATE',     cls: 'strong-buy' };
+  if (t.includes('BUY MORE') || t.match(/\bBUY\b/)) return { label: 'ADD ON DIP', cls: 'buy' };
+  if (t.includes('REDUCE') || t.includes('SELL'))    return { label: 'MONITOR',    cls: 'sell' };
+  return { label: 'HOLD & COLLECT', cls: 'hold' };
 }
 
 function computeSterlingVerdict(techSignal, aiLabel, fundamentalData) {
