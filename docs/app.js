@@ -294,7 +294,7 @@ function lazyLoadTab(page) {
     case 'brief': loadBriefs(); break;
     case 'watchlist': loadWatchlist(); break;
     case 'alerts': loadAlerts(); break;
-    case 'news': loadNews(); break;
+    case 'news': loadNews(); loadedPages['news'] = false; break; // always reload news
     case 'dividends': loadDividends(); break;
     case 'discovery': loadDiscovery(); break;
     case 'learn': loadLearnPage(); break;
