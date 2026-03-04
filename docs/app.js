@@ -4916,7 +4916,7 @@ async function triggerAnalysis(symbol, btnEl) {
   let news = [];
   try {
     const newsRes = await fetch(
-      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=headline,summary,ai_action',
+      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=headline,ai_summary,ai_action,source,published_at',
       { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
     );
     if (newsRes.ok) news = await newsRes.json();
@@ -4932,7 +4932,12 @@ async function triggerAnalysis(symbol, btnEl) {
     : tech.recommend_all > -0.5 ? 'Sell' : 'Strong Sell';
 
   const newsContext = news.length > 0
-    ? news.map(n => '- ' + (n.headline || '') + (n.ai_action ? ' [' + n.ai_action + ']' : '') + (n.summary ? ' | ' + n.summary.slice(0, 100) : '')).join('\n')
+    ? news.map(n => {
+        const date = n.published_at ? new Date(n.published_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const action = n.ai_action ? ` [${n.ai_action}]` : '';
+        const summary = n.ai_summary ? `\n  Analysis: ${n.ai_summary}` : '';
+        return `- ${n.headline || ''}${action} (${n.source || 'Unknown'}, ${date})${summary}`;
+      }).join('\n')
     : 'No recent news available.';
 
   const dataAge = tech.fetched_at ? Math.round((Date.now() - new Date(tech.fetched_at).getTime()) / 60000) + ' min ago' : 'unknown';
