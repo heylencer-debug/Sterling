@@ -2635,7 +2635,7 @@ function renderNews() {
     const actionClass = aiAction ? (actionBadgeClass[aiAction.toUpperCase()] || 'ai-action-hold') : '';
 
     // AI summary section (only if summary exists and differs from headline)
-    const aiSummaryText = n.ai_summary || n.summary || '';
+    const aiSummaryText = n.summary || '';
     const hasAISummary = aiSummaryText && aiSummaryText !== n.headline && aiSummaryText.length > 50;
     const aiSummaryHTML = hasAISummary ? `
       <div class="news-ai-analysis">
@@ -4888,7 +4888,7 @@ async function triggerAnalysis(symbol, btnEl) {
   let news = [];
   try {
     const newsRes = await fetch(
-      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=headline,ai_summary,ai_action',
+      url + '/rest/v1/sterling_news?symbol=eq.' + symbol + '&order=published_at.desc&limit=3&select=headline,summary,ai_action',
       { headers: { 'apikey': anonKey, 'Authorization': 'Bearer ' + anonKey } }
     );
     if (newsRes.ok) news = await newsRes.json();
@@ -4904,7 +4904,7 @@ async function triggerAnalysis(symbol, btnEl) {
     : tech.recommend_all > -0.5 ? 'Sell' : 'Strong Sell';
 
   const newsContext = news.length > 0
-    ? news.map(n => '- ' + (n.headline || n.title || '') + (n.ai_action ? ' [' + n.ai_action + ']' : '')).join('\n')
+    ? news.map(n => '- ' + (n.headline || '') + (n.ai_action ? ' [' + n.ai_action + ']' : '') + (n.summary ? ' | ' + n.summary.slice(0, 100) : '')).join('\n')
     : 'No recent news available.';
 
   const dataAge = tech.fetched_at ? Math.round((Date.now() - new Date(tech.fetched_at).getTime()) / 60000) + ' min ago' : 'unknown';
