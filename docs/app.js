@@ -2080,6 +2080,26 @@ function _buildTechCard(symbol, tech, intel, uid) {
     analyzeButtonText = '⚡ RE-ANALYZE';
   }
 
+  // STERLING VERDICT — synthesized from Technical + AI signals
+  const aiLabel = (savedAnalysis && savedAnalysis.analysis_text)
+    ? detectActionFromAnalysis(savedAnalysis.analysis_text).label
+    : null;
+  const sv = computeSterlingVerdict(overall !== '—' ? overall : null, aiLabel);
+  const techSubLine = overall && overall !== '—' ? overall : '—';
+  const aiSubLine = aiLabel || '—';
+  const sterlingVerdictHtml = `
+    <div class="sterling-verdict-section">
+      <div class="tsc-verdict-label">STERLING VERDICT</div>
+      <div class="tsc-verdict-row">
+        <span class="sterling-verdict-badge ${sv.cls}">${sv.label}</span>
+      </div>
+      <div class="sv-sub-signals">
+        <span class="sv-sub">Technical: <strong>${techSubLine}</strong></span>
+        <span class="sv-sub-sep">·</span>
+        <span class="sv-sub">AI: <strong>${aiSubLine}</strong></span>
+      </div>
+    </div>`;
+
   return `<div id="tech-card-${uid}" class="tech-signal-card">
     <div class="tsc-header">
       <span class="tsc-source-label">TECHNICALS — TRADINGVIEW</span>
@@ -2099,6 +2119,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
       ${stop   ? `<div class="tsc-entry-pill stop"><span class="tsc-ep-label">STOP LOSS</span><span class="tsc-ep-val">${stop}</span></div>` : ''}
       ${rrHtml}
     </div>
+    ${sterlingVerdictHtml}
     ${verdictHtml}
     ${savedAiVerdictHtml}
     ${why ? `<div class="tsc-rationale"><span class="tsc-why-label">WHY WATCH:</span> ${why}</div>` : ''}
@@ -4987,6 +5008,28 @@ function detectActionFromAnalysis(text) {
   if (t.includes('REDUCE'))       return { label: 'REDUCE',      cls: 'sell' };
   if (t.includes(': SELL') || t.includes('ACTION: SELL') || t.match(/\bSELL\b/)) return { label: 'SELL', cls: 'sell' };
   return { label: 'HOLD', cls: 'hold' };
+}
+
+function computeSterlingVerdict(techSignal, aiLabel) {
+  const TECH_SCORE = { 'Strong Buy': 2, 'Buy': 1, 'Neutral': 0, 'Sell': -1, 'Strong Sell': -2 };
+  const AI_SCORE = { 'STRONG BUY': 2, 'BUY MORE': 1.5, 'BUY': 1, 'HOLD': 0, 'REDUCE': -1, 'SELL': -1.5, 'STRONG SELL': -2 };
+  const techScore = TECH_SCORE[techSignal] ?? null;
+  const aiScore = AI_SCORE[aiLabel] ?? null;
+  let combined;
+  if (techScore !== null && aiScore !== null) {
+    combined = (techScore * 0.45) + (aiScore * 0.55);
+  } else if (techScore !== null) {
+    combined = techScore;
+  } else if (aiScore !== null) {
+    combined = aiScore;
+  } else {
+    return { label: 'AWAITING DATA', cls: 'sv-awaiting' };
+  }
+  if (combined >= 1.5)  return { label: 'STRONG BUY', cls: 'sv-strong-buy' };
+  if (combined >= 0.6)  return { label: 'BUY',        cls: 'sv-buy' };
+  if (combined >= -0.5) return { label: 'HOLD',       cls: 'sv-hold' };
+  if (combined >= -1.2) return { label: 'REDUCE',     cls: 'sv-reduce' };
+  return                       { label: 'SELL',        cls: 'sv-sell' };
 }
 
 // Convert markdown-style formatting to HTML for analysis text
