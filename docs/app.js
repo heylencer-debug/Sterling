@@ -1,4 +1,4 @@
-// Sterling - Sterling PSE Dashboard v57
+﻿// Sterling - Sterling PSE Dashboard v57
 // All page logic and Supabase data fetching
 // v57: 3-fix update - persistence via sterling_intelligence, markdown formatting, dual verdict (Technical + AI)
 // v56: Plain English analysis - rewrote AI prompt to remove jargon, added action glossary strip
@@ -4799,49 +4799,64 @@ function tagSentiment(text) {
 // ==================== REAL-TIME PRICE UPDATER ====================
 
 let _priceUpdateInterval = null;
+const EDGE_PRICES_URL = 'https://fhfqjcvwcxizbioftvdw.supabase.co/functions/v1/get-prices';
+const SUPABASE_ANON_KEY_PRICES = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZoZnFqY3Z3Y3hpemJpb2Z0dmR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNTcxMzgsImV4cCI6MjA4NzkzMzEzOH0.g8K40DjhvxE7u4JdHICqKc1dMxS4eZdMhfA11M8ZMBc';
+
 function startLivePrices() {
-  if (_priceUpdateInterval) return; // already running
-  _priceUpdateInterval = setInterval(updatePricesInPlace, 60000);
+  updatePricesInPlace(); // fetch immediately on load
+  if (_priceUpdateInterval) return;
+  _priceUpdateInterval = setInterval(updatePricesInPlace, 300000); // refresh every 5 min
 }
 
 async function updatePricesInPlace() {
   if (!portfolioData || !portfolioData.length) return;
-  for (const h of portfolioData) {
-    try {
-      const res = await fetch(`https://phisix-api3.appspot.com/stocks/${h.symbol}.json`);
-      if (!res.ok) continue;
-      const json = await res.json();
-      const stock = json.stock && json.stock[0];
-      if (!stock) continue;
-      const price = parseFloat(stock.price?.amount || 0);
-      const pct   = parseFloat(stock.percentChange || 0);
-      if (!price) continue;
+  try {
+    const res = await fetch(EDGE_PRICES_URL, {
+      headers: { 'apikey': SUPABASE_ANON_KEY_PRICES, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY_PRICES }
+    });
+    if (!res.ok) throw new Error('Edge function HTTP ' + res.status);
+    const data = await res.json();
+    const prices = data.prices || {};
 
-      // Update Supabase
+    for (const h of portfolioData) {
+      const q = prices[h.symbol];
+      if (!q || !q.price) continue;
+      const price = q.price;
+      const pct = q.change_pct || 0;
+
+      // Update Supabase silently
       window.sbUpdate('sterling_portfolio', `symbol=eq.${h.symbol}&user_id=eq.${_uid()}`, {
-        current_price: price, day_change_pct: pct, updated_at: new Date().toISOString()
+        current_price: price, updated_at: new Date().toISOString()
       }).catch(() => {});
 
-      // Update DOM in-place � no full re-render needed
-      const cards = document.querySelectorAll(`.holding-card`);
-      cards.forEach(card => {
+      // Update portfolio card DOM in-place
+      document.querySelectorAll('.holding-card').forEach(card => {
         const symEl = card.querySelector('.holding-symbol');
-        if (!symEl || symEl.textContent !== h.symbol) return;
+        if (!symEl || symEl.textContent.trim() !== h.symbol) return;
         const priceEl = card.querySelector('.price-current');
         const changeEl = card.querySelector('.price-change');
         if (priceEl) priceEl.textContent = formatPeso(price);
         if (changeEl) {
-          changeEl.textContent = formatPct(pct);
+          changeEl.textContent = (pct > 0 ? '+' : '') + Number(pct).toFixed(2) + '%';
           changeEl.className = 'price-change ' + (pct > 0 ? 'up' : pct < 0 ? 'down' : 'neutral');
         }
-        // Flash effect
-        card.style.transition = 'background 0.3s';
+        card.style.transition = 'background 0.4s';
         card.style.background = pct > 0 ? '#ECFDF5' : pct < 0 ? '#FEF2F2' : '#F5F5F5';
         setTimeout(() => { card.style.background = ''; }, 1500);
       });
+
       // Patch local cache
       h.current_price = price; h.day_change_pct = pct;
-    } catch(e) {}
+    }
+
+    const el = document.getElementById('price-last-updated');
+    if (el) {
+      const t = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Manila' });
+      el.textContent = 'Prices as of ' + t;
+    }
+    console.log('[Sterling] Live prices updated via Yahoo Finance Edge Function');
+  } catch(e) {
+    console.warn('[Sterling] Price update failed:', e.message);
   }
 }
 
