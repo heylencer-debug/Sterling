@@ -2676,7 +2676,7 @@ function renderNews() {
     const actionClass = aiAction ? (actionBadgeClass[aiAction.toUpperCase()] || 'ai-action-hold') : '';
 
     // AI summary section (only if summary exists and differs from headline)
-    const aiSummaryText = n.summary || '';
+    const aiSummaryText = n.ai_summary || n.summary || '';
     const hasAISummary = aiSummaryText && aiSummaryText !== n.headline && aiSummaryText.length > 50;
     const aiSummaryHTML = hasAISummary ? `
       <div class="news-ai-analysis">
