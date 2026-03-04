@@ -3660,33 +3660,20 @@ async function submitAddPosition(e) {
   btn.textContent = 'Saving…';
 
   try {
-    // Find PSE_UNIVERSE entry for name/sector
     const meta = PSE_UNIVERSE.find(s => s.symbol === sym) || { name: sym, sector: 'N/A' };
     const isReit = meta.sector === 'REIT';
+    const uid = _uid();
 
-    // Check if position already exists for this user
-    const existing = await window.sbFetch('sterling_portfolio', { filter: _uf(`symbol=eq.${sym}`) });
-
-    if (existing && existing.length > 0) {
-      // Update existing position
-      await window.sbUpdate('sterling_portfolio', _uf(`symbol=eq.${sym}`), {
-        qty: shares,
-        avg_buy_price: avg
-      });
-    } else {
-      // Insert new position
-      await window.sbInsert('sterling_portfolio', {
-        user_id: _uid(),
-        symbol: sym,
-        company_name: meta.name,
-        sector: meta.sector,
-        is_reit: isReit,
-        qty: shares,
-        avg_buy_price: avg,
-        current_price: 0,
-        day_change_pct: 0
-      });
-    }
+    await window.sbUpsert('sterling_portfolio', {
+      user_id: uid,
+      symbol: sym,
+      company_name: meta.name,
+      sector: meta.sector,
+      is_reit: isReit,
+      qty: shares,
+      avg_buy_price: avg,
+      current_price: 0
+    }, 'user_id,symbol');
 
     showToast(`${sym} position saved ✓`, 'success');
     closeAddPosition();
