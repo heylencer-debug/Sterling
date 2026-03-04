@@ -1452,21 +1452,26 @@ body {
   color: #9CA3AF;
   border-color: #6B7280;
 }
-.sterling-verdict-badge.sv-reduce {
+.sterling-verdict-badge.sv-monitor {
   background: transparent;
   color: #FB923C;
   border-color: #FB923C;
 }
-.sterling-verdict-badge.sv-sell {
-  background: #DC2626;
-  color: #FFFFFF;
-  border-color: #DC2626;
-  box-shadow: 0 0 8px #DC262655;
+.sterling-verdict-badge.sv-wait {
+  background: transparent;
+  color: #9CA3AF;
+  border-color: #4B5563;
 }
 .sterling-verdict-badge.sv-awaiting {
   background: transparent;
   color: #6B7280;
   border-color: #374151;
+}
+.sv-note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9CA3AF;
+  font-style: italic;
 }
 .sv-sub-signals {
   display: flex;
@@ -1829,3 +1834,9 @@ body {
   .sas-body { padding: 10px; }
   .sas-text { font-size: 12px; }
 }
+
+/* -- Long-Term Dividend Investor Verdict Classes ---------------------- */
+.sv-monitor { background: #6366F1; color: #fff; }
+.sv-wait    { background: #64748B; color: #fff; }
+.sv-note    { font-size: 11px; color: #94A3B8; margin-top: 5px; font-style: italic; }
+.tsc-disclaimer { font-size: 10px; color: #64748B; margin-top: 6px; font-style: italic; border-top: 1px solid #1E293B; padding-top: 6px; }
