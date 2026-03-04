@@ -1584,6 +1584,7 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
           ${helpText ? `<span class="pillar-subtitle">${helpText}</span>` : ''}
         </div>
         <span class="pillar-verdict" style="color:${vc};border-color:rgba(0,0,0,0.12);background:rgba(0,0,0,0.07)">${verdict}</span>
+        ${analyzedDate ? `<span class="pillar-header-ts">${analyzedDate}</span>` : ''}
         <span class="pillar-chevron" id="chev-${id}">▸</span>
       </div>
       <div class="pillar-body" id="body-${id}" style="display:none">
@@ -1593,9 +1594,13 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
           ${isStale ? '<span class="pillar-stale">⚠️ Update needed</span>' : '<span class="pillar-fresh">✓ Current</span>'}
         </div>` : ''}
         ${pillarKey === 'technicals' ? `<div class="pillar-data-quality">
-          <div class="dq-row"><span class="dq-icon">📡</span><span class="dq-text"><strong>Source:</strong> TradingView Scanner - RSI, MACD, MAs computed from PSE daily price history</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '🟢' : '🔴'}</span><span class="dq-text"><strong>RSI (14):</strong> ${supabaseData && supabaseData.rsi14 ? `${parseFloat(supabaseData.rsi14).toFixed(1)} - ${supabaseData.rsi_signal || 'computed'}` : 'Not available for this stock'}</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.overall_signal ? '🟢' : '⚪'}</span><span class="dq-text"><strong>Overall signal:</strong> ${supabaseData && supabaseData.overall_signal ? supabaseData.overall_signal : 'Pending - will update on next hourly run'}</span></div>
+          <div class="dq-title">📖 What does this mean for a dividend investor?</div>
+          <div class="dq-row"><span class="dq-icon">ℹ️</span><span class="dq-text">Technicals show <strong>price momentum</strong> — whether the stock is trending up, down, or sideways. Use this to decide <em>when</em> to buy more shares, not <em>whether</em> to hold.</span></div>
+          <div class="dq-row"><span class="dq-icon">📡</span><span class="dq-text"><strong>Source:</strong> TradingView Scanner — RSI, MACD, and moving averages from PSE daily price data</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '🟢' : '🔴'}</span><span class="dq-text"><strong>RSI (Momentum Gauge):</strong> ${supabaseData && supabaseData.rsi14 ? `${parseFloat(supabaseData.rsi14).toFixed(1)} — ${parseFloat(supabaseData.rsi14) < 40 ? 'Oversold: stock may be cheaper than usual — potential entry point' : parseFloat(supabaseData.rsi14) > 70 ? 'Overbought: consider waiting for a price dip before adding' : 'Neutral: no strong momentum signal either way'}` : 'Not available'}</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.macd_signal ? '🟢' : '⚪'}</span><span class="dq-text"><strong>MACD (Short-term Trend):</strong> ${supabaseData && supabaseData.macd_signal ? (supabaseData.macd_signal === 'buy' ? 'Positive — upward price pressure building' : supabaseData.macd_signal === 'sell' ? 'Negative — short-term downward pressure (not a reason to sell your shares)' : supabaseData.macd_signal) : 'Not available'}</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.overall_signal ? '🟢' : '⚪'}</span><span class="dq-text"><strong>Overall Signal:</strong> ${supabaseData && supabaseData.overall_signal ? supabaseData.overall_signal : 'Pending'} — this is for entry timing only</span></div>
+          <div class="dq-note">💡 A SELL technical signal does <strong>not</strong> mean sell your shares. It means short-term momentum is down — which is often a <strong>buying opportunity</strong> for dividend investors if the thesis is intact.</div>
         </div>` : ''}
         <div class="pillar-points">${pointsHTML}</div>
         ${sourcesHTML ? `<div class="pillar-sources">${sourcesHTML}</div>` : ''}
