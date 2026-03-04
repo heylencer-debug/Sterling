@@ -3544,8 +3544,8 @@ function openAddPosition(existingHolding) {
     submitBtn.textContent = 'Update Position';
     document.getElementById('addpos-symbol-input').value = existingHolding.symbol;
     document.getElementById('addpos-symbol').value = existingHolding.symbol;
-    document.getElementById('addpos-shares').value = existingHolding.qty || existingHolding.quantity || '';
-    document.getElementById('addpos-avgprice').value = existingHolding.avg_buy_price || existingHolding.average_price || '';
+    document.getElementById('addpos-shares').value = existingHolding.qty ?? existingHolding.quantity ?? '';
+    document.getElementById('addpos-avgprice').value = existingHolding.avg_buy_price ?? existingHolding.average_price ?? '';
     _addPosSymbol = existingHolding.symbol;
     _addPosSymbolName = existingHolding.company_name || existingHolding.symbol;
     document.getElementById('addpos-form').dataset.editSymbol = existingHolding.symbol;
@@ -3560,6 +3560,10 @@ function openAddPosition(existingHolding) {
 
 function closeAddPosition() {
   document.getElementById('addpos-modal-overlay').classList.remove('active');
+  _addPosSymbol = null;
+  _addPosSymbolName = null;
+  const form = document.getElementById('addpos-form');
+  if (form) delete form.dataset.editSymbol;
 }
 
 function editPosition(symbol) {
@@ -3650,18 +3654,24 @@ function _updateAddPosPreview() {
 
 async function submitAddPosition(e) {
   e.preventDefault();
-  const sym = document.getElementById('addpos-symbol').value.trim().toUpperCase();
+
+  // N3 fix: sync _addPosSymbol from visible input at submit time (catches manual-type + fast-submit race)
+  const rawInput = document.getElementById('addpos-symbol-input')?.value.trim().toUpperCase()
+                || document.getElementById('addpos-symbol')?.value.trim().toUpperCase();
+  if (!_addPosSymbol && rawInput) _addPosSymbol = rawInput;
+
+  const sym = _addPosSymbol || rawInput;
   const sharesRaw = parseFloat(document.getElementById('addpos-shares').value);
   const avgRaw = parseFloat(document.getElementById('addpos-avgprice').value);
 
-  // Fix #3: validate positive numbers only
   if (!sym) { showToast('Please select a valid symbol.', 'error'); return; }
   if (!sharesRaw || sharesRaw <= 0) { showToast('Shares must be a positive number.', 'error'); return; }
   if (!avgRaw || avgRaw <= 0) { showToast('Average price must be a positive number.', 'error'); return; }
 
   const shares = sharesRaw;
   const avg = avgRaw;
-  const isEditMode = !!_addPosSymbol; // true if editing existing position
+  // N1 fix: use form dataset to determine edit mode — not _addPosSymbol (which is set for new selections too)
+  const isEditMode = !!document.getElementById('addpos-form')?.dataset.editSymbol;
 
   const btn = document.getElementById('addpos-submit-btn');
   btn.disabled = true;
