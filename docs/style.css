@@ -851,6 +851,8 @@ body {
 /* -- Discovery toast ------------------------------------------- */
 .discovery-toast { position:fixed;bottom:80px;right:24px;background:#0A0A0A;color:#FFFFFF;padding:14px 24px;border-radius:6px;font-size:14px;font-weight:600;box-shadow:3px 3px 0 #EA580C;opacity:0;transform:translateY(20px);transition:opacity 0.3s,transform 0.3s;z-index:300;pointer-events:none; }
 .discovery-toast.show { opacity:1;transform:translateY(0); }
+.discovery-toast.error { background:#DC2626;box-shadow:3px 3px 0 #7F1D1D; }
+.discovery-toast.warning { background:#D97706;box-shadow:3px 3px 0 #78350F; }
 
 /* -- Dividend calendar extras ---------------------------------- */
 .calendar-day.today { border:2px solid #0A0A0A;font-weight:800; }
