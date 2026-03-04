@@ -674,7 +674,7 @@ function renderPortfolio() {
       const savedAction = detectActionFromAnalysis(savedAnalysis.analysis_text);
       savedAnalysisHtml = `
         <div class="portfolio-ai-verdict">
-          <span class="portfolio-ai-label">AI ANALYSIS:</span>
+          <span class="portfolio-ai-label">DIVIDEND THESIS:</span>
           <span class="tsc-verdict-badge verdict-${savedAction.cls}">${savedAction.label}</span>
           <span class="portfolio-ai-ts">${savedTs}</span>
         </div>
@@ -1156,9 +1156,9 @@ async function toggleCardChart(sym, btn) {
 // Sources: Investing.com, HelloSafe PH, Asia Securities, PSE Edge, Simply Wall St, Fintel.io, TradingView
 const STOCK_INTELLIGENCE = {
   MBT: {
-    badge: 'ADD ON DIP', badgeClass: 'badge-buy',
+    badge: 'ACCUMULATE', badgeClass: 'badge-buy',
     entry: '₱73-74', target: '₱86-97', stop: '₱69',
-    summary: 'Strong bank at 38% discount to peers. All technicals bullish.',
+    summary: 'Strong bank at 38% discount to peers. 6.78% dividend yield. 13 analysts rate BUY.',
     fundamentals: {
       verdict: 'Undervalued',
       points: [
@@ -1200,7 +1200,7 @@ const STOCK_INTELLIGENCE = {
     conclusion: 'All three pillars align: business is growing (fundamentals), news is positive, and all technical indicators are bullish. The only reason to wait: RSI at 66.8 is not cheap technically. Best entry is on a dip to ₱73-74 (closer to 50-day MA). Stop-loss at ₱69 - if it breaks that level, momentum has shifted.',
   },
   KEEPR: {
-    badge: 'DCA ZONE', badgeClass: 'badge-dca',
+    badge: 'ADD ON DIP', badgeClass: 'badge-buy',
     entry: '₱2.00-2.10', target: '₱2.80-3.20', stop: '₱1.90',
     summary: 'Real estate worth ₱3.80/share selling for ₱2.30. 40% discount. 11% yield.',
     fundamentals: {
@@ -1246,9 +1246,9 @@ const STOCK_INTELLIGENCE = {
     conclusion: 'Fundamentals are exceptional (40% NAV discount, 11% yield). The weakness is purely macro - high interest rates hurt all REITs globally, not just KEEPR. Your thesis: when BSP cuts rates, KEEPR will re-rate toward NAV. DCA zone ₱2.00-2.10 = if it drops further, add more at that price to lower your average. Stop-loss ₱1.90 = if it breaks below this, the market is saying something structural is wrong - exit and reassess.',
   },
   FILRT: {
-    badge: 'HOLD + COLLECT DIV', badgeClass: 'badge-hold',
+    badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
     entry: '₱2.90-3.00', target: '₱3.80-4.00', stop: '₱2.70',
-    summary: 'Ex-dividend ~Mar 11. ₱420 incoming. 28% NAV discount.',
+    summary: 'Ex-dividend ~Mar 11. ₱420 incoming. 28% NAV discount. 8.1% yield.',
     fundamentals: {
       verdict: 'Undervalued',
       points: [
@@ -1287,9 +1287,9 @@ const STOCK_INTELLIGENCE = {
     conclusion: 'Hold through the ex-dividend date (~Mar 11) to collect your ₱420. After that, assess: if price dips post-ex-date (common - dividend buyers exit), that can be a good add opportunity in the ₱2.90-3.00 range. The 28% NAV discount and 8.1% yield make this a strong long-term hold.',
   },
   GLO: {
-    badge: 'HOLD', badgeClass: 'badge-hold',
+    badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
     entry: '₱1,700-1,720', target: '₱1,850-1,900', stop: '₱1,600',
-    summary: 'Cheap telecom with 6.36% dividend. Global telecoms average P/E 21x - GLO trades at 11x.',
+    summary: 'Cheap telecom with 6.36% dividend. P/E 11x vs global peers 21x. Duopoly moat.',
     fundamentals: {
       verdict: 'Undervalued',
       points: [
@@ -1329,7 +1329,7 @@ const STOCK_INTELLIGENCE = {
     conclusion: 'Globe is a "boring" stock in the best way - stable business, growing earnings, reliable dividend. P/E 11x vs global peers at 21x means it has room to re-rate upward. Hold and collect 6.36% while you wait. Add more if it pulls back to ₱1,700-1,720 range.',
   },
   DMC: {
-    badge: 'HOLD', badgeClass: 'badge-hold',
+    badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
     entry: '₱9.00-9.20', target: '₱11.81-14.89', stop: '₱8.50',
     summary: 'Cheap conglomerate with 9.7% dividend. P/E 8x vs industry 12x. Watch nickel prices.',
     fundamentals: {
@@ -1373,7 +1373,7 @@ const STOCK_INTELLIGENCE = {
     conclusion: 'DMCI is cheap by every fundamental measure and pays nearly 10% dividends. The risk is nickel - if global nickel prices fall sharply, mining earnings drop. Monitor LME nickel monthly. Technicals are neutral - no urgency to add right now. Wait for RSI < 40 or a clear catalyst before adding more.',
   },
   MREIT: {
-    badge: 'HOLD + COLLECT DIV', badgeClass: 'badge-hold',
+    badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
     entry: '₱13.80-14.00', target: '₱17.50', stop: '₱13.00',
     summary: 'NAV discount 28%. Ex-dividend ~Mar 20. Megaworld expanding to Iloilo + Davao.',
     fundamentals: {
@@ -1416,9 +1416,9 @@ const STOCK_INTELLIGENCE = {
     conclusion: 'Hold through ex-dividend ~March 20 to collect your dividend. If price dips post-ex-date (typical behavior - dividend buyers exit), the ₱13.80-14.00 range is a good accumulation zone. Asia Securities target ₱17.50 = 23% upside from current price, plus the 7.2% yield while you wait.',
   },
   RRHI: {
-    badge: 'WAIT', badgeClass: 'badge-wait',
+    badge: 'MONITOR', badgeClass: 'badge-hold',
     entry: '₱35.00-36.00', target: '₱43.00', stop: '₱34.00',
-    summary: 'Mixed technical signals. Do not add until RSI drops below 40 or MACD crosses up.',
+    summary: 'Healthy retail business. Hold existing position. Wait for better entry before adding.',
     fundamentals: {
       verdict: 'Fair Value',
       points: [
@@ -1458,7 +1458,7 @@ const STOCK_INTELLIGENCE = {
         { name: 'TradingView PSE:RRHI', url: 'https://www.tradingview.com/symbols/PSE-RRHI/technicals/' },
       ]
     },
-    conclusion: 'RRHI is a good business but the technicals say wait. When 8 of 12 moving averages say sell and MACD is negative, adding now means fighting the trend. The business hasn\'t deteriorated - this is a timing call. Your specific buy signal: RSI drops below 40 AND MACD crosses upward. That combination = trend reversal confirmed. Entry ₱35-36, target ₱43, stop ₱34.',
+    conclusion: 'RRHI is a good defensive business — supermarkets, drug stores, convenience. The fundamentals are healthy. This is not a sell — you hold what you have and collect any dividends. The entry timing is just unfavorable right now for adding more. When price pulls back to ₱35-36 or RSI shows oversold conditions, that\'s your accumulation zone. Target ₱43, thesis: stable earnings + consumer spending recovery.',
   },
 };
 
