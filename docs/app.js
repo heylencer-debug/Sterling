@@ -93,6 +93,7 @@ const PSE_UNIVERSE = [
   { symbol:'GLO', name:'Globe Telecom', sector:'Telecom' },
   { symbol:'TEL', name:'PLDT Inc.', sector:'Telecom' },
   { symbol:'NOW', name:'Now Corporation', sector:'Telecom' },
+  { symbol:'CNVRG', name:'Converge ICT Solutions', sector:'Telecom' },
   // Property
   { symbol:'ALI', name:'Ayala Land', sector:'Property' },
   { symbol:'SMPH', name:'SM Prime Holdings', sector:'Property' },
