@@ -1,4 +1,4 @@
-﻿// Sterling - Sterling PSE Dashboard v57
+// Sterling - Sterling PSE Dashboard v57
 // All page logic and Supabase data fetching
 // v57: 3-fix update - persistence via sterling_intelligence, markdown formatting, dual verdict (Technical + AI)
 // v56: Plain English analysis - rewrote AI prompt to remove jargon, added action glossary strip
@@ -338,7 +338,7 @@ function escapeHtml(str) {
 
 function formatPeso(val) {
   if (val == null) return '-';
-  return '₱' + Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '?' + Number(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatPct(val) {
@@ -519,7 +519,7 @@ async function fetchPSEi() {
     document.getElementById('psei-value').textContent = '6,812'; // Updated daily by Sterling
     document.getElementById('psei-change').textContent = `${changeSign}${avgChange}% est.`;
     document.getElementById('psei-change').className = `psei-change ${changeClass}`;
-    document.getElementById('market-status').textContent = isMarketOpen() ? '🟢 OPEN' : '🔴 CLOSED';
+    document.getElementById('market-status').textContent = isMarketOpen() ? '?? OPEN' : '?? CLOSED';
   } catch (e) {
     console.log('PSEi fetch error:', e);
     document.getElementById('psei-value').textContent = '-';
@@ -550,7 +550,7 @@ function renderPortfolio() {
   }
 
   if (!portfolioData || portfolioData.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">No holdings found</div></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">??</div><div class="empty-state-text">No holdings found</div></div>`;
     return;
   }
 
@@ -587,7 +587,7 @@ function renderPortfolio() {
 
   document.getElementById('portfolio-updated').textContent = new Date().toLocaleTimeString('en-PH');
 
-  // ── Main chart (DragonFi iframe) ──────────────────────────────────────────
+  // -- Main chart (DragonFi iframe) ------------------------------------------
   const firstSym = portfolioData[0]?.symbol || 'MBT';
   let mainChart = document.getElementById('main-chart-section');
   if (!mainChart) {
@@ -600,7 +600,7 @@ function renderPortfolio() {
           </div>
           <a id="main-chart-open" href="https://www.dragonfi.ph/market/stocks/${firstSym}" target="_blank"
              style="color:#0A0A0A;font-size:11px;font-weight:700;text-decoration:none;border:1.5px solid #0A0A0A;padding:6px 12px;border-radius:6px">
-            Open full ↗
+            Open full ?
           </a>
         </div>
         <div style="border-radius:8px;overflow:hidden;border:1.5px solid #0A0A0A;background:#FFFFFF;height:780px;position:relative">
@@ -647,7 +647,7 @@ function renderPortfolio() {
     let breakEvenHtml = '';
     if (avgPrice > 0) {
       if (curPrice >= avgPrice) {
-        breakEvenHtml = `<div class="detail-row"><span class="detail-label">Break-even</span><span class="detail-value" style="color:#059669">✓ Above B/E</span></div>`;
+        breakEvenHtml = `<div class="detail-row"><span class="detail-label">Break-even</span><span class="detail-value" style="color:#059669">? Above B/E</span></div>`;
       } else {
         breakEvenHtml = `<div class="detail-row"><span class="detail-label">Break-even</span><span class="detail-value">${formatPeso(avgPrice)}</span></div>
           <div class="detail-row dca-hint"><span class="detail-label" style="font-size:9px">DCA TIP</span><span class="detail-value" style="font-size:11px;color:#555">DCA to lower avg cost</span></div>`;
@@ -671,7 +671,7 @@ function renderPortfolio() {
 
     // FEATURE 6: Persisted Sterling Analysis from sterling_intelligence table
     let savedAnalysisHtml = '';
-    let analyzeButtonText = '⚡ ANALYZE';
+    let analyzeButtonText = '? ANALYZE';
     const savedAnalysis = analysisData[h.symbol];
     if (savedAnalysis && savedAnalysis.analysis_text) {
       const savedTs = savedAnalysis.analyzed_at
@@ -686,15 +686,15 @@ function renderPortfolio() {
         </div>
         <div class="sterling-analysis-section sas-open">
           <div class="sas-header" onclick="this.parentElement.classList.toggle('sas-open')">
-            <span class="sas-label">⚡ STERLING ANALYSIS</span>
+            <span class="sas-label">? STERLING ANALYSIS</span>
             <span class="sas-ts">${savedTs}</span>
-            <span class="sas-toggle">▼</span>
+            <span class="sas-toggle">?</span>
           </div>
           <div class="sas-body"><p class="sas-text">${formatAnalysisText(savedAnalysis.analysis_text)}</p>
-            <div class="sas-verdict-note">📊 <strong>Entry Timing</strong> is based on price math only. <strong>Dividend Thesis</strong> considers news, yield, and fundamentals. As a long-term investor, focus on the thesis - not short-term price moves.</div>
+            <div class="sas-verdict-note">?? <strong>Entry Timing</strong> is based on price math only. <strong>Dividend Thesis</strong> considers news, yield, and fundamentals. As a long-term investor, focus on the thesis - not short-term price moves.</div>
           </div>
         </div>`;
-      analyzeButtonText = '⚡ RE-ANALYZE';
+      analyzeButtonText = '? RE-ANALYZE';
     }
 
     return `
@@ -747,9 +747,9 @@ function renderPortfolio() {
         ${renderStockAction(h.symbol)}
         <div style="display:flex;gap:8px;margin-top:10px">
           <button onclick="switchMainChart('${h.symbol}')" class="view-chart-btn" style="flex:1">
-            📈 View Chart
+            ?? View Chart
           </button>
-          <button onclick="editPosition('${h.symbol}')" style="flex:0 0 auto;padding:8px 12px;font-size:11px;font-weight:700;border:1.5px solid #0A0A0A;border-radius:6px;background:#FFFFFF;cursor:pointer;font-family:inherit">✏️ Edit</button>
+          <button onclick="editPosition('${h.symbol}')" style="flex:0 0 auto;padding:8px 12px;font-size:11px;font-weight:700;border:1.5px solid #0A0A0A;border-radius:6px;background:#FFFFFF;cursor:pointer;font-family:inherit">?? Edit</button>
         </div>
         ${savedAnalysisHtml}
         <button class="analyze-btn" onclick="triggerAnalysis('${h.symbol}', this)" data-symbol="${h.symbol}">${analyzeButtonText}</button>
@@ -806,7 +806,7 @@ function renderSectorConcentration(holdings, totalValue) {
   if (concentrated.length > 0) {
     warningHtml = concentrated.map(s => `
       <div class="sector-warning-banner">
-        ⚠️ SECTOR RISK: <strong>${s.name}</strong> is ${s.pct.toFixed(1)}% of your portfolio. Consider diversifying.
+        ?? SECTOR RISK: <strong>${s.name}</strong> is ${s.pct.toFixed(1)}% of your portfolio. Consider diversifying.
       </div>
     `).join('');
   }
@@ -867,7 +867,7 @@ async function renderTradeHistory() {
   const section = document.createElement('div');
   section.id = 'trade-history-section';
   section.style.cssText = 'margin-top:32px';
-  section.innerHTML = '<div class="section-header" style="margin-bottom:12px">📋 Trade History</div><div id="trade-history-body" style="color:#475569;font-size:12px;text-align:center;padding:16px">Loading trades…</div>';
+  section.innerHTML = '<div class="section-header" style="margin-bottom:12px">?? Trade History</div><div id="trade-history-body" style="color:#475569;font-size:12px;text-align:center;padding:16px">Loading trades�</div>';
   pageEl.appendChild(section);
   await _loadAndRenderTrades();
 }
@@ -893,7 +893,7 @@ function _renderTradeTable() {
   const body = document.getElementById('trade-history-body');
   if (!body) return;
   if (!_tradeCache.length) {
-    body.innerHTML = '<div style="text-align:center;padding:24px;color:#475569">No trades yet. Tap ⚡ Log Trade to start.</div>';
+    body.innerHTML = '<div style="text-align:center;padding:24px;color:#475569">No trades yet. Tap ? Log Trade to start.</div>';
     return;
   }
   body.innerHTML = `
@@ -915,14 +915,14 @@ function _renderTradeTable() {
               <td style="font-weight:700;color:#F1F5F9">${t.symbol || '-'}</td>
               <td><span style="font-size:10px;color:#64748B">${t.asset_type}</span></td>
               <td><span class="trade-action-badge ${isBuy ? 'buy' : 'sell'}">${t.action || '-'}</span></td>
-              <td style="font-family:monospace">₱${price.toFixed(2)}</td>
+              <td style="font-family:monospace">?${price.toFixed(2)}</td>
               <td style="font-family:monospace">${qty.toLocaleString()}</td>
-              <td style="font-family:monospace;color:${isBuy ? '#FF4757' : '#00D4A0'}">${total ? (isBuy ? '-' : '+') + '₱' + total.toLocaleString('en', {maximumFractionDigits:2}) : '-'}</td>
+              <td style="font-family:monospace;color:${isBuy ? '#FF4757' : '#00D4A0'}">${total ? (isBuy ? '-' : '+') + '?' + total.toLocaleString('en', {maximumFractionDigits:2}) : '-'}</td>
               <td style="color:#64748B;font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.notes || '-'}</td>
               <td class="trade-actions">
-                <button class="trade-btn edit" onclick="editTrade(${idx})" title="Edit">✏️</button>
-                <button class="trade-btn dupe" onclick="duplicateTrade(${idx})" title="Duplicate">📋</button>
-                <button class="trade-btn del" onclick="deleteTrade(${idx})" title="Delete">🗑️</button>
+                <button class="trade-btn edit" onclick="editTrade(${idx})" title="Edit">??</button>
+                <button class="trade-btn dupe" onclick="duplicateTrade(${idx})" title="Duplicate">??</button>
+                <button class="trade-btn del" onclick="deleteTrade(${idx})" title="Delete">???</button>
               </td>
             </tr>`;
           }).join('')}
@@ -1032,7 +1032,7 @@ function editTrade(idx) {
   document.getElementById('trade-log-form').dataset.editId = t.id;
   document.getElementById('trade-log-form').dataset.editTable = t._table;
   document.getElementById('trade-log-form').dataset.editIdx = idx;
-  document.querySelector('.trade-modal-header h2').textContent = '✏️ Edit Trade';
+  document.querySelector('.trade-modal-header h2').textContent = '?? Edit Trade';
   document.getElementById('trade-submit-btn').textContent = 'Save Changes';
   openTradeLog();
 }
@@ -1061,12 +1061,12 @@ async function toggleCardChart(sym, btn) {
   const isOpen = container.style.display !== 'none';
   container.style.display = isOpen ? 'none' : 'block';
   chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
-  btn.querySelector('span').textContent = isOpen ? '📈 View Chart' : '📉 Hide Chart';
+  btn.querySelector('span').textContent = isOpen ? '?? View Chart' : '?? Hide Chart';
 
   if (!isOpen && inner && !inner.dataset.rendered) {
     inner.dataset.rendered = '1';
     inner.style.height = '220px';
-    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading chart…</div>';
+    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading chart�</div>';
 
     // Fetch OHLCV from Supabase sterling_ohlcv
     let ohlcv = [];
@@ -1098,20 +1098,20 @@ async function toggleCardChart(sym, btn) {
         </iframe>
       </div>
       <div style="position:absolute;bottom:0;left:0;right:0;display:flex;gap:6px;justify-content:flex-end;padding:4px 0">
-        <span style="color:#475569;font-size:10px;align-self:center">📊 DragonFi live chart</span>
+        <span style="color:#475569;font-size:10px;align-self:center">?? DragonFi live chart</span>
         <a href="https://www.dragonfi.ph/market/stocks/${sym}" target="_blank"
            style="background:#F1F5F9;color:#64748B;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #E2E8F0">
-          Open full ↗
+          Open full ?
         </a>
         <a href="https://www.tradingview.com/chart/?symbol=PSE:${sym}" target="_blank"
            style="background:#F1F5F9;color:#64748B;font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;border:1px solid #E2E8F0">
-          TradingView ↗
+          TradingView ?
         </a>
       </div>`;
     return;
 
     if (typeof LightweightCharts === 'undefined') {
-      inner.innerHTML = '<div style="color:#475569;font-size:12px;padding:16px;text-align:center">Charts loading…</div>';
+      inner.innerHTML = '<div style="color:#475569;font-size:12px;padding:16px;text-align:center">Charts loading�</div>';
       return;
     }
 
@@ -1145,7 +1145,7 @@ async function toggleCardChart(sym, btn) {
     overlay.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:6px;align-items:center;z-index:2;pointer-events:none';
     overlay.innerHTML = `
       <span style="background:rgba(201,150,12,0.12);color:#EA580C;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace">
-        ₱${latestClose.toFixed(2)} · 3mo
+        ?${latestClose.toFixed(2)} � 3mo
       </span>`;
     inner.style.position = 'relative';
     inner.appendChild(overlay);
@@ -1163,14 +1163,14 @@ async function toggleCardChart(sym, btn) {
 const STOCK_INTELLIGENCE = {
   MBT: {
     badge: 'ACCUMULATE', badgeClass: 'badge-buy',
-    entry: '₱73-74', target: '₱86-97', stop: '₱69',
+    entry: '?73-74', target: '?86-97', stop: '?69',
     summary: 'Strong bank at 38% discount to peers. 6.78% dividend yield. 13 analysts rate BUY.',
     fundamentals: {
       verdict: 'Undervalued',
       points: [
         'P/E 6.86x vs Philippine banking sector average 11x = 38% cheaper than peers',
         'EPS grew 18% YoY - earnings are accelerating, not slowing',
-        '13 analysts cover MBT: consensus target ₱91, highest target ₱97.50',
+        '13 analysts cover MBT: consensus target ?91, highest target ?97.50',
         'Dividend yield 6.78% - you get paid while you wait',
       ],
       sources: [
@@ -1203,17 +1203,17 @@ const STOCK_INTELLIGENCE = {
         { name: 'TradingView PSE:MBT', url: 'https://www.tradingview.com/symbols/PSE-MBT/technicals/' },
       ]
     },
-    conclusion: 'All three pillars align: business is growing (fundamentals), news is positive, and all technical indicators are bullish. The only reason to wait: RSI at 66.8 is not cheap technically. Best entry is on a dip to ₱73-74 (closer to 50-day MA). Stop-loss at ₱69 - if it breaks that level, momentum has shifted.',
+    conclusion: 'All three pillars align: business is growing (fundamentals), news is positive, and all technical indicators are bullish. The only reason to wait: RSI at 66.8 is not cheap technically. Best entry is on a dip to ?73-74 (closer to 50-day MA). Stop-loss at ?69 - if it breaks that level, momentum has shifted.',
   },
   KEEPR: {
     badge: 'ADD ON DIP', badgeClass: 'badge-buy',
-    entry: '₱2.00-2.10', target: '₱2.80-3.20', stop: '₱1.90',
-    summary: 'Real estate worth ₱3.80/share selling for ₱2.30. 40% discount. 11% yield.',
+    entry: '?2.00-2.10', target: '?2.80-3.20', stop: '?1.90',
+    summary: 'Real estate worth ?3.80/share selling for ?2.30. 40% discount. 11% yield.',
     fundamentals: {
       verdict: 'Deep Value',
       points: [
-        'NAV (Net Asset Value) = ₱3.80/share - audited real estate portfolio value',
-        'Current price ₱2.30 = buying ₱1 of property for ₱0.61. That is a 40% discount.',
+        'NAV (Net Asset Value) = ?3.80/share - audited real estate portfolio value',
+        'Current price ?2.30 = buying ?1 of property for ?0.61. That is a 40% discount.',
         'Dividend yield ~11% - one of the highest yields on the PSE',
         '94% occupancy rate - nearly full portfolio, stable rental income',
         'Asia Securities rates LONG-TERM BUY',
@@ -1240,7 +1240,7 @@ const STOCK_INTELLIGENCE = {
       verdict: 'Oversold - Building Base',
       points: [
         'RSI in oversold territory - more sellers than buyers recently, but often precedes reversal',
-        'Price forming a base pattern near ₱2.20-2.30 support level',
+        'Price forming a base pattern near ?2.20-2.30 support level',
         'High volume on down days = institutional selling; watch for volume to dry up (exhaustion signal)',
         'Pattern watch: look for a Hammer candle at support = potential reversal signal',
       ],
@@ -1249,18 +1249,18 @@ const STOCK_INTELLIGENCE = {
         { name: 'Investing.com KEEPR', url: 'https://www.investing.com/equities/keppel-reit-technical' },
       ]
     },
-    conclusion: 'Fundamentals are exceptional (40% NAV discount, 11% yield). The weakness is purely macro - high interest rates hurt all REITs globally, not just KEEPR. Your thesis: when BSP cuts rates, KEEPR will re-rate toward NAV. DCA zone ₱2.00-2.10 = if it drops further, add more at that price to lower your average. Stop-loss ₱1.90 = if it breaks below this, the market is saying something structural is wrong - exit and reassess.',
+    conclusion: 'Fundamentals are exceptional (40% NAV discount, 11% yield). The weakness is purely macro - high interest rates hurt all REITs globally, not just KEEPR. Your thesis: when BSP cuts rates, KEEPR will re-rate toward NAV. DCA zone ?2.00-2.10 = if it drops further, add more at that price to lower your average. Stop-loss ?1.90 = if it breaks below this, the market is saying something structural is wrong - exit and reassess.',
   },
   FILRT: {
     badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
-    entry: '₱2.90-3.00', target: '₱3.80-4.00', stop: '₱2.70',
-    summary: 'Ex-dividend ~Mar 11. ₱420 incoming. 28% NAV discount. 8.1% yield.',
+    entry: '?2.90-3.00', target: '?3.80-4.00', stop: '?2.70',
+    summary: 'Ex-dividend ~Mar 11. ?420 incoming. 28% NAV discount. 8.1% yield.',
     fundamentals: {
       verdict: 'Undervalued',
       points: [
-        'NAV ₱4.21 vs price ₱3.02 = 28% discount to filinvest real estate portfolio value',
+        'NAV ?4.21 vs price ?3.02 = 28% discount to filinvest real estate portfolio value',
         'Annual dividend yield 8.1% - strong income stream',
-        'Dividend ₱0.06/share × your 7,000 shares = ₱420 cash in ~March',
+        'Dividend ?0.06/share � your 7,000 shares = ?420 cash in ~March',
         'Asia Securities rates LONG-TERM BUY',
       ],
       sources: [
@@ -1271,7 +1271,7 @@ const STOCK_INTELLIGENCE = {
       verdict: 'Positive - Dividend Incoming',
       points: [
         'Ex-dividend date approximately March 11 - you MUST hold shares before this date',
-        'You already own 7,000 shares and will receive ₱420 cash automatically',
+        'You already own 7,000 shares and will receive ?420 cash automatically',
         'Filinvest expanding commercial properties - long-term rental growth',
       ],
       sources: [
@@ -1282,7 +1282,7 @@ const STOCK_INTELLIGENCE = {
       verdict: 'Neutral - Hold',
       points: [
         'Same macro pressure as all REITs - rate sensitivity',
-        'Price stabilizing near ₱3.00 support - not breaking down aggressively',
+        'Price stabilizing near ?3.00 support - not breaking down aggressively',
         'Sell pressure likely to ease after ex-date (dividend capture players exit)',
         'Wait for RSI to show upward momentum before adding more',
       ],
@@ -1290,11 +1290,11 @@ const STOCK_INTELLIGENCE = {
         { name: 'TradingView PSE:FILRT', url: 'https://www.tradingview.com/symbols/PSE-FILRT/technicals/' },
       ]
     },
-    conclusion: 'Hold through the ex-dividend date (~Mar 11) to collect your ₱420. After that, assess: if price dips post-ex-date (common - dividend buyers exit), that can be a good add opportunity in the ₱2.90-3.00 range. The 28% NAV discount and 8.1% yield make this a strong long-term hold.',
+    conclusion: 'Hold through the ex-dividend date (~Mar 11) to collect your ?420. After that, assess: if price dips post-ex-date (common - dividend buyers exit), that can be a good add opportunity in the ?2.90-3.00 range. The 28% NAV discount and 8.1% yield make this a strong long-term hold.',
   },
   GLO: {
     badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
-    entry: '₱1,700-1,720', target: '₱1,850-1,900', stop: '₱1,600',
+    entry: '?1,700-1,720', target: '?1,850-1,900', stop: '?1,600',
     summary: 'Cheap telecom with 6.36% dividend. P/E 11x vs global peers 21x. Duopoly moat.',
     fundamentals: {
       verdict: 'Undervalued',
@@ -1326,24 +1326,24 @@ const STOCK_INTELLIGENCE = {
         'Price above 200-day moving average = long-term uptrend intact',
         'RSI moderate - not overbought, not oversold',
         'Consolidating in range - waiting for next catalyst',
-        'Add on dips to ₱1,700-1,720 (near 50-day MA support)',
+        'Add on dips to ?1,700-1,720 (near 50-day MA support)',
       ],
       sources: [
         { name: 'TradingView PSE:GLO', url: 'https://www.tradingview.com/symbols/PSE-GLO/technicals/' },
       ]
     },
-    conclusion: 'Globe is a "boring" stock in the best way - stable business, growing earnings, reliable dividend. P/E 11x vs global peers at 21x means it has room to re-rate upward. Hold and collect 6.36% while you wait. Add more if it pulls back to ₱1,700-1,720 range.',
+    conclusion: 'Globe is a "boring" stock in the best way - stable business, growing earnings, reliable dividend. P/E 11x vs global peers at 21x means it has room to re-rate upward. Hold and collect 6.36% while you wait. Add more if it pulls back to ?1,700-1,720 range.',
   },
   DMC: {
     badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
-    entry: '₱9.00-9.20', target: '₱11.81-14.89', stop: '₱8.50',
+    entry: '?9.00-9.20', target: '?11.81-14.89', stop: '?8.50',
     summary: 'Cheap conglomerate with 9.7% dividend. P/E 8x vs industry 12x. Watch nickel prices.',
     fundamentals: {
       verdict: 'Undervalued',
       points: [
         'P/E 8x vs industry average 12.2x = 35% discount to peers',
         'Dividend yield 9.73% - exceptional for a conglomerate',
-        '4 out of 5 analysts rate BUY with targets ₱11.81-₱14.89',
+        '4 out of 5 analysts rate BUY with targets ?11.81-?14.89',
         'Diversified: construction, mining, power, water - multiple income streams',
       ],
       sources: [
@@ -1380,14 +1380,14 @@ const STOCK_INTELLIGENCE = {
   },
   MREIT: {
     badge: 'HOLD & COLLECT', badgeClass: 'badge-hold',
-    entry: '₱13.80-14.00', target: '₱17.50', stop: '₱13.00',
+    entry: '?13.80-14.00', target: '?17.50', stop: '?13.00',
     summary: 'NAV discount 28%. Ex-dividend ~Mar 20. Megaworld expanding to Iloilo + Davao.',
     fundamentals: {
       verdict: 'Undervalued',
       points: [
-        'NAV ₱19.69 vs price ₱14.18 = 28% discount to Megaworld commercial real estate',
+        'NAV ?19.69 vs price ?14.18 = 28% discount to Megaworld commercial real estate',
         'Dividend yield 7.2% - strong income',
-        'BUY rating from Asia Securities, target ₱17.50',
+        'BUY rating from Asia Securities, target ?17.50',
         'Megaworld expanding to Iloilo and Davao CBDs = future rental income growth',
       ],
       sources: [
@@ -1411,19 +1411,19 @@ const STOCK_INTELLIGENCE = {
       verdict: 'Neutral - Rate Sensitive',
       points: [
         'Same BSP rate pressure as all REITs - price suppressed by macro',
-        'Holding above ₱14.00 support - not breaking down',
+        'Holding above ?14.00 support - not breaking down',
         'Volume normal - no panic selling',
-        'Post-ex-date dip often happens - could be a good add point at ₱13.80-14.00',
+        'Post-ex-date dip often happens - could be a good add point at ?13.80-14.00',
       ],
       sources: [
         { name: 'TradingView PSE:MREIT', url: 'https://www.tradingview.com/symbols/PSE-MREIT/technicals/' },
       ]
     },
-    conclusion: 'Hold through ex-dividend ~March 20 to collect your dividend. If price dips post-ex-date (typical behavior - dividend buyers exit), the ₱13.80-14.00 range is a good accumulation zone. Asia Securities target ₱17.50 = 23% upside from current price, plus the 7.2% yield while you wait.',
+    conclusion: 'Hold through ex-dividend ~March 20 to collect your dividend. If price dips post-ex-date (typical behavior - dividend buyers exit), the ?13.80-14.00 range is a good accumulation zone. Asia Securities target ?17.50 = 23% upside from current price, plus the 7.2% yield while you wait.',
   },
   RRHI: {
     badge: 'MONITOR', badgeClass: 'badge-hold',
-    entry: '₱35.00-36.00', target: '₱43.00', stop: '₱34.00',
+    entry: '?35.00-36.00', target: '?43.00', stop: '?34.00',
     summary: 'Healthy retail business. Hold existing position. Wait for better entry before adding.',
     fundamentals: {
       verdict: 'Fair Value',
@@ -1464,7 +1464,7 @@ const STOCK_INTELLIGENCE = {
         { name: 'TradingView PSE:RRHI', url: 'https://www.tradingview.com/symbols/PSE-RRHI/technicals/' },
       ]
     },
-    conclusion: 'RRHI is a good defensive business — supermarkets, drug stores, convenience. The fundamentals are healthy. This is not a sell — you hold what you have and collect any dividends. The entry timing is just unfavorable right now for adding more. When price pulls back to ₱35-36 or RSI shows oversold conditions, that\'s your accumulation zone. Target ₱43, thesis: stable earnings + consumer spending recovery.',
+    conclusion: 'RRHI is a good defensive business � supermarkets, drug stores, convenience. The fundamentals are healthy. This is not a sell � you hold what you have and collect any dividends. The entry timing is just unfavorable right now for adding more. When price pulls back to ?35-36 or RSI shows oversold conditions, that\'s your accumulation zone. Target ?43, thesis: stable earnings + consumer spending recovery.',
   },
 };
 
@@ -1472,32 +1472,32 @@ const STOCK_INTELLIGENCE = {
 const WATCHLIST_INTELLIGENCE = {
   BDO: {
     why: 'Largest bank by assets. P/E 10.2x vs sector 11x. Conservative management, strong capital ratios.',
-    how: 'Entry below ₱130. Wait for RSI < 50 or ex-dividend dip. BDO moves slowly - patience required.',
+    how: 'Entry below ?130. Wait for RSI < 50 or ex-dividend dip. BDO moves slowly - patience required.',
     source: { name: 'PSE Edge BDO', url: 'https://edge.pse.com.ph' }
   },
   AREIT: {
     why: 'Ayala-backed REIT. Premium quality tenants (Ayala offices, BGC, Makati). 5.8% yield, lowest risk REIT.',
-    how: 'Entry ₱32-33. This is the "safe" REIT - lower yield but highest quality. Add on BSP rate cut news.',
+    how: 'Entry ?32-33. This is the "safe" REIT - lower yield but highest quality. Add on BSP rate cut news.',
     source: { name: 'Asia Securities REIT', url: 'https://www.asiasecequities.com/PDF/DFeb1026.pdf' }
   },
   SCC: {
     why: 'Coal mining + power. 12.5% yield - highest on PSE. P/E 5.2x = extremely cheap. ESG risk is why it\'s cheap.',
-    how: 'Entry ₱36-37. High risk/high reward. Only add if you accept coal exposure. Watch global coal prices.',
+    how: 'Entry ?36-37. High risk/high reward. Only add if you accept coal exposure. Watch global coal prices.',
     source: { name: 'Fintel SCC', url: 'https://fintel.io/s/ph/scc' }
   },
   BPI: {
     why: 'Premium bank brand. Lower yield (3.2%) but very stable. Good for capital preservation.',
-    how: 'Entry ₱105-106. BPI is not cheap - only buy for stability and brand quality, not value.',
+    how: 'Entry ?105-106. BPI is not cheap - only buy for stability and brand quality, not value.',
     source: { name: 'HelloSafe BPI', url: 'https://hellosafe.ph/investing/stock-market/stocks/bpi' }
   },
   DDMPR: {
     why: 'DoubleDragon REIT. 8.9% yield, P/E 11.5x. Smaller REIT but high yield. CityMall exposure = provincial growth.',
-    how: 'Entry ₱1.30-1.35. High yield but less liquid than bigger REITs. Good for income, harder to sell quickly.',
+    how: 'Entry ?1.30-1.35. High yield but less liquid than bigger REITs. Good for income, harder to sell quickly.',
     source: { name: 'DragonFi DDMPR', url: 'https://www.dragonfi.ph/market/stocks/DDMPR' }
   },
   CREIT: {
     why: 'Citicore REIT. Industrial/solar focus. 7.5% yield. Renewable energy exposure = growth angle.',
-    how: 'Entry ₱2.50-2.55. Newer REIT, less track record. Good diversification from office REITs.',
+    how: 'Entry ?2.50-2.55. Newer REIT, less track record. Good diversification from office REITs.',
     source: { name: 'PSE Edge CREIT', url: 'https://edge.pse.com.ph' }
   },
 };
@@ -1534,16 +1534,16 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
 
   // Inline glossary - underlines key terms with tap-to-explain tooltip
   const TERM_DEFS = {
-    'P/E':             "Price-to-Earnings - how much you pay per ₱1 of profit. Lower P/E = cheaper stock.",
+    'P/E':             "Price-to-Earnings - how much you pay per ?1 of profit. Lower P/E = cheaper stock.",
     'NAV':             "Net Asset Value - the real book value of assets owned. Price below NAV = you're buying at a discount.",
     'RSI':             "0-100 momentum meter. Below 30 = oversold (beaten down, may bounce). Above 70 = overbought (may pull back).",
     'MACD':            "Compares two moving averages. Positive = buying pressure winning. Negative = selling pressure winning.",
-    'EPS':             "Earnings Per Share - company profit ÷ shares. Rising EPS = growing profits.",
+    'EPS':             "Earnings Per Share - company profit � shares. Rising EPS = growing profits.",
     'ex-date':         "Ex-dividend date - own the stock before this date to receive the upcoming dividend.",
     'overbought':      "RSI above 70 - stock ran up fast, short-term cooldown likely.",
     'oversold':        "RSI below 30 - stock fell too fast, potential bounce incoming.",
-    'dividend yield':  "Annual dividend ÷ stock price. 7% yield = ₱7 per year for every ₱100 invested.",
-    'Dividend yield':  "Annual dividend ÷ stock price. 7% yield = ₱7 per year for every ₱100 invested.",
+    'dividend yield':  "Annual dividend � stock price. 7% yield = ?7 per year for every ?100 invested.",
+    'Dividend yield':  "Annual dividend � stock price. 7% yield = ?7 per year for every ?100 invested.",
     'moving averages': "Average price over set periods (20, 50, 200 days). More MAs pointing up = stronger trend.",
     'support':         "Price floor where buyers usually step in. Holding support = bullish.",
     'resistance':      "Price ceiling where sellers appear. Breaking above resistance = bullish breakout.",
@@ -1578,7 +1578,7 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
     </div>`).join('');
 
   const sourcesHTML = sources.map(s =>
-    `<a href="${s.url}" target="_blank" class="pillar-src">${s.name} ↗</a>`
+    `<a href="${s.url}" target="_blank" class="pillar-src">${s.name} ?</a>`
   ).join('');
 
   return `
@@ -1591,22 +1591,22 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
         </div>
         <span class="pillar-verdict" style="color:${vc};border-color:rgba(0,0,0,0.12);background:rgba(0,0,0,0.07)">${verdict}</span>
         ${analyzedDate ? `<span class="pillar-header-ts">${analyzedDate}</span>` : ''}
-        <span class="pillar-chevron" id="chev-${id}">▸</span>
+        <span class="pillar-chevron" id="chev-${id}">?</span>
       </div>
       <div class="pillar-body" id="body-${id}" style="display:none">
-        ${aiSummary ? `<div class="pillar-ai-summary">💡 ${aiSummary}</div>` : ''}
+        ${aiSummary ? `<div class="pillar-ai-summary">?? ${aiSummary}</div>` : ''}
         ${analyzedDate ? `<div class="pillar-meta">
-          <span class="pillar-date">🕐 Analyzed ${analyzedDate}</span>
-          ${isStale ? '<span class="pillar-stale">⚠️ Update needed</span>' : '<span class="pillar-fresh">✓ Current</span>'}
+          <span class="pillar-date">?? Analyzed ${analyzedDate}</span>
+          ${isStale ? '<span class="pillar-stale">?? Update needed</span>' : '<span class="pillar-fresh">? Current</span>'}
         </div>` : ''}
         ${pillarKey === 'technicals' ? `<div class="pillar-data-quality">
-          <div class="dq-title">📖 What does this mean for a dividend investor?</div>
-          <div class="dq-row"><span class="dq-icon">ℹ️</span><span class="dq-text">Technicals show <strong>price momentum</strong> — whether the stock is trending up, down, or sideways. Use this to decide <em>when</em> to buy more shares, not <em>whether</em> to hold.</span></div>
-          <div class="dq-row"><span class="dq-icon">📡</span><span class="dq-text"><strong>Source:</strong> TradingView Scanner — RSI, MACD, and moving averages from PSE daily price data</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '🟢' : '🔴'}</span><span class="dq-text"><strong>RSI (Momentum Gauge):</strong> ${supabaseData && supabaseData.rsi14 ? `${parseFloat(supabaseData.rsi14).toFixed(1)} — ${parseFloat(supabaseData.rsi14) < 40 ? 'Oversold: stock may be cheaper than usual — potential entry point' : parseFloat(supabaseData.rsi14) > 70 ? 'Overbought: consider waiting for a price dip before adding' : 'Neutral: no strong momentum signal either way'}` : 'Not available'}</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.macd_signal ? '🟢' : '⚪'}</span><span class="dq-text"><strong>MACD (Short-term Trend):</strong> ${supabaseData && supabaseData.macd_signal ? (supabaseData.macd_signal === 'buy' ? 'Positive — upward price pressure building' : supabaseData.macd_signal === 'sell' ? 'Negative — short-term downward pressure (not a reason to sell your shares)' : supabaseData.macd_signal) : 'Not available'}</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.overall_signal ? '🟢' : '⚪'}</span><span class="dq-text"><strong>Overall Signal:</strong> ${supabaseData && supabaseData.overall_signal ? supabaseData.overall_signal : 'Pending'} — this is for entry timing only</span></div>
-          <div class="dq-note">💡 A SELL technical signal does <strong>not</strong> mean sell your shares. It means short-term momentum is down — which is often a <strong>buying opportunity</strong> for dividend investors if the thesis is intact.</div>
+          <div class="dq-title">?? What does this mean for a dividend investor?</div>
+          <div class="dq-row"><span class="dq-icon">??</span><span class="dq-text">Technicals show <strong>price momentum</strong> � whether the stock is trending up, down, or sideways. Use this to decide <em>when</em> to buy more shares, not <em>whether</em> to hold.</span></div>
+          <div class="dq-row"><span class="dq-icon">??</span><span class="dq-text"><strong>Source:</strong> TradingView Scanner � RSI, MACD, and moving averages from PSE daily price data</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '??' : '??'}</span><span class="dq-text"><strong>RSI (Momentum Gauge):</strong> ${supabaseData && supabaseData.rsi14 ? `${parseFloat(supabaseData.rsi14).toFixed(1)} � ${parseFloat(supabaseData.rsi14) < 40 ? 'Oversold: stock may be cheaper than usual � potential entry point' : parseFloat(supabaseData.rsi14) > 70 ? 'Overbought: consider waiting for a price dip before adding' : 'Neutral: no strong momentum signal either way'}` : 'Not available'}</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.macd_signal ? '??' : '?'}</span><span class="dq-text"><strong>MACD (Short-term Trend):</strong> ${supabaseData && supabaseData.macd_signal ? (supabaseData.macd_signal === 'buy' ? 'Positive � upward price pressure building' : supabaseData.macd_signal === 'sell' ? 'Negative � short-term downward pressure (not a reason to sell your shares)' : supabaseData.macd_signal) : 'Not available'}</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.overall_signal ? '??' : '?'}</span><span class="dq-text"><strong>Overall Signal:</strong> ${supabaseData && supabaseData.overall_signal ? supabaseData.overall_signal : 'Pending'} � this is for entry timing only</span></div>
+          <div class="dq-note">?? A SELL technical signal does <strong>not</strong> mean sell your shares. It means short-term momentum is down � which is often a <strong>buying opportunity</strong> for dividend investors if the thesis is intact.</div>
         </div>` : ''}
         <div class="pillar-points">${pointsHTML}</div>
         ${sourcesHTML ? `<div class="pillar-sources">${sourcesHTML}</div>` : ''}
@@ -1635,7 +1635,7 @@ function _buildConclusion(symbol, tech, staticIntel) {
   const rsiSig = tech.rsi_signal || '';
   const macdSig = tech.macd_signal || '';
   const maTrend = tech.ma_trend || '';
-  const price = tech.current_price ? `₱${tech.current_price}` : '';
+  const price = tech.current_price ? `?${tech.current_price}` : '';
   const chg = tech.day_change_pct != null ? `${parseFloat(tech.day_change_pct) >= 0 ? '+' : ''}${parseFloat(tech.day_change_pct).toFixed(2)}%` : '';
 
   // Decide action word based on signal
@@ -1667,7 +1667,7 @@ function _buildConclusion(symbol, tech, staticIntel) {
     ? `\n\nFundamentals context: ${staticIntel.conclusion}`
     : '';
 
-  return `Current price ${price} (${chg} today). TradingView signal: ${overall}. ${rsiNote} ${macdNote} ${maNote}\n\n⚔️ Sterling says: ${action} - ${actionReason}.${staticNote}`.trim();
+  return `Current price ${price} (${chg} today). TradingView signal: ${overall}. ${rsiNote} ${macdNote} ${maNote}\n\n?? Sterling says: ${action} - ${actionReason}.${staticNote}`.trim();
 }
 
 function renderStockAction(symbol) {
@@ -1684,9 +1684,9 @@ function renderStockAction(symbol) {
       const fContainer = document.getElementById(`pillar-f-${uid}`);
       const nContainer = document.getElementById(`pillar-n-${uid}`);
       const tContainer = document.getElementById(`pillar-t-${uid}`);
-      if (fContainer) fContainer.innerHTML = renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, intel.fundamentals, uid+'_f');
-      if (nContainer) nContainer.innerHTML = renderPillar('📰', 'News & Catalysts', 'news', a.news, intel.news, uid+'_n');
-      if (tContainer) tContainer.innerHTML = renderPillar('📈', 'Technicals', 'technicals', a.technicals, intel.technicals, uid+'_t');
+      if (fContainer) fContainer.innerHTML = renderPillar('??', 'Fundamentals', 'fundamentals', a.fundamentals, intel.fundamentals, uid+'_f');
+      if (nContainer) nContainer.innerHTML = renderPillar('??', 'News & Catalysts', 'news', a.news, intel.news, uid+'_n');
+      if (tContainer) tContainer.innerHTML = renderPillar('??', 'Technicals', 'technicals', a.technicals, intel.technicals, uid+'_t');
     } else {
       // No static data - render full block from Supabase intel
       const container = document.getElementById(`action-block-${uid}`);
@@ -1707,13 +1707,13 @@ function renderStockAction(symbol) {
               <div class="trigger-pill sl"><span class="trigger-label">STOP</span><span class="trigger-price">See verdict</span></div>
             </div>
             <div class="pillars-section">
-              <div>${renderPillar('📊', 'Fundamentals', 'fundamentals', null, f, uid+'_f')}</div>
-              <div>${renderPillar('📰', 'News & Catalysts', 'news', null, n, uid+'_n')}</div>
-              <div>${renderPillar('📈', 'Technicals', 'technicals', null, t, uid+'_t')}</div>
+              <div>${renderPillar('??', 'Fundamentals', 'fundamentals', null, f, uid+'_f')}</div>
+              <div>${renderPillar('??', 'News & Catalysts', 'news', null, n, uid+'_n')}</div>
+              <div>${renderPillar('??', 'Technicals', 'technicals', null, t, uid+'_t')}</div>
             </div>
             <div class="action-conclusion-block">
               <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-                <span>⚔️ Sterling&#39;s Verdict</span><span class="chevron">▸</span>
+                <span>?? Sterling&#39;s Verdict</span><span class="chevron">?</span>
               </div>
               <div class="action-detail" style="display:none">
                 <p class="action-conclusion">${({'Positive':'BUY','Negative':'SELL','Neutral':'HOLD'}[t.verdict || f.verdict]) || 'Analysis in progress.'}</p>
@@ -1725,7 +1725,7 @@ function renderStockAction(symbol) {
         window.sbInsert('sterling_analysis_queue', { symbol, requested_by: _uid(), status: 'pending', created_at: new Date().toISOString() }).catch(() => {});
         container.innerHTML = `
           <div class="action-block analysis-pending">
-            <div style="font-size:12px;font-weight:700;color:#64748B;letter-spacing:0.05em;padding:12px 0 4px">⏳ ANALYSIS QUEUED</div>
+            <div style="font-size:12px;font-weight:700;color:#64748B;letter-spacing:0.05em;padding:12px 0 4px">? ANALYSIS QUEUED</div>
             <p style="font-size:12px;color:#94A3B8;margin:0">Sterling is generating a full 3-pillar analysis for ${symbol}. Refresh in a few minutes.</p>
           </div>`;
       }
@@ -1746,7 +1746,7 @@ function renderStockAction(symbol) {
         `MACD: ${liveTech.macd_signal || 'N/A'}`,
         `TradingView overall: ${liveTech.overall_signal || 'N/A'}`,
         liveTech.ma_trend || null,
-        liveTech.sma50 ? `SMA50: ₱${liveTech.sma50} | SMA200: ₱${liveTech.sma200 || 'N/A'}` : null,
+        liveTech.sma50 ? `SMA50: ?${liveTech.sma50} | SMA200: ?${liveTech.sma200 || 'N/A'}` : null,
       ].filter(Boolean),
       sources: [{ name: `TradingView PSE:${symbol} Technicals`, url: `https://ph.tradingview.com/symbols/PSE-${symbol}/technicals/` }],
       analyzed_at: liveTech.updated_at
@@ -1764,7 +1764,7 @@ function renderStockAction(symbol) {
         <div class="action-headline">
           <span class="action-badge ${a.badgeClass}">${a.badge}</span>
           <span class="action-summary">${a.summary}</span>
-          ${techUpdatedAt ? `<span class="action-freshness">📡 Updated ${techUpdatedAt}</span>` : ''}
+          ${techUpdatedAt ? `<span class="action-freshness">?? Updated ${techUpdatedAt}</span>` : ''}
         </div>
         <div class="price-triggers">
           <div class="trigger-pill buy"><span class="trigger-label">ENTRY</span><span class="trigger-price">${a.entry}</span></div>
@@ -1772,13 +1772,13 @@ function renderStockAction(symbol) {
           <div class="trigger-pill sl"><span class="trigger-label">STOP</span><span class="trigger-price">${a.stop}</span></div>
         </div>
         <div class="pillars-section">
-          <div id="pillar-f-${uid}">${renderPillar('📊', 'Fundamentals', 'fundamentals', a.fundamentals, null, uid+'_f')}</div>
-          <div id="pillar-n-${uid}">${renderPillar('📰', 'News & Catalysts', 'news', a.news, null, uid+'_n')}</div>
-          <div id="pillar-t-${uid}">${renderPillar('📈', 'Technicals', 'technicals', a.technicals, liveTechPillar, uid+'_t')}</div>
+          <div id="pillar-f-${uid}">${renderPillar('??', 'Fundamentals', 'fundamentals', a.fundamentals, null, uid+'_f')}</div>
+          <div id="pillar-n-${uid}">${renderPillar('??', 'News & Catalysts', 'news', a.news, null, uid+'_n')}</div>
+          <div id="pillar-t-${uid}">${renderPillar('??', 'Technicals', 'technicals', a.technicals, liveTechPillar, uid+'_t')}</div>
         </div>
         <div class="action-conclusion-block">
           <div class="action-expand" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='block'?'none':'block'">
-            <span>⚔️ Sterling&#39;s Verdict</span><span class="chevron">▸</span>
+            <span>?? Sterling&#39;s Verdict</span><span class="chevron">?</span>
           </div>
           <div class="action-detail" style="display:none">
             <p class="action-conclusion" id="conclusion-${uid}">${liveConclusion}</p>
@@ -1789,7 +1789,7 @@ function renderStockAction(symbol) {
     // No static data - show loading shell, async fills it in
     return `<div id="action-block-${uid}">
       <div class="action-block analysis-pending">
-        <div style="font-size:11px;font-weight:800;letter-spacing:0.07em;color:#94A3B8;padding:8px 0 4px">⏳ LOADING ANALYSIS…</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.07em;color:#94A3B8;padding:8px 0 4px">? LOADING ANALYSIS�</div>
       </div>
     </div>`;
   }
@@ -1825,53 +1825,53 @@ function renderSparkline(history) {
 
 const MENTOR_NOTES = {
   portfolio: {
-    icon: '⚔️',
-    title: "Today's Lesson: Unrealized Loss ≠ Real Loss",
+    icon: '??',
+    title: "Today's Lesson: Unrealized Loss ? Real Loss",
     body: "A stock showing -10% in your portfolio hasn't actually cost you money yet - it's only a loss if you sell. If the fundamentals are intact (like KEEPR's 40% NAV discount), a red number is just a lower price tag on something still worth more. Sterling tracks both price AND value."
   },
   brief: {
-    icon: '📋',
+    icon: '??',
     title: "Today's Lesson: Why the Morning Brief Matters",
     body: "Professional traders review market setup before the open. You're doing the same. Knowing what happened overnight (US market, USD movement, PSEi futures) gives you 30 minutes to decide - before the crowd does."
   },
   watchlist: {
-    icon: '🎯',
+    icon: '??',
     title: "Today's Lesson: The Difference Between Watchlist and Portfolio",
     body: "Your portfolio = stocks you own. Your watchlist = stocks you're studying before you commit money. A good watchlist has an entry price and a reason. Sterling shows you both - entry price and why it's interesting."
   },
   alerts: {
-    icon: '🔔',
+    icon: '??',
     title: "Today's Lesson: Alerts = Your Decision Triggers",
     body: "You can't watch prices all day. Alerts act on your behalf. When Sterling fires an alert, it's saying 'the condition you cared about just happened.' An alert without an action plan is noise - Sterling includes the action."
   },
   news: {
-    icon: '📰',
+    icon: '??',
     title: "Today's Lesson: How to Read News as a Trader",
     body: "Not all news moves stocks equally. HIGH IMPACT = earnings, dividends, mergers, regulatory changes - can move price 5-20%. LOW IMPACT = analyst upgrades (already priced in), general market commentary. Sterling tags each article so you know what to act on."
   },
   dividends: {
-    icon: '💰',
+    icon: '??',
     title: "Today's Lesson: The Ex-Dividend Date",
     body: "You must OWN shares BEFORE the ex-date to receive the dividend. If FILRT's ex-date is March 11, you need to hold your shares on March 10. Sterling shows your estimated cash income so you can plan around it."
   },
   discovery: {
-    icon: '🔍',
+    icon: '??',
     title: "Today's Lesson: How to Screen Stocks",
     body: "Don't buy a stock because it looks cheap. Cheap stocks are cheap for a reason. Sterling screens by P/E ratio, dividend yield, and RSI together - a cheap P/E + high yield + RSI under 40 = potentially a good entry. That combination is what you're hunting."
   },
   gold: {
-    icon: '🥇',
+    icon: '??',
     title: "Today's Lesson: Gold vs Dollar (DXY)",
     body: "Gold (XAU/USD) and the US Dollar Index (DXY) move in OPPOSITE directions. When the dollar weakens (DXY drops), gold rises - and vice versa. Before every gold trade, check DXY. If DXY is falling, gold tailwind is in your favor."
   },
   learn: {
-    icon: '📚',
+    icon: '??',
     title: "Study Note",
     body: "The best investors spend more time studying than trading. Warren Buffett reads 500 pages per day. You don't need to - but 15 minutes here before you trade is the difference between investing and gambling."
   }
 };
 
-// ── Watchlist Tech Signal Card ─────────────────────────────────────────────
+// -- Watchlist Tech Signal Card ---------------------------------------------
 // Draws from sterling_technicals (TradingView source) for any symbol.
 // Used on Watchlist instead of renderStockAction() - no dependency on
 // STOCK_INTELLIGENCE having the full three-pillar format.
@@ -1891,7 +1891,7 @@ function renderTechSignalCard(symbol) {
         if (card && t) card.outerHTML = _buildTechCard(symbol, t, intel, uid);
       } catch(e) { /* leave skeleton */ }
     }, 400);
-    return `<div id="tech-card-${uid}" class="tech-signal-card loading"><div class="tsc-loading">Loading technicals…</div></div>`;
+    return `<div id="tech-card-${uid}" class="tech-signal-card loading"><div class="tsc-loading">Loading technicals�</div></div>`;
   }
   return _buildTechCard(symbol, tech, intel, uid);
 }
@@ -1926,7 +1926,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
   // Extract numeric values for R:R calculation
   const extractPrice = (str) => {
     if (!str) return null;
-    const match = str.match(/₱?([\d,.]+)/);
+    const match = str.match(/??([\d,.]+)/);
     return match ? parseFloat(match[1].replace(/,/g, '')) : null;
   };
 
@@ -1936,23 +1936,23 @@ function _buildTechCard(symbol, tech, intel, uid) {
     const sma200 = tech.sma200 != null ? parseFloat(tech.sma200) : null;
     if (price != null && sma50 != null) {
       if (price > sma50 * 1.03) {
-        entry = `Near ₱${sma50.toFixed(2)} (wait for SMA50 dip)`;
+        entry = `Near ?${sma50.toFixed(2)} (wait for SMA50 dip)`;
         entryNum = sma50;
       } else {
-        entry = `~₱${price.toFixed(2)} (near SMA50 support)`;
+        entry = `~?${price.toFixed(2)} (near SMA50 support)`;
         entryNum = price;
       }
     } else if (price != null) {
-      entry = `~₱${price.toFixed(2)} (current level)`;
+      entry = `~?${price.toFixed(2)} (current level)`;
       entryNum = price;
     }
     if (!stop && sma200 != null) {
       stopNum = sma200 * 0.95;
-      stop = `₱${stopNum.toFixed(2)} (5% below SMA200)`;
+      stop = `?${stopNum.toFixed(2)} (5% below SMA200)`;
     }
     if (!target && price != null) {
       targetNum = price * 1.12;
-      target = `₱${targetNum.toFixed(2)} (+12% swing target)`;
+      target = `?${targetNum.toFixed(2)} (+12% swing target)`;
     }
   } else {
     entryNum = extractPrice(entry);
@@ -2044,7 +2044,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
     const posClamped = Math.max(0, Math.min(100, position));
     range52Html = `
       <div class="tsc-52w-range">
-        <div class="tsc-52w-label">52W: ₱${w52Low.toFixed(2)} - ₱${w52High.toFixed(2)}</div>
+        <div class="tsc-52w-label">52W: ?${w52Low.toFixed(2)} - ?${w52High.toFixed(2)}</div>
         <div class="tsc-52w-track"><div class="tsc-52w-dot" style="left:${posClamped}%"></div></div>
       </div>`;
   }
@@ -2065,7 +2065,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
   // FEATURE 8: Persisted Sterling Analysis from sterling_intelligence table
   let savedAnalysisHtml = '';
   let savedAiVerdictHtml = '';
-  let analyzeButtonText = '⚡ ANALYZE';
+  let analyzeButtonText = '? ANALYZE';
   const savedAnalysis = analysisData[symbol];
   if (savedAnalysis && savedAnalysis.analysis_text) {
     const savedTs = savedAnalysis.analyzed_at
@@ -2084,15 +2084,15 @@ function _buildTechCard(symbol, tech, intel, uid) {
     savedAnalysisHtml = `
       <div class="sterling-analysis-section sas-open">
         <div class="sas-header" onclick="this.parentElement.classList.toggle('sas-open')">
-          <span class="sas-label">⚡ STERLING ANALYSIS</span>
+          <span class="sas-label">? STERLING ANALYSIS</span>
           <span class="sas-ts">${savedTs}</span>
-          <span class="sas-toggle">▼</span>
+          <span class="sas-toggle">?</span>
         </div>
         <div class="sas-body"><p class="sas-text">${formatAnalysisText(savedAnalysis.analysis_text)}</p>
-          <div class="sas-verdict-note">📊 <strong>Technical Signal</strong> is based on price math only. <strong>AI Analysis</strong> considers news and broader context. Use both together.</div>
+          <div class="sas-verdict-note">?? <strong>Technical Signal</strong> is based on price math only. <strong>AI Analysis</strong> considers news and broader context. Use both together.</div>
         </div>
       </div>`;
-    analyzeButtonText = '⚡ RE-ANALYZE';
+    analyzeButtonText = '? RE-ANALYZE';
   }
 
   // STERLING VERDICT - synthesized from Technical + AI signals
@@ -2111,33 +2111,33 @@ function _buildTechCard(symbol, tech, intel, uid) {
       <div class="sv-note">${sv.note}</div>
       <div class="sv-sub-signals">
         <span class="sv-sub">Technical: <strong>${techSubLine}</strong></span>
-        <span class="sv-sub-sep">·</span>
+        <span class="sv-sub-sep">�</span>
         <span class="sv-sub">AI: <strong>${aiSubLine}</strong></span>
       </div>
     </div>`;
 
   // Build RSI plain-English reading
   const rsiExplain = rsi !== null
-    ? (parseFloat(rsi) < 30 ? `${rsi} — Oversold. Stock has fallen fast; potential entry point for dividend buyers.`
-      : parseFloat(rsi) < 40 ? `${rsi} — Getting oversold. May be approaching a good entry zone.`
-      : parseFloat(rsi) > 70 ? `${rsi} — Overbought. Price ran up fast; consider waiting for a dip to add.`
-      : parseFloat(rsi) > 60 ? `${rsi} — Elevated. Momentum is up but watch for short-term pullback.`
-      : `${rsi} — Neutral. No strong momentum signal either way.`)
+    ? (parseFloat(rsi) < 30 ? `${rsi} � Oversold. Stock has fallen fast; potential entry point for dividend buyers.`
+      : parseFloat(rsi) < 40 ? `${rsi} � Getting oversold. May be approaching a good entry zone.`
+      : parseFloat(rsi) > 70 ? `${rsi} � Overbought. Price ran up fast; consider waiting for a dip to add.`
+      : parseFloat(rsi) > 60 ? `${rsi} � Elevated. Momentum is up but watch for short-term pullback.`
+      : `${rsi} � Neutral. No strong momentum signal either way.`)
     : null;
   const macdExplain = macdSig
-    ? (macdSig.toLowerCase().includes('buy') ? 'Positive — upward price pressure building.'
-      : macdSig.toLowerCase().includes('sell') ? 'Negative — short-term downward pressure. Not a sell signal for long-term holders.'
+    ? (macdSig.toLowerCase().includes('buy') ? 'Positive � upward price pressure building.'
+      : macdSig.toLowerCase().includes('sell') ? 'Negative � short-term downward pressure. Not a sell signal for long-term holders.'
       : `${macdSig}`)
     : null;
 
   const techExplainerHtml = `
     <div class="tsc-explainer">
-      <div class="tsc-explainer-title">📖 What this means for your dividends</div>
+      <div class="tsc-explainer-title">?? What this means for your dividends</div>
       <div class="tsc-explainer-row"><strong>Technicals = entry timing only.</strong> Use this to decide <em>when</em> to buy more, not whether to hold. Your dividend income doesn't depend on short-term price moves.</div>
       ${rsiExplain ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">RSI (Momentum):</span> ${rsiExplain}</div>` : ''}
       ${macdExplain ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">MACD (Trend):</span> ${macdExplain}</div>` : ''}
       ${maTrend ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">Moving Averages:</span> ${maTrend}</div>` : ''}
-      <div class="tsc-explainer-note">💡 A SELL signal means short-term momentum is down — often a <strong>buying opportunity</strong> if the company still pays dividends.</div>
+      <div class="tsc-explainer-note">?? A SELL signal means short-term momentum is down � often a <strong>buying opportunity</strong> if the company still pays dividends.</div>
     </div>`;
 
   return `<div id="tech-card-${uid}" class="tech-signal-card">
@@ -2151,7 +2151,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
       ${macdSig ? `<span class="tsc-macd-badge">MACD: ${macdSig}</span>` : ''}
       ${volBadgeHtml}
     </div>
-    ${maTrend ? `<div class="tsc-ma-trend">📊 ${maTrend}</div>` : ''}
+    ${maTrend ? `<div class="tsc-ma-trend">?? ${maTrend}</div>` : ''}
     ${range52Html}
     ${techExplainerHtml}
     <div class="tsc-entry-block">
@@ -2238,7 +2238,7 @@ function renderBriefs() {
   }
 
   if (!briefsData || briefsData.length === 0) {
-    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No morning briefs yet. Sterling runs at 7AM weekdays.</div></div>`;
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">??</div><div class="empty-state-text">No morning briefs yet. Sterling runs at 7AM weekdays.</div></div>`;
     return;
   }
 
@@ -2252,7 +2252,7 @@ function renderBriefs() {
           ${b.portfolio_value ? `<span>Value: ${formatPeso(b.portfolio_value)}</span>` : ''}
           ${b.total_pl != null ? `<span style="color: ${b.total_pl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)'}">P&L: ${formatPeso(b.total_pl)}</span>` : ''}
         </div>
-        <span class="brief-expand">▼</span>
+        <span class="brief-expand">?</span>
       </div>
       <div class="brief-content" style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:13px;line-height:1.7">${(b.brief_text || 'No content').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
     </div>
@@ -2342,7 +2342,7 @@ function renderWatchlist() {
   }
 
   if (!filtered || filtered.length === 0) {
-    cards.innerHTML = `<div class="empty-state"><div class="empty-state-icon">👁️</div><div class="empty-state-text">No watchlist items. Add stocks from Discovery to start tracking.</div></div>`;
+    cards.innerHTML = `<div class="empty-state"><div class="empty-state-icon">???</div><div class="empty-state-text">No watchlist items. Add stocks from Discovery to start tracking.</div></div>`;
     tbody.innerHTML = '';
     return;
   }
@@ -2362,7 +2362,7 @@ function renderWatchlist() {
             <span class="sector-badge-wl">${w.sector || 'N/A'}</span>
             <span class="signal-badge ${signalClass}">${signal}</span>
           </div>
-          <button class="wl-remove-btn" onclick="removeFromWatchlist('${w.symbol}')" title="Remove">✕</button>
+          <button class="wl-remove-btn" onclick="removeFromWatchlist('${w.symbol}')" title="Remove">?</button>
         </div>
         <div class="wl-card-main">
           <div class="wl-card-symbol">${w.symbol}</div>
@@ -2384,18 +2384,18 @@ function renderWatchlist() {
           <div><span class="label">P/E</span><span class="value">${peVal}x</span></div>
         </div>
         <div class="wl-portfolio-connection">
-          <span class="connection-icon">📎</span>
+          <span class="connection-icon">??</span>
           <span class="connection-text">${connection}</span>
         </div>
         ${w.reason || w.rationale ? `
         <div class="wl-rationale">
-          <span class="rationale-icon">💡</span>
+          <span class="rationale-icon">??</span>
           <span class="rationale-text">${w.reason || w.rationale}</span>
         </div>
         ` : ''}
         ${renderTechSignalCard(w.symbol)}
         <div class="wl-card-actions" style="margin-top:10px">
-          <a class="wl-chart-link" href="https://www.investagrams.com/stock/${w.symbol}" target="_blank">View Chart ↗</a>
+          <a class="wl-chart-link" href="https://www.investagrams.com/stock/${w.symbol}" target="_blank">View Chart ?</a>
         </div>
       </div>
     `;
@@ -2418,7 +2418,7 @@ function renderWatchlist() {
       <td>${w.pe_ratio || '-'}</td>
       <td>${w.dividend_yield ? w.dividend_yield + '%' : '-'}</td>
       <td><span class="signal-badge ${signal.toLowerCase()}">${signal}</span></td>
-      <td><button class="wl-remove-btn-sm" onclick="removeFromWatchlist('${w.symbol}')">✕</button></td>
+      <td><button class="wl-remove-btn-sm" onclick="removeFromWatchlist('${w.symbol}')">?</button></td>
     </tr>
   `;
   }).join('');
@@ -2529,19 +2529,19 @@ function renderAlerts() {
   }
 
   if (!alertsData || alertsData.length === 0) {
-    feed.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔔</div><div class="empty-state-text">No alerts yet</div></div>`;
+    feed.innerHTML = `<div class="empty-state"><div class="empty-state-icon">??</div><div class="empty-state-text">No alerts yet</div></div>`;
     return;
   }
 
   feed.innerHTML = alertsData.map(a => {
     let type = 'info';
-    let icon = '🔵';
+    let icon = '??';
     if (a.type === 'price_drop' || a.type === 'urgent' || (a.message && a.message.includes('URGENT'))) {
       type = 'urgent';
-      icon = '🔴';
+      icon = '??';
     } else if (a.type === 'warning' || (a.message && a.message.includes('WARNING'))) {
       type = 'warning';
-      icon = '🟡';
+      icon = '??';
     }
 
     return `
@@ -2555,7 +2555,7 @@ function renderAlerts() {
           </div>
           <div class="alert-time">${formatTime(a.created_at)}</div>
         </div>
-        <button class="alert-dismiss" onclick="dismissAlert('${a.id}')" title="Dismiss">×</button>
+        <button class="alert-dismiss" onclick="dismissAlert('${a.id}')" title="Dismiss">�</button>
       </div>
     `;
   }).join('');
@@ -2576,7 +2576,7 @@ async function dismissAlert(id) {
 
 async function loadNews() {
   const feed = document.getElementById('news-feed');
-  if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⏳</div><div class="empty-state-text">Loading news...</div></div>';
+  if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">?</div><div class="empty-state-text">Loading news...</div></div>';
   try {
     const { url, anonKey } = window.SUPABASE_CONFIG;
     const res = await fetch(`${url}/rest/v1/sterling_news?select=*&order=scraped_at.desc&limit=60`, {
@@ -2593,7 +2593,7 @@ async function loadNews() {
     renderNews();
   } catch (err) {
     console.error('[Sterling] News load error:', err);
-    if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load news: ' + err.message + '</div></div>';
+    if (feed) feed.innerHTML = '<div class="empty-state"><div class="empty-state-icon">??</div><div class="empty-state-text">Failed to load news: ' + err.message + '</div></div>';
   }
 }
 
@@ -2633,7 +2633,7 @@ function renderNews() {
       const warn = document.createElement('div');
       warn.id = staleWarningId;
       warn.style.cssText = 'background:#FFFBEB;border:1px solid #FCD34D;border-radius:6px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:12px;display:flex;align-items:center;gap:8px';
-      warn.innerHTML = `⚠️ <strong>News last refreshed ${ageH}h ago.</strong> Next auto-refresh at 8AM tomorrow. <a href="#" onclick="loadNews();return false;" style="color:#B45309;font-weight:700;margin-left:4px">Refresh now ↺</a>`;
+      warn.innerHTML = `?? <strong>News last refreshed ${ageH}h ago.</strong> Next auto-refresh at 8AM tomorrow. <a href="#" onclick="loadNews();return false;" style="color:#B45309;font-weight:700;margin-left:4px">Refresh now ?</a>`;
       const feed = document.getElementById('news-feed');
       if (feed && feed.parentNode) feed.parentNode.insertBefore(warn, feed);
     }
@@ -2653,13 +2653,13 @@ function renderNews() {
   const feed = document.getElementById('news-feed');
 
   if (!filtered || filtered.length === 0) {
-    feed.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📰</div><div class="empty-state-text">No news found</div></div>`;
+    feed.innerHTML = `<div class="empty-state"><div class="empty-state-icon">??</div><div class="empty-state-text">No news found</div></div>`;
     return;
   }
 
   feed.innerHTML = filtered.map(n => {
     const sentiment = n.sentiment || tagSentiment((n.headline || '') + ' ' + (n.summary || ''));
-    const sentimentIcon = sentiment === 'bullish' ? '▲' : sentiment === 'bearish' ? '▼' : '●';
+    const sentimentIcon = sentiment === 'bullish' ? '?' : sentiment === 'bearish' ? '?' : '?';
 
     // AI action badge mapping
     const actionBadgeClass = {
@@ -2883,7 +2883,7 @@ function renderDiscoveryFilters() {
   const sectors = ['All', 'Banking', 'REIT', 'Telecom', 'Property', 'Mining & Oil', 'Retail', 'Energy', 'Industrial', 'Holding Firms'];
 
   container.innerHTML = `
-    <input type="text" id="disc-search" placeholder="Search symbol or company…" oninput="updateDiscoveryFilter('search', this.value)" style="padding:8px 12px;border:1.5px solid #0A0A0A;border-radius:6px;font-size:13px;flex:1;min-width:180px">
+    <input type="text" id="disc-search" placeholder="Search symbol or company�" oninput="updateDiscoveryFilter('search', this.value)" style="padding:8px 12px;border:1.5px solid #0A0A0A;border-radius:6px;font-size:13px;flex:1;min-width:180px">
     <select id="disc-sector" onchange="updateDiscoveryFilter('sector', this.value)">
       ${sectors.map(s => `<option value="${s === 'All' ? '' : s}">${s}</option>`).join('')}
     </select>
@@ -2908,7 +2908,7 @@ async function renderDiscovery() {
   }
 
   const grid = document.getElementById('discovery-grid');
-  grid.innerHTML = `<div class="discovery-loading" style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">Loading PSE universe…</div>`;
+  grid.innerHTML = `<div class="discovery-loading" style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">Loading PSE universe�</div>`;
 
   // Load fundamentals from sterling_intelligence - group by symbol+pillar
   // sterling_intelligence has one row per pillar (fundamentals/news/technicals) per symbol
@@ -2939,7 +2939,7 @@ async function renderDiscovery() {
   }
 
   if (stocks.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">No stocks match your search. Try a different symbol or sector.</div></div>`;
+    grid.innerHTML = `<div class="empty-state"><div class="empty-state-icon">??</div><div class="empty-state-text">No stocks match your search. Try a different symbol or sector.</div></div>`;
     return;
   }
 
@@ -2965,7 +2965,7 @@ async function renderDiscovery() {
         const epsMatch = epsPoint && epsPoint.match(/[\d.]+/);
         const yldMatch = yldPoint && yldPoint.match(/[\d.]+%/);
         if (peMatch) pe = peMatch[0];
-        if (epsMatch) eps = '₱' + epsMatch[0];
+        if (epsMatch) eps = '?' + epsMatch[0];
         if (yldMatch) divYield = yldMatch[0];
         verdict = fundamentalRow.verdict || null;
         analyzedDate = fundamentalRow.analyzed_at ? new Date(fundamentalRow.analyzed_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : null;
@@ -2984,7 +2984,7 @@ async function renderDiscovery() {
             ${inWatchlist ? '<span class="disc-tag watch-tag">WATCHING</span>' : ''}
           </div>
           ${inWatchlist
-            ? `<button class="disc-wl-btn in-wl" disabled>✓ Watching</button>`
+            ? `<button class="disc-wl-btn in-wl" disabled>? Watching</button>`
             : `<button class="disc-wl-btn" onclick="addToWatchlistFromDiscovery('${s.symbol}', '${s.name.replace(/'/g, '&#39;')}', '${s.sector}')">+ Watch</button>`
           }
         </div>
@@ -3009,12 +3009,12 @@ async function renderDiscovery() {
           const sigC = overall.includes('Buy') ? '#16A34A' : overall.includes('Sell') ? '#DC2626' : '#64748B';
           let entryText, targetText, stopText;
           if (price != null && sma50 != null) {
-            entryText = price > sma50 * 1.03 ? `Near ₱${sma50.toFixed(2)} (SMA50 dip)` : `~₱${parseFloat(price).toFixed(2)} (near support)`;
+            entryText = price > sma50 * 1.03 ? `Near ?${sma50.toFixed(2)} (SMA50 dip)` : `~?${parseFloat(price).toFixed(2)} (near support)`;
           } else if (price != null) {
-            entryText = `~₱${parseFloat(price).toFixed(2)}`;
+            entryText = `~?${parseFloat(price).toFixed(2)}`;
           }
-          if (price) targetText = `₱${(parseFloat(price) * 1.12).toFixed(2)} (+12%)`;
-          if (sma200) stopText = `₱${(sma200 * 0.95).toFixed(2)} (-5% SMA200)`;
+          if (price) targetText = `?${(parseFloat(price) * 1.12).toFixed(2)} (+12%)`;
+          if (sma200) stopText = `?${(sma200 * 0.95).toFixed(2)} (-5% SMA200)`;
           return `<div class="disc-signal-row">
             <span class="disc-signal-badge" style="background:${sigC}18;color:${sigC};border:1px solid ${sigC}40">${overall || '-'}</span>
             ${entryText ? `<span class="disc-entry-chip entry">BUY: ${entryText}</span>` : ''}
@@ -3023,8 +3023,8 @@ async function renderDiscovery() {
           </div>`;
         })()}
         ${analyzedDate
-          ? `<div class="disc-data-quality">${isStale ? '⚠️' : '✓'} Fundamentals as of ${analyzedDate}${isStale ? ' - update needed' : ''}</div>`
-          : `<div class="disc-data-quality" style="color:#DC2626">⚠️ No analysis yet - add to Watchlist to queue</div>`
+          ? `<div class="disc-data-quality">${isStale ? '??' : '?'} Fundamentals as of ${analyzedDate}${isStale ? ' - update needed' : ''}</div>`
+          : `<div class="disc-data-quality" style="color:#DC2626">?? No analysis yet - add to Watchlist to queue</div>`
         }
       </div>
     `;
@@ -3064,7 +3064,7 @@ async function addToWatchlistFromDiscovery(symbol, company, sector) {
     // Update local state and re-render
     watchlistSymbols.add(symbol);
     renderDiscovery();
-    showToast(`${symbol} added to Watchlist ✓`);
+    showToast(`${symbol} added to Watchlist ?`);
   } catch (err) {
     console.error('Add to watchlist error:', err);
     showToast('Failed to add to watchlist', 'error');
@@ -3088,44 +3088,44 @@ function showToast(message, type = 'success') {
 
 const GLOSSARY = [
   // Fundamentals
-  { term: 'P/E Ratio', category: 'Fundamentals', short: 'Price-to-Earnings', explanation: 'How much you pay for ₱1 of company earnings. Lower = cheaper. MBT at 6.86x means you pay ₱6.86 for every ₱1 of profit it earns. Banking sector avg is 11x - so MBT is cheap.', example: 'MBT P/E: 6.86x vs sector avg 11x → MBT is undervalued', level: 'Beginner' },
-  { term: 'EPS', category: 'Fundamentals', short: 'Earnings Per Share', explanation: 'How much profit each share earns. MBT EPS is ₱10.76 - meaning for every 1 share you own, MBT earned ₱10.76 in profit last year. Growing EPS year-over-year = healthy company.', example: 'MBT EPS grew 18% last year - strong signal', level: 'Beginner' },
-  { term: 'Dividend Yield', category: 'Fundamentals', short: 'Annual dividend ÷ share price', explanation: 'How much cash income you earn per year as a % of the stock price. KEEPR yields 11% - on your 11,000 shares worth ₱25,300, you earn ~₱2,783/year in dividends just for holding.', example: 'KEEPR: 11% yield. FILRT: 8.1%. GLO: 3.6%', level: 'Beginner' },
-  { term: 'NAV', category: 'Fundamentals', short: 'Net Asset Value', explanation: 'For REITs: the actual value of all properties owned divided by shares outstanding. KEEPR NAV is ₱3.80 but trades at ₱2.30 - you\'re buying ₱3.80 of real estate for ₱2.30. That\'s a 40% discount.', example: 'KEEPR: Price ₱2.30 vs NAV ₱3.80 = 40% discount', level: 'Intermediate' },
-  { term: 'ROE', category: 'Fundamentals', short: 'Return on Equity', explanation: 'How efficiently a company makes money from shareholders\' funds. 15%+ is generally good. Think of it as: for every ₱100 you invest, how much does the company earn? ROE 12.5% = ₱12.50 earned per ₱100.', example: 'MBT ROE: 12.5% - solid for a bank', level: 'Intermediate' },
-  { term: 'Book Value', category: 'Fundamentals', short: 'Company\'s net worth per share', explanation: 'What each share is worth if the company sold all its assets and paid all debts. If book value is ₱68 and the stock trades at ₱76, you\'re paying a small premium - that\'s fair for a profitable bank.', example: 'MBT book value: ₱68.50, price: ₱76 → P/B ratio 1.1x', level: 'Intermediate' },
+  { term: 'P/E Ratio', category: 'Fundamentals', short: 'Price-to-Earnings', explanation: 'How much you pay for ?1 of company earnings. Lower = cheaper. MBT at 6.86x means you pay ?6.86 for every ?1 of profit it earns. Banking sector avg is 11x - so MBT is cheap.', example: 'MBT P/E: 6.86x vs sector avg 11x ? MBT is undervalued', level: 'Beginner' },
+  { term: 'EPS', category: 'Fundamentals', short: 'Earnings Per Share', explanation: 'How much profit each share earns. MBT EPS is ?10.76 - meaning for every 1 share you own, MBT earned ?10.76 in profit last year. Growing EPS year-over-year = healthy company.', example: 'MBT EPS grew 18% last year - strong signal', level: 'Beginner' },
+  { term: 'Dividend Yield', category: 'Fundamentals', short: 'Annual dividend � share price', explanation: 'How much cash income you earn per year as a % of the stock price. KEEPR yields 11% - on your 11,000 shares worth ?25,300, you earn ~?2,783/year in dividends just for holding.', example: 'KEEPR: 11% yield. FILRT: 8.1%. GLO: 3.6%', level: 'Beginner' },
+  { term: 'NAV', category: 'Fundamentals', short: 'Net Asset Value', explanation: 'For REITs: the actual value of all properties owned divided by shares outstanding. KEEPR NAV is ?3.80 but trades at ?2.30 - you\'re buying ?3.80 of real estate for ?2.30. That\'s a 40% discount.', example: 'KEEPR: Price ?2.30 vs NAV ?3.80 = 40% discount', level: 'Intermediate' },
+  { term: 'ROE', category: 'Fundamentals', short: 'Return on Equity', explanation: 'How efficiently a company makes money from shareholders\' funds. 15%+ is generally good. Think of it as: for every ?100 you invest, how much does the company earn? ROE 12.5% = ?12.50 earned per ?100.', example: 'MBT ROE: 12.5% - solid for a bank', level: 'Intermediate' },
+  { term: 'Book Value', category: 'Fundamentals', short: 'Company\'s net worth per share', explanation: 'What each share is worth if the company sold all its assets and paid all debts. If book value is ?68 and the stock trades at ?76, you\'re paying a small premium - that\'s fair for a profitable bank.', example: 'MBT book value: ?68.50, price: ?76 ? P/B ratio 1.1x', level: 'Intermediate' },
   { term: 'Debt-to-Equity', category: 'Fundamentals', short: 'How much the company borrowed vs owns', explanation: 'Lower is generally safer. Below 1.0 means the company owns more than it owes. Banks and telecoms naturally have higher D/E because they need capital. GLO has D/E of 2.1x - high but normal for telecoms.', example: 'GLO D/E: 2.1x (high but expected for telecoms)', level: 'Intermediate' },
-  { term: 'Ex-Dividend Date', category: 'Fundamentals', short: 'Cutoff date to receive dividend', explanation: 'You must OWN the stock BEFORE this date to receive the upcoming dividend. Buy on or after the ex-date = no dividend this cycle. FILRT ex-date ~March 11 - own it before then.', example: 'FILRT ex-date ~March 11. Own before then → get ₱420 dividend', level: 'Beginner' },
-  { term: 'Distributable Income', category: 'Fundamentals', short: 'Cash REITs have available to pay dividends', explanation: 'Philippine REITs must pay out at least 90% of distributable income as dividends. This is more important than earnings for REITs - check if distributable income is growing or shrinking each quarter.', example: 'MREIT distributable income growing → dividends should be maintained', level: 'Intermediate' },
+  { term: 'Ex-Dividend Date', category: 'Fundamentals', short: 'Cutoff date to receive dividend', explanation: 'You must OWN the stock BEFORE this date to receive the upcoming dividend. Buy on or after the ex-date = no dividend this cycle. FILRT ex-date ~March 11 - own it before then.', example: 'FILRT ex-date ~March 11. Own before then ? get ?420 dividend', level: 'Beginner' },
+  { term: 'Distributable Income', category: 'Fundamentals', short: 'Cash REITs have available to pay dividends', explanation: 'Philippine REITs must pay out at least 90% of distributable income as dividends. This is more important than earnings for REITs - check if distributable income is growing or shrinking each quarter.', example: 'MREIT distributable income growing ? dividends should be maintained', level: 'Intermediate' },
   { term: 'Occupancy Rate', category: 'Fundamentals', short: '% of REIT properties currently rented', explanation: 'For REITs: how many of their office/mall/industrial spaces are occupied by tenants. 90%+ is healthy. KEEPR at 94% means 94% of their properties are generating rental income right now.', example: 'KEEPR occupancy: 94% - healthy', level: 'Beginner' },
 
   // Technical Analysis
   { term: 'RSI', category: 'Technical', short: 'Relative Strength Index (0-100)', explanation: 'Measures buying/selling momentum. Below 30 = oversold (stock may be too cheap, potential bounce). Above 70 = overbought (stock may be too expensive, potential pullback). MBT RSI 66.8 = strong but not yet overbought.', example: 'MBT RSI: 66.8 (strong buy territory). Below 30 = oversold opportunity.', level: 'Intermediate' },
-  { term: 'MACD', category: 'Technical', short: 'Moving Average Convergence Divergence', explanation: 'Shows momentum shifts. When the MACD line crosses ABOVE the signal line = bullish (upward momentum). When it crosses BELOW = bearish. MBT MACD: +0.81 (positive = bullish momentum).', example: 'MBT MACD: +0.81 → bullish momentum confirmed', level: 'Intermediate' },
-  { term: 'Support Level', category: 'Technical', short: 'Price floor where buyers step in', explanation: 'A price level where the stock has historically bounced upward. Buyers see it as cheap here and step in. MBT support at ₱73.95 - if it dips there, that\'s historically a buying opportunity, not a panic signal.', example: 'MBT support: ₱73.95. Dips to here = buy zone, not panic.', level: 'Beginner' },
-  { term: 'Resistance Level', category: 'Technical', short: 'Price ceiling where sellers push back', explanation: 'A price level where the stock has historically struggled to break through. Sellers see it as expensive and sell. MBT resistance at ₱76.57 - a strong close above this = breakout signal.', example: 'MBT resistance: ₱76.57. Break above = bullish breakout.', level: 'Beginner' },
-  { term: 'Moving Average (MA)', category: 'Technical', short: 'Average price over N days', explanation: 'Smooths out daily noise to show the trend. 50-day MA = average of last 50 days\' closing prices. When stock price is ABOVE the 50-day MA = uptrend. BELOW = downtrend. MBT is above ALL its moving averages right now.', example: 'MBT price ₱76 > 200-day MA ₱72.70 → confirmed uptrend', level: 'Beginner' },
+  { term: 'MACD', category: 'Technical', short: 'Moving Average Convergence Divergence', explanation: 'Shows momentum shifts. When the MACD line crosses ABOVE the signal line = bullish (upward momentum). When it crosses BELOW = bearish. MBT MACD: +0.81 (positive = bullish momentum).', example: 'MBT MACD: +0.81 ? bullish momentum confirmed', level: 'Intermediate' },
+  { term: 'Support Level', category: 'Technical', short: 'Price floor where buyers step in', explanation: 'A price level where the stock has historically bounced upward. Buyers see it as cheap here and step in. MBT support at ?73.95 - if it dips there, that\'s historically a buying opportunity, not a panic signal.', example: 'MBT support: ?73.95. Dips to here = buy zone, not panic.', level: 'Beginner' },
+  { term: 'Resistance Level', category: 'Technical', short: 'Price ceiling where sellers push back', explanation: 'A price level where the stock has historically struggled to break through. Sellers see it as expensive and sell. MBT resistance at ?76.57 - a strong close above this = breakout signal.', example: 'MBT resistance: ?76.57. Break above = bullish breakout.', level: 'Beginner' },
+  { term: 'Moving Average (MA)', category: 'Technical', short: 'Average price over N days', explanation: 'Smooths out daily noise to show the trend. 50-day MA = average of last 50 days\' closing prices. When stock price is ABOVE the 50-day MA = uptrend. BELOW = downtrend. MBT is above ALL its moving averages right now.', example: 'MBT price ?76 > 200-day MA ?72.70 ? confirmed uptrend', level: 'Beginner' },
   { term: 'Volume', category: 'Technical', short: 'How many shares traded today', explanation: 'Confirms the conviction behind a price move. Big move UP on big volume = real buying. Big move UP on tiny volume = suspicious, may reverse. Always ask: "Was this move on high or low volume?"', example: 'Price up 3% on 2M volume = strong signal. Up 3% on 100K volume = weak signal.', level: 'Beginner' },
-  { term: 'Breakout', category: 'Technical', short: 'Price closes above resistance with volume', explanation: 'When a stock closes above a key resistance level, especially on high volume. This signals that buyers have overpowered sellers at that level and the stock may run higher. Very strong buy signal when confirmed.', example: 'If MBT closes above ₱77 on high volume = breakout signal', level: 'Intermediate' },
-  { term: '200-Day MA', category: 'Technical', short: 'The ultimate long-term trend indicator', explanation: 'The most watched moving average by professional investors. Stock above 200-day MA = long-term uptrend. Stock below = long-term downtrend. MBT recently crossed ABOVE its 200-day MA - that\'s a major bullish signal that professionals notice.', example: 'MBT crossed above 200-day MA ₱72.70 → major bullish signal', level: 'Intermediate' },
+  { term: 'Breakout', category: 'Technical', short: 'Price closes above resistance with volume', explanation: 'When a stock closes above a key resistance level, especially on high volume. This signals that buyers have overpowered sellers at that level and the stock may run higher. Very strong buy signal when confirmed.', example: 'If MBT closes above ?77 on high volume = breakout signal', level: 'Intermediate' },
+  { term: '200-Day MA', category: 'Technical', short: 'The ultimate long-term trend indicator', explanation: 'The most watched moving average by professional investors. Stock above 200-day MA = long-term uptrend. Stock below = long-term downtrend. MBT recently crossed ABOVE its 200-day MA - that\'s a major bullish signal that professionals notice.', example: 'MBT crossed above 200-day MA ?72.70 ? major bullish signal', level: 'Intermediate' },
 
   // Trading Strategy
-  { term: 'Stop-Loss', category: 'Strategy', short: 'Price where you accept you were wrong and exit', explanation: 'A predetermined price where you sell to limit losses. NOT a sign of weakness - it\'s risk management. Every professional sets a stop-loss before entering a trade. For MBT, stop-loss ₱69 means: if it drops below ₱69, the thesis is broken - sell.', example: 'MBT stop-loss: ₱69. KEEPR stop-loss: ₱1.90.', level: 'Beginner' },
-  { term: 'Take Profit', category: 'Strategy', short: 'Price where you lock in gains', explanation: 'A target price where you sell a portion of your position to lock in profits. Smart approach: sell 30% at first target, hold the rest. Don\'t sell everything at once - let winners run. MBT first take-profit: ₱86.', example: 'MBT: sell 30% at ₱86, hold rest to ₱97.', level: 'Beginner' },
-  { term: 'Averaging Down', category: 'Strategy', short: 'Buying more when price drops to lower your average cost', explanation: 'If you own a stock and it drops, buying more shares lowers your average purchase price. ONLY do this if the fundamentals haven\'t changed - not just because the price fell. KEEPR fundamentals intact (94% occupancy, 11% yield) = averaging down is valid.', example: 'KEEPR: bought at ₱2.60, now ₱2.30. Adding more lowers avg cost. Valid IF fundamentals intact.', level: 'Intermediate' },
-  { term: 'Unrealized P&L', category: 'Strategy', short: 'Paper profit or loss - not real until you sell', explanation: 'Your current profit/loss on paper while you still hold the stock. KEEPR shows -11% unrealized - that money is NOT gone. You still own the same 11,000 shares. It only becomes a real loss if you sell. As long as fundamentals are intact, unrealized loss = temporary price discount.', example: 'KEEPR -11% unrealized ≠ actual loss. Don\'t sell based on paper loss alone.', level: 'Beginner' },
+  { term: 'Stop-Loss', category: 'Strategy', short: 'Price where you accept you were wrong and exit', explanation: 'A predetermined price where you sell to limit losses. NOT a sign of weakness - it\'s risk management. Every professional sets a stop-loss before entering a trade. For MBT, stop-loss ?69 means: if it drops below ?69, the thesis is broken - sell.', example: 'MBT stop-loss: ?69. KEEPR stop-loss: ?1.90.', level: 'Beginner' },
+  { term: 'Take Profit', category: 'Strategy', short: 'Price where you lock in gains', explanation: 'A target price where you sell a portion of your position to lock in profits. Smart approach: sell 30% at first target, hold the rest. Don\'t sell everything at once - let winners run. MBT first take-profit: ?86.', example: 'MBT: sell 30% at ?86, hold rest to ?97.', level: 'Beginner' },
+  { term: 'Averaging Down', category: 'Strategy', short: 'Buying more when price drops to lower your average cost', explanation: 'If you own a stock and it drops, buying more shares lowers your average purchase price. ONLY do this if the fundamentals haven\'t changed - not just because the price fell. KEEPR fundamentals intact (94% occupancy, 11% yield) = averaging down is valid.', example: 'KEEPR: bought at ?2.60, now ?2.30. Adding more lowers avg cost. Valid IF fundamentals intact.', level: 'Intermediate' },
+  { term: 'Unrealized P&L', category: 'Strategy', short: 'Paper profit or loss - not real until you sell', explanation: 'Your current profit/loss on paper while you still hold the stock. KEEPR shows -11% unrealized - that money is NOT gone. You still own the same 11,000 shares. It only becomes a real loss if you sell. As long as fundamentals are intact, unrealized loss = temporary price discount.', example: 'KEEPR -11% unrealized ? actual loss. Don\'t sell based on paper loss alone.', level: 'Beginner' },
   { term: 'Long-Term Investing', category: 'Strategy', short: 'Holding quality stocks for years, not days', explanation: 'Carlo\'s approach. You\'re NOT day trading. You buy fundamentally strong companies at good prices, hold them for dividends + price appreciation, and only sell when fundamentals change - not when price dips.', example: 'Carlo\'s horizon: 1-5 years. Dividends + capital appreciation = total return.', level: 'Beginner' },
-  { term: 'Dividend Investing', category: 'Strategy', short: 'Building passive income through dividends', explanation: 'Owning stocks that pay regular cash dividends. Your REITs (FILRT, KEEPR, MREIT) pay quarterly. GLO and DMC pay annually. Combined, your current portfolio generates estimated ₱35,000-45,000/year in dividends - without selling a single share.', example: 'Your est. annual dividends: KEEPR ₱28,600 + FILRT ₱4,200 + MREIT ₱1,000 + GLO ₱600 + DMC ₱1,640', level: 'Beginner' },
+  { term: 'Dividend Investing', category: 'Strategy', short: 'Building passive income through dividends', explanation: 'Owning stocks that pay regular cash dividends. Your REITs (FILRT, KEEPR, MREIT) pay quarterly. GLO and DMC pay annually. Combined, your current portfolio generates estimated ?35,000-45,000/year in dividends - without selling a single share.', example: 'Your est. annual dividends: KEEPR ?28,600 + FILRT ?4,200 + MREIT ?1,000 + GLO ?600 + DMC ?1,640', level: 'Beginner' },
 ];
 
 const CONCEPTS = [
   {
     title: 'Why REITs Drop When Interest Rates Rise',
-    icon: '🏢',
+    icon: '??',
     level: 'Beginner',
-    content: `REITs borrow money to buy properties. When the BSP raises interest rates, their borrowing costs increase → less profit left over → smaller dividends → investors sell → price drops.
+    content: `REITs borrow money to buy properties. When the BSP raises interest rates, their borrowing costs increase ? less profit left over ? smaller dividends ? investors sell ? price drops.
 
-The flip side: when BSP CUTS rates (expected H2 2026), borrowing gets cheaper → more profit → bigger dividends → investors buy → price rises.
+The flip side: when BSP CUTS rates (expected H2 2026), borrowing gets cheaper ? more profit ? bigger dividends ? investors buy ? price rises.
 
 This is why your REITs (KEEPR, FILRT, MREIT) have been soft. Not because the properties are empty - but because rates have been high. BSP holding rates at 6.5% is the key thing to monitor.
 
@@ -3133,22 +3133,22 @@ Sterling's Alert: When BSP announces a rate cut, buy more REITs immediately.`
   },
   {
     title: 'How to Read an Analyst Target Price',
-    icon: '🎯',
+    icon: '??',
     level: 'Beginner',
-    content: `When you see "13 analysts, average target ₱91" for MBT, here's what it means:
+    content: `When you see "13 analysts, average target ?91" for MBT, here's what it means:
 
-13 professional analysts (from banks like UBS, Goldman, local brokers like COL, BDO Securities) have each built a financial model for MBT and concluded that the fair price is around ₱91.
+13 professional analysts (from banks like UBS, Goldman, local brokers like COL, BDO Securities) have each built a financial model for MBT and concluded that the fair price is around ?91.
 
-This does NOT mean the stock will reach ₱91 by tomorrow. It's a 12-month target.
-Some will be right, some wrong. But 13 professionals independently reaching ₱86-97 is meaningful signal.
+This does NOT mean the stock will reach ?91 by tomorrow. It's a 12-month target.
+Some will be right, some wrong. But 13 professionals independently reaching ?86-97 is meaningful signal.
 
-How to use it: If current price (₱76) is significantly below analyst target (₱91) = potential undervaluation. But always check IF the thesis still holds - earnings still growing? No major negative news?
+How to use it: If current price (?76) is significantly below analyst target (?91) = potential undervaluation. But always check IF the thesis still holds - earnings still growing? No major negative news?
 
 Sterling's rule: Only trust analyst targets from named firms with track records (COL Financial, BDO Securities, First Metro, UBS, Citi).`
   },
   {
     title: 'The Difference Between Price and Value',
-    icon: '💡',
+    icon: '??',
     level: 'Beginner',
     content: `This is the most important concept in long-term investing.
 
@@ -3158,7 +3158,7 @@ VALUE = what the company is actually worth based on its earnings, assets, and fu
 
 Great investing = buying VALUE at a discount to PRICE.
 
-Example: KEEPR's value (NAV) is ₱3.80. Its price is ₱2.30. You're getting ₱3.80 of real estate value for ₱2.30. That's a 40% discount.
+Example: KEEPR's value (NAV) is ?3.80. Its price is ?2.30. You're getting ?3.80 of real estate value for ?2.30. That's a 40% discount.
 
 Warren Buffett's rule: "Price is what you pay. Value is what you get."
 
@@ -3166,27 +3166,27 @@ Sterling applies this to every recommendation.`
   },
   {
     title: 'How Dividends Actually Work Step by Step',
-    icon: '💰',
+    icon: '??',
     level: 'Beginner',
-    content: `Step 1: Company announces a dividend (e.g., "FILRT declares ₱0.06/share dividend")
+    content: `Step 1: Company announces a dividend (e.g., "FILRT declares ?0.06/share dividend")
 Step 2: They announce an EX-DIVIDEND DATE (e.g., March 11)
 Step 3: You must own the stock BEFORE that date to qualify
 Step 4: On the ex-date, the stock price usually drops by roughly the dividend amount (it's been "extracted")
 Step 5: The actual cash hits your DragonFi account on the PAYMENT DATE (usually 2-4 weeks later)
 
 Your FILRT example:
-• You own 7,000 shares
-• Dividend: ₱0.06/share
-• Calculation: 7,000 × ₱0.06 = ₱420
-• Action needed: HOLD before March 11. Then ₱420 arrives in your account.
+� You own 7,000 shares
+� Dividend: ?0.06/share
+� Calculation: 7,000 � ?0.06 = ?420
+� Action needed: HOLD before March 11. Then ?420 arrives in your account.
 
 Annual dividend income from your current portfolio (estimated):
-KEEPR: ~₱28,600 | FILRT: ~₱4,200 | MREIT: ~₱1,000 | GLO: ~₱608 | DMC: ~₱1,640
-Total: ~₱36,048/year in passive income.`
+KEEPR: ~?28,600 | FILRT: ~?4,200 | MREIT: ~?1,000 | GLO: ~?608 | DMC: ~?1,640
+Total: ~?36,048/year in passive income.`
   },
   {
     title: 'Technical Analysis vs Fundamental Analysis - When to Use Each',
-    icon: '📊',
+    icon: '??',
     level: 'Intermediate',
     content: `For long-term investors like Carlo, the priority order is:
 
@@ -3201,52 +3201,52 @@ Total: ~₱36,048/year in passive income.`
 Never buy a fundamentally weak company just because the chart "looks good."
 Use technicals to get a better price on a fundamentally strong company.
 
-Example: MBT is fundamentally strong (PE 6.86x, 18% earnings growth). Technicals confirm (all MAs bullish, RSI 66). Both agree → high conviction hold/buy.
+Example: MBT is fundamentally strong (PE 6.86x, 18% earnings growth). Technicals confirm (all MAs bullish, RSI 66). Both agree ? high conviction hold/buy.
 
-If fundamentals say good but technicals say it's breaking down → wait for stabilization.`
+If fundamentals say good but technicals say it's breaking down ? wait for stabilization.`
   },
 ];
 
 const PATTERNS = [
   {
     name: 'Hammer',
-    emoji: '🔨',
+    emoji: '??',
     type: 'Bullish Reversal',
     description: 'A candle with a small body at the top and a long lower wick (tail). The long tail means sellers pushed the price way down during the day, but buyers came in and reversed it back up near the open.',
     signal: 'Bullish - potential reversal at lows. Most reliable at key support levels.',
     howToTrade: 'Wait for confirmation: if the NEXT candle is also green and closes higher, enter on that confirmation. Don\'t buy the hammer alone.',
-    appearance: '🕯️ Small body on top + long wick below = wick is 2x+ the body size'
+    appearance: '??? Small body on top + long wick below = wick is 2x+ the body size'
   },
   {
     name: 'Doji',
-    emoji: '➕',
+    emoji: '?',
     type: 'Indecision',
     description: 'Open and close price are nearly equal - looks like a cross or plus sign. Means the market is undecided: buyers and sellers are in perfect balance. Neither side is winning.',
     signal: 'Neutral - watch for the NEXT candle. After a downtrend, a Doji can signal reversal. After an uptrend, it can signal pause or reversal.',
     howToTrade: 'Don\'t trade the Doji itself. Wait one more candle to see which direction the market chooses.',
-    appearance: '➕ Almost equal open and close, with wicks on both sides'
+    appearance: '? Almost equal open and close, with wicks on both sides'
   },
   {
     name: 'Bullish Engulfing',
-    emoji: '📈',
+    emoji: '??',
     type: 'Strong Bullish Reversal',
     description: 'A red candle followed by a LARGER green candle that completely covers ("engulfs") the previous red candle\'s body. Shows buyers overwhelmed sellers in one session.',
     signal: 'Strong bullish - especially at support levels or after a downtrend. One of the most reliable reversal patterns.',
     howToTrade: 'Enter on the open of the third candle (after the engulfing green candle). Stop-loss below the low of the red candle.',
-    appearance: 'Red candle → Big green candle that swallows the red'
+    appearance: 'Red candle ? Big green candle that swallows the red'
   },
   {
     name: 'Higher Highs / Higher Lows',
-    emoji: '📊',
+    emoji: '??',
     type: 'Uptrend Structure',
     description: 'Each rally goes HIGHER than the previous rally, and each pullback stays HIGHER than the previous pullback. This is the definition of an uptrend.',
     signal: 'As long as this pattern holds, the uptrend is intact. Only worry when a low breaks below the previous low.',
     howToTrade: 'Buy on the dips (pullbacks to higher lows). Hold until the structure breaks.',
-    appearance: 'Chart staircase going up → each step higher than the last'
+    appearance: 'Chart staircase going up ? each step higher than the last'
   },
   {
     name: 'Golden Cross',
-    emoji: '✨',
+    emoji: '?',
     type: 'Major Bullish Signal',
     description: 'When the 50-day moving average crosses ABOVE the 200-day moving average. Signals a shift from long-term downtrend to uptrend. Major institutional investors (funds, banks) pay close attention to this.',
     signal: 'Very bullish long-term signal. Often precedes sustained price increases over weeks/months.',
@@ -3255,7 +3255,7 @@ const PATTERNS = [
   },
   {
     name: 'Death Cross',
-    emoji: '💀',
+    emoji: '??',
     type: 'Major Bearish Signal',
     description: 'When the 50-day moving average crosses BELOW the 200-day moving average. Opposite of Golden Cross. Signals shift to long-term downtrend.',
     signal: 'Bearish long-term signal. Used to exit or reduce position sizes.',
@@ -3267,40 +3267,40 @@ const PATTERNS = [
 const RESOURCES = [
   {
     category: 'Charts & Technicals',
-    icon: '📈',
+    icon: '??',
     items: [
-      { name: 'PSE EQUIP', url: 'https://equip.pse.com.ph', description: 'Official PSE charting platform. Free. TradingView charts + Refinitiv fundamentals. Start here.', tag: '🇵🇭 Official' },
-      { name: 'TradingView PSE', url: 'https://www.tradingview.com/symbols/PSE-MBT/technicals/', description: 'Best charting tool globally. Free account gives you RSI, MACD, MAs, community ideas. Replace MBT with any symbol.', tag: '⭐ Best Charts' },
-      { name: 'Investagrams', url: 'https://www.investagrams.com', description: 'PH trading community. Chart spotting, local trader ideas, technical analysis discussions.', tag: '🇵🇭 PH Community' },
-      { name: 'Investing.com PSE', url: 'https://www.investing.com/equities/metropolitan-b-technical', description: 'Instant technical summary: Strong Buy/Buy/Neutral/Sell. Replace "metropolitan-b" with any stock slug.', tag: '⚡ Quick Analysis' },
+      { name: 'PSE EQUIP', url: 'https://equip.pse.com.ph', description: 'Official PSE charting platform. Free. TradingView charts + Refinitiv fundamentals. Start here.', tag: '???? Official' },
+      { name: 'TradingView PSE', url: 'https://www.tradingview.com/symbols/PSE-MBT/technicals/', description: 'Best charting tool globally. Free account gives you RSI, MACD, MAs, community ideas. Replace MBT with any symbol.', tag: '? Best Charts' },
+      { name: 'Investagrams', url: 'https://www.investagrams.com', description: 'PH trading community. Chart spotting, local trader ideas, technical analysis discussions.', tag: '???? PH Community' },
+      { name: 'Investing.com PSE', url: 'https://www.investing.com/equities/metropolitan-b-technical', description: 'Instant technical summary: Strong Buy/Buy/Neutral/Sell. Replace "metropolitan-b" with any stock slug.', tag: '? Quick Analysis' },
     ]
   },
   {
     category: 'Fundamentals & News',
-    icon: '📰',
+    icon: '??',
     items: [
-      { name: 'PSE Edge', url: 'https://edge.pse.com.ph', description: 'Official PSE disclosures. Every dividend, earnings report, material disclosure filed here. Your primary news source.', tag: '🇵🇭 Official' },
-      { name: 'HelloSafe PH', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company', description: 'Analyst targets, PE, EPS, fundamentals aggregated in one clean page. Replace slug for any stock.', tag: '📊 Fundamentals' },
-      { name: 'Simply Wall St', url: 'https://simplywall.st/stocks/ph', description: 'Visual "snowflake" fundamental analysis. Great for quick health check on any PH stock.', tag: '👁️ Visual' },
-      { name: 'BusinessWorld', url: 'https://www.bworldonline.com', description: 'Philippine financial newspaper of record. Primary source for corporate news.', tag: '📰 PH News' },
+      { name: 'PSE Edge', url: 'https://edge.pse.com.ph', description: 'Official PSE disclosures. Every dividend, earnings report, material disclosure filed here. Your primary news source.', tag: '???? Official' },
+      { name: 'HelloSafe PH', url: 'https://hellosafe.ph/investing/stock-market/stocks/metropolitan-bank-trust-company', description: 'Analyst targets, PE, EPS, fundamentals aggregated in one clean page. Replace slug for any stock.', tag: '?? Fundamentals' },
+      { name: 'Simply Wall St', url: 'https://simplywall.st/stocks/ph', description: 'Visual "snowflake" fundamental analysis. Great for quick health check on any PH stock.', tag: '??? Visual' },
+      { name: 'BusinessWorld', url: 'https://www.bworldonline.com', description: 'Philippine financial newspaper of record. Primary source for corporate news.', tag: '?? PH News' },
     ]
   },
   {
     category: 'Your Broker',
-    icon: '🏦',
+    icon: '??',
     items: [
-      { name: 'DragonFi', url: 'https://www.dragonfi.ph', description: 'Your actual broker. Most reliable data source since it\'s your account. Check here first for live prices.', tag: '💼 Your Broker' },
-      { name: 'DragonFi - MBT', url: 'https://www.dragonfi.ph/market/stocks/MBT', description: 'Direct link to MBT on DragonFi. Replace symbol for any stock.', tag: '💼 Direct Link' },
+      { name: 'DragonFi', url: 'https://www.dragonfi.ph', description: 'Your actual broker. Most reliable data source since it\'s your account. Check here first for live prices.', tag: '?? Your Broker' },
+      { name: 'DragonFi - MBT', url: 'https://www.dragonfi.ph/market/stocks/MBT', description: 'Direct link to MBT on DragonFi. Replace symbol for any stock.', tag: '?? Direct Link' },
     ]
   },
   {
     category: 'Learning',
-    icon: '🎓',
+    icon: '??',
     items: [
-      { name: 'PSE Academy', url: 'https://www.pseacademy.com.ph', description: 'Free courses by the PSE itself. Investing basics, how to read disclosures, understanding REITs. Start here if you\'re a beginner.', tag: '🇵🇭 Free Courses' },
-      { name: 'r/phinvest', url: 'https://www.reddit.com/r/phinvest/', description: 'Philippine investing community. Real discussions, no-nonsense advice, fellow Filipino investors sharing what works.', tag: '💬 Community' },
-      { name: 'r/phstock', url: 'https://www.reddit.com/r/phstock/', description: 'PSE-focused stock discussions. Technical analysis posts, stock ideas, market sentiment.', tag: '💬 Community' },
-      { name: 'Trading Economics PH', url: 'https://tradingeconomics.com/philippines/stock-market', description: 'PSEi data, BSP interest rate history, macro indicators. Essential for understanding the big picture.', tag: '🌍 Macro' },
+      { name: 'PSE Academy', url: 'https://www.pseacademy.com.ph', description: 'Free courses by the PSE itself. Investing basics, how to read disclosures, understanding REITs. Start here if you\'re a beginner.', tag: '???? Free Courses' },
+      { name: 'r/phinvest', url: 'https://www.reddit.com/r/phinvest/', description: 'Philippine investing community. Real discussions, no-nonsense advice, fellow Filipino investors sharing what works.', tag: '?? Community' },
+      { name: 'r/phstock', url: 'https://www.reddit.com/r/phstock/', description: 'PSE-focused stock discussions. Technical analysis posts, stock ideas, market sentiment.', tag: '?? Community' },
+      { name: 'Trading Economics PH', url: 'https://tradingeconomics.com/philippines/stock-market', description: 'PSEi data, BSP interest rate history, macro indicators. Essential for understanding the big picture.', tag: '?? Macro' },
     ]
   },
 ];
@@ -3313,21 +3313,21 @@ const PORTFOLIO_SCHOOL = [
     content: `MBT is a textbook example of a fundamentally cheap stock in an uptrend.
 
 FUNDAMENTAL CASE:
-• P/E of 6.86x - you pay ₱6.86 for every ₱1 of profit. Banking avg is 11x. That's 38% cheaper than peers.
-• EPS grew 18% last year - the business is accelerating.
-• Dividend yield 6.78% - you get paid while you wait.
-• 13 analysts say Strong Buy. Average target: ₱91. High: ₱97.50.
+� P/E of 6.86x - you pay ?6.86 for every ?1 of profit. Banking avg is 11x. That's 38% cheaper than peers.
+� EPS grew 18% last year - the business is accelerating.
+� Dividend yield 6.78% - you get paid while you wait.
+� 13 analysts say Strong Buy. Average target: ?91. High: ?97.50.
 
 TECHNICAL CASE:
-• ALL 12 moving averages say BUY - unanimous.
-• RSI 66.8 - strong momentum, not yet overbought.
-• Price is above all MAs: 5-day (₱76.35), 20-day (₱75.31), 50-day (₱73.85), 200-day (₱72.70).
-• Just crossed above 200-day MA - major institutional buy signal.
+� ALL 12 moving averages say BUY - unanimous.
+� RSI 66.8 - strong momentum, not yet overbought.
+� Price is above all MAs: 5-day (?76.35), 20-day (?75.31), 50-day (?73.85), 200-day (?72.70).
+� Just crossed above 200-day MA - major institutional buy signal.
 
 YOUR POSITION:
-• You bought avg ₱69.70, it's now ₱75.80 - up ₱6,930 (+8.75%).
-• Analyst upside to avg target: +₱15.20/share = +₱16,720 more potential gain on 1,100 shares.
-• Upside to high target ₱97.50: +₱21.70/share = +₱23,870 more.
+� You bought avg ?69.70, it's now ?75.80 - up ?6,930 (+8.75%).
+� Analyst upside to avg target: +?15.20/share = +?16,720 more potential gain on 1,100 shares.
+� Upside to high target ?97.50: +?21.70/share = +?23,870 more.
 
 LESSON: This is what "fundamentally strong stock in uptrend" looks like. Hold it.`
   },
@@ -3337,21 +3337,21 @@ LESSON: This is what "fundamentally strong stock in uptrend" looks like. Hold it
     content: `KEEPR is down -11.54% from your buy price. It LOOKS bad. Here's why it's not time to panic.
 
 THE MATH OF VALUE:
-• NAV (actual property value per share): ₱3.80
-• Current price: ₱2.30
-• You're buying ₱3.80 of real estate for ₱2.30 - a 40% discount.
-• This discount happens when market sentiment is negative (high interest rates, REIT selloff).
-• The properties themselves are fine: 94% occupancy rate.
+� NAV (actual property value per share): ?3.80
+� Current price: ?2.30
+� You're buying ?3.80 of real estate for ?2.30 - a 40% discount.
+� This discount happens when market sentiment is negative (high interest rates, REIT selloff).
+� The properties themselves are fine: 94% occupancy rate.
 
 THE DIVIDEND MATH:
-• Estimated annual dividend yield at current price: ~11%
-• On your 11,000 shares: ~₱28,600/year just in dividends.
-• Even if the price stays flat for 2 years, you collect ₱57,200 in dividends.
+� Estimated annual dividend yield at current price: ~11%
+� On your 11,000 shares: ~?28,600/year just in dividends.
+� Even if the price stays flat for 2 years, you collect ?57,200 in dividends.
 
 THE CATALYST:
-• BSP is expected to cut rates in H2 2026.
-• When rates fall: REIT borrowing costs fall → more profit → higher dividends → investors buy → price rises.
-• Historical pattern: Philippine REITs rally 20-40% after rate cut cycles begin.
+� BSP is expected to cut rates in H2 2026.
+� When rates fall: REIT borrowing costs fall ? more profit ? higher dividends ? investors buy ? price rises.
+� Historical pattern: Philippine REITs rally 20-40% after rate cut cycles begin.
 
 LESSON: Sometimes the best investment is the most uncomfortable one. Don't sell quality just because of a red number.`
   },
@@ -3361,20 +3361,20 @@ LESSON: Sometimes the best investment is the most uncomfortable one. Don't sell 
     content: `FILRT is flat in price - you're down 4.43%. But here's the full picture.
 
 THE DIVIDEND INCOME:
-• Q4 dividend: ₱0.06/share. Ex-date: ~March 11, 2026.
-• On 7,000 shares: ₱420 arriving in your account.
-• Annual: ₱0.24/share × 7,000 = ₱1,680/year in passive income.
-• Yield at current price: 8.1% - that's better than any bank savings account.
+� Q4 dividend: ?0.06/share. Ex-date: ~March 11, 2026.
+� On 7,000 shares: ?420 arriving in your account.
+� Annual: ?0.24/share � 7,000 = ?1,680/year in passive income.
+� Yield at current price: 8.1% - that's better than any bank savings account.
 
 THE VALUE CASE:
-• NAV: ₱4.21. Current price: ₱3.02. You're buying at a 28% discount to real estate value.
-• When BSP cuts rates: FILRT's borrowing costs fall → income rises → price re-rates toward NAV.
+� NAV: ?4.21. Current price: ?3.02. You're buying at a 28% discount to real estate value.
+� When BSP cuts rates: FILRT's borrowing costs fall ? income rises ? price re-rates toward NAV.
 
 THE LESSON - "Getting Paid to Wait":
 This is the core of REIT investing. You don't need the price to rise immediately.
 You collect 8.1% per year in cash dividends. After 3 years of collecting dividends, your effective buy price drops significantly.
 
-Real math: 8.1% × 3 years = 24.3% of your investment returned as cash, while you still own the shares.`
+Real math: 8.1% � 3 years = 24.3% of your investment returned as cash, while you still own the shares.`
   },
 ];
 
@@ -3424,11 +3424,11 @@ function renderGlossary(items) {
               <div class="term-name">${item.term}</div>
               <div class="term-short">${item.short}</div>
               <div class="term-level level-${item.level.toLowerCase()}">${item.level}</div>
-              <div class="card-hint">Tap to learn →</div>
+              <div class="card-hint">Tap to learn ?</div>
             </div>
             <div class="card-back">
               <div class="term-explanation">${item.explanation}</div>
-              ${item.example ? `<div class="term-example">📌 ${item.example}</div>` : ''}
+              ${item.example ? `<div class="term-example">?? ${item.example}</div>` : ''}
             </div>
           </div>
         `).join('')}
@@ -3447,7 +3447,7 @@ function renderConcepts(items) {
           <div class="concept-title">${c.title}</div>
           <div class="concept-level level-${c.level.toLowerCase()}">${c.level}</div>
         </div>
-        <span class="concept-toggle" id="concept-toggle-${i}">▼</span>
+        <span class="concept-toggle" id="concept-toggle-${i}">?</span>
       </div>
       <div class="concept-body" id="concept-body-${i}" style="display:none">
         <pre class="concept-content">${c.content}</pre>
@@ -3461,7 +3461,7 @@ function toggleConcept(i) {
   const toggle = document.getElementById('concept-toggle-' + i);
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
-  toggle.textContent = open ? '▼' : '▲';
+  toggle.textContent = open ? '?' : '?';
 }
 
 function renderPatterns(items) {
@@ -3488,7 +3488,7 @@ function renderPortfolioSchool(items) {
           <div class="ps-stock">${item.stock}</div>
           <div class="ps-title">${item.title}</div>
         </div>
-        <span class="ps-toggle" id="ps-toggle-${i}">▼</span>
+        <span class="ps-toggle" id="ps-toggle-${i}">?</span>
       </div>
       <div class="ps-body" id="ps-body-${i}" style="display:none">
         <pre class="ps-content">${item.content}</pre>
@@ -3502,7 +3502,7 @@ function togglePS(i) {
   const toggle = document.getElementById('ps-toggle-' + i);
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
-  toggle.textContent = open ? '▼' : '▲';
+  toggle.textContent = open ? '?' : '?';
 }
 
 function renderResources(items) {
@@ -3522,7 +3522,7 @@ function renderResources(items) {
 
 // ==================== TRADE LOG ====================
 
-// ── Add / Edit Position Modal ─────────────────────────────────────────────
+// -- Add / Edit Position Modal ---------------------------------------------
 
 let _addPosSymbol = null;
 let _addPosSymbolName = null;
@@ -3541,7 +3541,7 @@ function openAddPosition(existingHolding) {
   document.getElementById('addpos-preview').style.display = 'none';
 
   if (existingHolding) {
-    title.textContent = '✏️ Edit Position';
+    title.textContent = '?? Edit Position';
     submitBtn.textContent = 'Update Position';
     document.getElementById('addpos-symbol-input').value = existingHolding.symbol;
     document.getElementById('addpos-symbol').value = existingHolding.symbol;
@@ -3552,7 +3552,7 @@ function openAddPosition(existingHolding) {
     document.getElementById('addpos-form').dataset.editSymbol = existingHolding.symbol;
     _updateAddPosPreview();
   } else {
-    title.textContent = '📌 Add Position';
+    title.textContent = '?? Add Position';
     submitBtn.textContent = 'Save Position';
     delete document.getElementById('addpos-form').dataset.editSymbol;
   }
@@ -3671,12 +3671,12 @@ async function submitAddPosition(e) {
 
   const shares = sharesRaw;
   const avg = avgRaw;
-  // N1 fix: use form dataset to determine edit mode — not _addPosSymbol (which is set for new selections too)
+  // N1 fix: use form dataset to determine edit mode � not _addPosSymbol (which is set for new selections too)
   const isEditMode = !!document.getElementById('addpos-form')?.dataset.editSymbol;
 
   const btn = document.getElementById('addpos-submit-btn');
   btn.disabled = true;
-  btn.textContent = 'Saving…';
+  btn.textContent = 'Saving�';
 
   try {
     // Fix #5: use _addPosSymbol (hidden state) as source of truth for symbol in edit mode
@@ -3685,7 +3685,7 @@ async function submitAddPosition(e) {
     const isReit = meta.sector === 'REIT';
     const uid = _uid();
 
-    // Fix #2: preserve existing current_price — only update position fields
+    // Fix #2: preserve existing current_price � only update position fields
     // Fetch existing price so we don't overwrite with 0
     let existingPrice = 0;
     try {
@@ -3708,7 +3708,7 @@ async function submitAddPosition(e) {
       current_price: existingPrice   // preserve live price, don't wipe it
     }, 'user_id,symbol');
 
-    showToast(`${finalSym} position saved ✓`, 'success');
+    showToast(`${finalSym} position saved ?`, 'success');
 
     // Fix #6: reload portfolio BEFORE closing modal so flash is seamless
     const data = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
@@ -3756,7 +3756,7 @@ function closeTradeLog() {
   delete form.dataset.editTable;
   delete form.dataset.editIdx;
   const h2 = document.querySelector('.trade-modal-header h2');
-  if (h2) h2.textContent = '⚡ Log Trade';
+  if (h2) h2.textContent = '? Log Trade';
   const btn = document.getElementById('trade-submit-btn');
   if (btn) btn.textContent = 'Submit Trade';
 }
@@ -3768,7 +3768,7 @@ function onAssetTypeChange() {
   if (qtyLabel) qtyLabel.textContent = type === 'Gold (XAU/USD)' ? 'Lot Size' : 'Quantity (Shares)';
   if (searchInput) {
     searchInput.value = '';
-    searchInput.placeholder = type === 'Gold (XAU/USD)' ? 'XAU/USD or XAU/PHP' : 'Type symbol or name… e.g. MBT, Jollibee';
+    searchInput.placeholder = type === 'Gold (XAU/USD)' ? 'XAU/USD or XAU/PHP' : 'Type symbol or name� e.g. MBT, Jollibee';
   }
   const hidden = document.getElementById('trade-symbol');
   if (hidden) hidden.value = '';
@@ -3840,7 +3840,7 @@ async function submitTrade(e) {
   const editIdx = form.dataset.editIdx;
   const isEdit = !!editId;
 
-  btn.textContent = isEdit ? 'Saving…' : 'Submitting…';
+  btn.textContent = isEdit ? 'Saving�' : 'Submitting�';
   btn.disabled = true;
 
   // Handle EDIT (PATCH existing trade)
@@ -3864,7 +3864,7 @@ async function submitTrade(e) {
         }
         closeTradeLog();
         _renderTradeTable();
-        showToast('Trade updated ✓');
+        showToast('Trade updated ?');
       } else {
         showToast('Update failed');
       }
@@ -3895,7 +3895,7 @@ async function submitTrade(e) {
         asset_type: 'Gold',
         notes: notes
       });
-      showToast('Gold trade logged ✓');
+      showToast('Gold trade logged ?');
     } else {
       // Save trade to history first
       await window.sbInsert('sterling_trades', {
@@ -3935,7 +3935,7 @@ async function submitTrade(e) {
             qty: parseFloat(newQty.toFixed(4)),
             avg_buy_price: parseFloat(newAvg.toFixed(4))
           });
-          showToast(`${action} ${symbol} logged ✓ - portfolio updated`);
+          showToast(`${action} ${symbol} logged ? - portfolio updated`);
         }
       } else if (action === 'BUY') {
         // Look up company info from PSE_UNIVERSE
@@ -3950,7 +3950,7 @@ async function submitTrade(e) {
           sector: knownStock.sector || 'PSE',
           is_reit: knownStock.sector === 'REIT'
         });
-        showToast(`${symbol} added to portfolio ✓`);
+        showToast(`${symbol} added to portfolio ?`);
       } else {
         showToast('Symbol not in portfolio - trade saved to history only');
       }
@@ -3960,13 +3960,13 @@ async function submitTrade(e) {
     loadedPages['portfolio'] = true;
     renderPortfolio();
     closeTradeLog();
-    showToast(`✅ ${action} ${symbol} logged - portfolio updated`);
+    showToast(`? ${action} ${symbol} logged - portfolio updated`);
     // Queue analysis for this symbol - server cron picks up within 5 min
     if (symbol && assetType === 'PSE Stock') {
       window.sbInsert('sterling_analysis_queue', {
         symbol, user_id: _uid(), status: 'pending'
       }).catch(() => {});
-      showToast(`📊 Analysis queued for ${symbol} - ready in ~5 min`);
+      showToast(`?? Analysis queued for ${symbol} - ready in ~5 min`);
     }
     // Invalidate intelligence cache so next render fetches fresh analysis
     if (symbol && _intelligenceCache) delete _intelligenceCache[symbol];
@@ -3980,7 +3980,7 @@ async function submitTrade(e) {
   btn.disabled = false;
 }
 
-// duplicate showToast removed — use the full-featured one at top of file
+// duplicate showToast removed � use the full-featured one at top of file
 
 // ==================== INLINE GLOSSARY TOOLTIPS ====================
 
@@ -4042,7 +4042,7 @@ window.applyGlossary = function(container) {
   });
 };
 
-// ── Shared tooltip renderer ──────────────────────────────────────────────────
+// -- Shared tooltip renderer --------------------------------------------------
 function _renderGlossaryTip(termText, defText, anchorEl) {
   let tip = document.getElementById('glossary-tooltip');
   if (!tip) {
@@ -4053,7 +4053,7 @@ function _renderGlossaryTip(termText, defText, anchorEl) {
   tip.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
       <span style="font-weight:800;color:#EA580C;font-size:11px;text-transform:uppercase;letter-spacing:0.08em">${termText}</span>
-      <button onclick="hideGlossaryTooltip()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;cursor:pointer;border-radius:50%;width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0">✕</button>
+      <button onclick="hideGlossaryTooltip()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;font-size:13px;cursor:pointer;border-radius:50%;width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0">?</button>
     </div>
     <span style="font-size:13px;line-height:1.6;color:#FFFFFF">${defText}</span>
   `;
@@ -4346,7 +4346,7 @@ function renderStudyPortfolio() {
   ];
 
   container.innerHTML = `
-    <div class="section-header">📚 Study My Portfolio</div>
+    <div class="section-header">?? Study My Portfolio</div>
     <p class="section-desc">Price charts built from Sterling's live data. Tap "View Full Chart" for RSI, MACD, and volume on TradingView or PSE EQUIP.</p>
     <div id="portfolio-study-grid">
       ${stocks.map(s => `
@@ -4357,12 +4357,12 @@ function renderStudyPortfolio() {
           </div>
           <div id="chart-${s.sym}" style="height:220px;border-radius:8px;overflow:hidden;background:#111827;"></div>
           <div class="study-chart-links">
-            <a href="https://www.tradingview.com/chart/?symbol=PSE:${s.sym}" target="_blank" class="chart-link-btn tv">📈 TradingView</a>
-            <a href="https://equip.pse.com.ph/charts#${s.sym}" target="_blank" class="chart-link-btn pse">🏛️ PSE EQUIP</a>
-            <a href="https://www.investagrams.com/Stock/PSE:${s.sym}" target="_blank" class="chart-link-btn inv">📊 Investagrams</a>
+            <a href="https://www.tradingview.com/chart/?symbol=PSE:${s.sym}" target="_blank" class="chart-link-btn tv">?? TradingView</a>
+            <a href="https://equip.pse.com.ph/charts#${s.sym}" target="_blank" class="chart-link-btn pse">??? PSE EQUIP</a>
+            <a href="https://www.investagrams.com/Stock/PSE:${s.sym}" target="_blank" class="chart-link-btn inv">?? Investagrams</a>
           </div>
           <details class="teach-note">
-            <summary>📖 Sterling's Analysis</summary>
+            <summary>?? Sterling's Analysis</summary>
             <p>${TEACHING_NOTES[s.sym]}</p>
           </details>
         </div>
@@ -4385,7 +4385,7 @@ function renderStudyPortfolio() {
   async function renderPriceChart(sym) {
     const container = document.getElementById('chart-' + sym);
     if (!container || typeof LightweightCharts === 'undefined') return;
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading…</div>';
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading�</div>';
 
     // Fetch OHLCV from Supabase (no CORS issues on GitHub Pages)
     let ohlcv = await fetchOHLCVFromSupabase(sym);
@@ -4406,7 +4406,7 @@ function renderStudyPortfolio() {
     if (ohlcv.length < 2) {
       container.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:10px;padding:16px">
-          <div style="font-size:26px">📊</div>
+          <div style="font-size:26px">??</div>
           <div style="color:#64748B;font-size:12px;text-align:center">Chart data unavailable<br>
             <span style="font-size:11px;color:#475569">Run fetch-ohlcv.js to populate</span></div>
         </div>`;
@@ -4449,7 +4449,7 @@ function renderStudyPortfolio() {
     const badge = document.createElement('div');
     badge.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(201,150,12,0.12);color:#EA580C;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;font-family:monospace;pointer-events:none';
     const latestClose = parseFloat(ohlcv[ohlcv.length - 1].close);
-    badge.textContent = live ? '₱' + live.value.toFixed(2) + ' LIVE' : '₱' + latestClose.toFixed(2);
+    badge.textContent = live ? '?' + live.value.toFixed(2) + ' LIVE' : '?' + latestClose.toFixed(2);
     container.style.position = 'relative';
     container.appendChild(badge);
 
@@ -4571,7 +4571,7 @@ function showAccountModal(mode, targetId) {
       <div class="acct-title">New Account</div>
       <input type="text" id="new-acct-name" class="acct-input" placeholder="Name (e.g. James)" maxlength="24" autocomplete="off">
       <input type="text" id="new-acct-init" class="acct-input" placeholder="Initials (e.g. JR)" maxlength="2" style="text-transform:uppercase" autocomplete="off">
-      <input type="password" id="new-acct-pin" class="acct-pin-input" placeholder="PIN (optional, 4�6 digits)" maxlength="6" inputmode="numeric" autocomplete="new-password">
+      <input type="password" id="new-acct-pin" class="acct-pin-input" placeholder="PIN (optional, 4?6 digits)" maxlength="6" inputmode="numeric" autocomplete="new-password">
       <div class="acct-color-row">
         ${STERLING_ACCOUNT_COLORS.map((c,i) =>
           `<div class="acct-color-dot${i===1?' acct-color-sel':''}" style="background:${c}" data-color="${c}" onclick="pickAcctColor(this)"></div>`
@@ -4623,7 +4623,7 @@ function verifyAccountPin(id) {
     closeAccountModal();
     location.reload();
   } else {
-    err.textContent = 'Wrong PIN � try again';
+    err.textContent = 'Wrong PIN ? try again';
     input.value = '';
     input.focus();
   }
@@ -4635,7 +4635,7 @@ function createAccount() {
   const pin  = document.getElementById('new-acct-pin')?.value.trim();
   const err  = document.getElementById('new-acct-err');
   if (!name) { err.textContent = 'Name is required'; return; }
-  if (pin && (pin.length < 4 || !/^\d+$/.test(pin))) { err.textContent = 'PIN must be 4�6 digits'; return; }
+  if (pin && (pin.length < 4 || !/^\d+$/.test(pin))) { err.textContent = 'PIN must be 4?6 digits'; return; }
   const accounts = _getAccounts();
   const id = name.toLowerCase().replace(/[^a-z0-9]/g,'_');
   if (accounts.find(a => a.id === id)) { err.textContent = 'Name already taken'; return; }
@@ -4705,7 +4705,7 @@ function calcPosSize() {
   document.getElementById('ps-shares').textContent   = maxShares.toLocaleString();
   document.getElementById('ps-cost').textContent     = '?' + totalCost.toLocaleString('en-PH', {maximumFractionDigits:2});
   document.getElementById('ps-risk-amt').textContent = '?' + actualRisk.toLocaleString('en-PH', {maximumFractionDigits:2});
-  document.getElementById('ps-rr').textContent       = rrRatio ? rrRatio + ':1' : '�';
+  document.getElementById('ps-rr').textContent       = rrRatio ? rrRatio + ':1' : '?';
 
   const pctOfCapital  = ((totalCost / capital) * 100).toFixed(1);
   const verdict       = document.getElementById('ps-verdict');
@@ -4715,9 +4715,9 @@ function calcPosSize() {
   } else if (pctOfCapital > 30) {
     msg = `?? This uses ${pctOfCapital}% of your capital. Consider splitting into tranches.`; color = '#EA580C';
   } else if (rrRatio && parseFloat(rrRatio) < 2) {
-    msg = `?? R:R is ${rrRatio}:1. Aim for at least 2:1 � move your target or tighten your stop.`; color = '#EA580C';
+    msg = `?? R:R is ${rrRatio}:1. Aim for at least 2:1 ? move your target or tighten your stop.`; color = '#EA580C';
   } else {
-    msg = `? Buy max ${maxShares.toLocaleString()} shares at ?${entry} � risk ?${actualRisk.toFixed(2)} (${riskPct}% of capital).${rrRatio ? ' R:R = ' + rrRatio + ':1.' : ''}`;
+    msg = `? Buy max ${maxShares.toLocaleString()} shares at ?${entry} ? risk ?${actualRisk.toFixed(2)} (${riskPct}% of capital).${rrRatio ? ' R:R = ' + rrRatio + ':1.' : ''}`;
   }
   verdict.style.cssText = `color:${color};font-size:13px;line-height:1.6;padding:12px 0 4px;font-weight:600`;
   verdict.textContent = msg;
@@ -4744,7 +4744,7 @@ function closeDivModal() {
 async function submitDividend(e) {
   e.preventDefault();
   const btn = e.target.querySelector('button[type=submit]');
-  btn.textContent = 'Saving�'; btn.disabled = true;
+  btn.textContent = 'Saving?'; btn.disabled = true;
   try {
     const symbol    = document.getElementById('div-symbol').value;
     const exDate    = document.getElementById('div-ex-date').value;
@@ -4796,10 +4796,10 @@ async function renderDividendHistory() {
         ${dividendHistory.map(d => {
           const holding = (portfolioData || []).find(h => h.symbol === d.symbol);
           const avgCost = holding ? parseFloat(holding.avg_buy_price || holding.average_price || 0) : 0;
-          const yoc = avgCost > 0 ? ((parseFloat(d.amount_per_share) / avgCost) * 100).toFixed(2) + '%' : '�';
+          const yoc = avgCost > 0 ? ((parseFloat(d.amount_per_share) / avgCost) * 100).toFixed(2) + '%' : '?';
           return `<tr>
             <td style="font-weight:800">${d.symbol}</td>
-            <td>${d.ex_date || '�'}</td>
+            <td>${d.ex_date || '?'}</td>
             <td>?${parseFloat(d.amount_per_share).toFixed(4)}</td>
             <td>${parseInt(d.shares_held).toLocaleString()}</td>
             <td style="color:#059669;font-weight:700">?${parseFloat(d.total_received).toFixed(2)}</td>
@@ -4911,7 +4911,7 @@ async function triggerAnalysis(symbol, btnEl) {
   btnEl.classList.add('analyzing');
 
   const resetBtn = () => {
-    btnEl.textContent = '⚡ ANALYZE';
+    btnEl.textContent = '? ANALYZE';
     btnEl.disabled = false;
     btnEl.classList.remove('analyzing');
   };
@@ -4995,37 +4995,37 @@ async function triggerAnalysis(symbol, btnEl) {
 
   const dataAge = tech.fetched_at ? Math.round((Date.now() - new Date(tech.fetched_at).getTime()) / 60000) + ' min ago' : 'unknown';
 
-  const prompt = `You are Sterling, a trusted broker-mentor for Carlo Rebadomia — a long-term dividend investor in Cebu, Philippines. He holds PSE REITs, banks, and conglomerates for income + capital appreciation over 1–5 years. He does NOT day trade.
+  const prompt = `You are Sterling, a trusted broker-mentor for Carlo Rebadomia � a long-term dividend investor in Cebu, Philippines. He holds PSE REITs, banks, and conglomerates for income + capital appreciation over 1�5 years. He does NOT day trade.
 
 STOCK: ${symbol}
-CURRENT PRICE: ₱${tech.close ? Number(tech.close).toFixed(2) : 'N/A'}
+CURRENT PRICE: ?${tech.close ? Number(tech.close).toFixed(2) : 'N/A'}
 TODAY'S CHANGE: ${tech.change ? (tech.change > 0 ? '+' : '') + Number(tech.change).toFixed(2) + '%' : 'N/A'}
-ENTRY TIMING SIGNAL: ${overallSignal} (for timing your entry only — not a sell trigger)
+ENTRY TIMING SIGNAL: ${overallSignal} (for timing your entry only � not a sell trigger)
 DATA AGE: ${dataAge}
 
 RECENT NEWS:
 ${newsContext}
 
-Write your analysis in EXACTLY this format — plain English, no jargon:
+Write your analysis in EXACTLY this format � plain English, no jargon:
 
 **DIVIDEND THESIS**
 [1-2 sentences. Is the dividend still safe? Is this a good long-term income play? What does today's price or news mean for the thesis?]
 
 **TODAY'S CALL**
 [One of: ACCUMULATE / ADD ON DIP / HOLD & COLLECT / MONITOR / WAIT]
-[1 sentence explaining why. Focus on yield, value, and dividend safety — not short-term price moves.]
+[1 sentence explaining why. Focus on yield, value, and dividend safety � not short-term price moves.]
 
 **IF ADDING SHARES**
-Good entry: ₱[price] — [plain reason, e.g. "yield is attractive at this price"]
-Target (1–2 yr): ₱[price] — [plain reason]
+Good entry: ?[price] � [plain reason, e.g. "yield is attractive at this price"]
+Target (1�2 yr): ?[price] � [plain reason]
 
 **ONE THING TO WATCH**
 [1 sentence. Most important thing for the dividend thesis. Plain language.]
 
 RULES:
-- Never recommend selling based on price action alone — only if the dividend or fundamentals are at risk
-- Never use: RSI, MACD, SMA, EMA, or any technical jargon — explain in plain words
-- Keep each section SHORT — 1-3 sentences max
+- Never recommend selling based on price action alone � only if the dividend or fundamentals are at risk
+- Never use: RSI, MACD, SMA, EMA, or any technical jargon � explain in plain words
+- Keep each section SHORT � 1-3 sentences max
 - Be direct. Carlo needs a clear dividend-investor action, not an essay.`;
 
   // 6. Call OpenRouter
@@ -5163,7 +5163,7 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
 
   if (error) {
     // Error state: show error, reset button
-    btnEl.textContent = '⚡ ANALYZE';
+    btnEl.textContent = '? ANALYZE';
     btnEl.disabled = false;
     btnEl.classList.remove('analyzing');
 
@@ -5194,7 +5194,7 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
       '<div class="tsc-verdict-label">DIVIDEND THESIS</div>' +
       '<div class="tsc-verdict-row">' +
       '<span class="ai-verdict-badge tsc-verdict-badge verdict-' + detectedAction.cls + '">' + detectedAction.label + '</span>' +
-      '<span class="verdict-fresh-ts">⚡ ' + ts + '</span>' +
+      '<span class="verdict-fresh-ts">? ' + ts + '</span>' +
       '</div>';
 
     // Pulse animation on AI badge
@@ -5217,39 +5217,39 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   // 3. Populate the collapsible section
   // Action glossary for plain English explanation
   const actionMeanings = {
-    'ACCUMULATE': 'Strong fundamentals — good time to add more shares and grow your dividend income.',
-    'ADD ON DIP': 'Solid holding — consider adding more shares on price weakness.',
-    'HOLD & COLLECT': 'Thesis intact — hold your position and collect dividends.',
-    'HOLD': 'Thesis intact — hold your position and collect dividends.',
+    'ACCUMULATE': 'Strong fundamentals � good time to add more shares and grow your dividend income.',
+    'ADD ON DIP': 'Solid holding � consider adding more shares on price weakness.',
+    'HOLD & COLLECT': 'Thesis intact � hold your position and collect dividends.',
+    'HOLD': 'Thesis intact � hold your position and collect dividends.',
     'MONITOR': 'Watch for changes to the dividend, yield, or fundamentals before acting.',
-    'WAIT': 'Unfavorable entry point — wait for a better price before adding.',
+    'WAIT': 'Unfavorable entry point � wait for a better price before adding.',
     'BUY MORE': 'If you already hold this stock, consider adding more shares.',
-    'REDUCE': 'Consider the dividend safety — only reduce if the fundamental thesis has changed.',
+    'REDUCE': 'Consider the dividend safety � only reduce if the fundamental thesis has changed.',
     'SELL': 'Only exit if the dividend is cut or the fundamental thesis is broken.',
-    'STRONG SELL': 'Significant fundamental deterioration — review your thesis carefully.'
+    'STRONG SELL': 'Significant fundamental deterioration � review your thesis carefully.'
   };
   const meaning = actionMeanings[detectedAction.label] || '';
-  const meaningHtml = meaning ? '<div class="sas-meaning">💡 <strong>' + detectedAction.label + '</strong> means: ' + meaning + '</div>' : '';
+  const meaningHtml = meaning ? '<div class="sas-meaning">?? <strong>' + detectedAction.label + '</strong> means: ' + meaning + '</div>' : '';
   const verdictNoteHtml = `<div class="sas-verdict-note">
-    <div style="font-weight:700;margin-bottom:6px">📖 What do these signals mean?</div>
-    <div style="margin-bottom:4px">🎯 <strong>Sterling Verdict</strong> — Your single recommended action. This is what you should act on.</div>
-    <div style="margin-bottom:4px">💰 <strong>Dividend Thesis</strong> — AI's view on whether the dividend is safe and worth holding long-term. Based on news + fundamentals.</div>
-    <div style="margin-bottom:4px">⏱ <strong>Entry Timing</strong> — Price momentum signal (not a buy/sell decision). Use this only to decide <em>when</em> to add shares, not <em>whether</em> to.</div>
-    <div>📊 <strong>Technicals</strong> — Raw price math: RSI, moving averages, MACD. Background data only. As a dividend investor, your edge is in fundamentals — not charts.</div>
+    <div style="font-weight:700;margin-bottom:6px">?? What do these signals mean?</div>
+    <div style="margin-bottom:4px">?? <strong>Sterling Verdict</strong> � Your single recommended action. This is what you should act on.</div>
+    <div style="margin-bottom:4px">?? <strong>Dividend Thesis</strong> � AI's view on whether the dividend is safe and worth holding long-term. Based on news + fundamentals.</div>
+    <div style="margin-bottom:4px">? <strong>Entry Timing</strong> � Price momentum signal (not a buy/sell decision). Use this only to decide <em>when</em> to add shares, not <em>whether</em> to.</div>
+    <div>?? <strong>Technicals</strong> � Raw price math: RSI, moving averages, MACD. Background data only. As a dividend investor, your edge is in fundamentals � not charts.</div>
   </div>`;
 
   analysisSection.innerHTML =
     '<div class="sas-header" onclick="this.parentElement.classList.toggle(\'sas-open\')">' +
-    '<span class="sas-label">⚡ STERLING ANALYSIS</span>' +
+    '<span class="sas-label">? STERLING ANALYSIS</span>' +
     '<span class="sas-ts">' + ts + '</span>' +
-    '<span class="sas-toggle">▼</span>' +
+    '<span class="sas-toggle">?</span>' +
     '</div>' +
     '<div class="sas-body"><p class="sas-text">' + formatAnalysisText(analysis || '') + '</p>' + meaningHtml + verdictNoteHtml + '</div>';
   // Auto-open after new analysis
   analysisSection.classList.add('sas-open');
 
   // 4. Update button to RE-ANALYZE
-  btnEl.textContent = '⚡ RE-ANALYZE';
+  btnEl.textContent = '? RE-ANALYZE';
   btnEl.disabled = false;
   btnEl.classList.remove('analyzing');
 
@@ -5268,7 +5268,7 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
     verdictEl.innerHTML =
       '<span class="portfolio-ai-label">DIVIDEND THESIS:</span>' +
       '<span class="tsc-verdict-badge verdict-' + detectedAct.cls + '">' + detectedAct.label + '</span>' +
-      '<span class="portfolio-ai-ts">' + ts2 + ' — just now</span>';
+      '<span class="portfolio-ai-ts">' + ts2 + ' � just now</span>';
   }
 }
 
@@ -5283,7 +5283,7 @@ function openSettingsModal() {
     overlay.className = 'account-modal-overlay';
     overlay.innerHTML = `
       <div class="account-modal" style="max-width:380px">
-        <div class="acct-logo">⚙️</div>
+        <div class="acct-logo">??</div>
         <div class="acct-title">Sterling Settings</div>
         <div style="text-align:left;margin-bottom:16px;padding:16px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0">
           <div style="font-size:12px;font-weight:600;color:#166534;margin-bottom:8px">API Keys Secured</div>
