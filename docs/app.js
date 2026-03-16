@@ -479,6 +479,7 @@ async function loadPortfolio() {
     renderPortfolio();
     updateLastUpdate();
     startLivePrices();
+    refreshPrices();
 
     // Auto-refresh every 60s - preserves open toggle state
     // Price updates now handled by startLivePrices() - in-place, no full re-render
@@ -547,6 +548,12 @@ function renderPortfolio() {
   if (pageEl && !pageEl.querySelector('.mentor-note')) {
     pageEl.insertAdjacentHTML('afterbegin', renderMentorNote('portfolio'));
     loadLiveLesson('portfolio');
+  }
+
+  // Inject Refresh Prices button into portfolio header (once)
+  const pageHeader = pageEl && pageEl.querySelector('.page-header div');
+  if (pageHeader && !pageHeader.querySelector('.btn-refresh')) {
+    pageHeader.insertAdjacentHTML('afterbegin', `<button onclick="refreshPrices()" class="btn-refresh" title="Refresh live prices" style="font-size:11px;font-weight:700;padding:7px 14px;border:1.5px solid #00D4A0;border-radius:6px;background:#00D4A0;color:#0A0A0A;cursor:pointer;font-family:inherit">ðŸ”„ Refresh</button>`);
   }
 
   if (!portfolioData || portfolioData.length === 0) {
@@ -867,7 +874,7 @@ async function renderTradeHistory() {
   const section = document.createElement('div');
   section.id = 'trade-history-section';
   section.style.cssText = 'margin-top:32px';
-  section.innerHTML = '<div class="section-header" style="margin-bottom:12px">?? Trade History</div><div id="trade-history-body" style="color:#475569;font-size:12px;text-align:center;padding:16px">Loading trades…</div>';
+  section.innerHTML = '<div class="section-header" style="margin-bottom:12px">?? Trade History</div><div id="trade-history-body" style="color:#475569;font-size:12px;text-align:center;padding:16px">Loading tradesï¿½</div>';
   pageEl.appendChild(section);
   await _loadAndRenderTrades();
 }
@@ -1066,7 +1073,7 @@ async function toggleCardChart(sym, btn) {
   if (!isOpen && inner && !inner.dataset.rendered) {
     inner.dataset.rendered = '1';
     inner.style.height = '220px';
-    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading chart…</div>';
+    inner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading chartï¿½</div>';
 
     // Fetch OHLCV from Supabase sterling_ohlcv
     let ohlcv = [];
@@ -1111,7 +1118,7 @@ async function toggleCardChart(sym, btn) {
     return;
 
     if (typeof LightweightCharts === 'undefined') {
-      inner.innerHTML = '<div style="color:#475569;font-size:12px;padding:16px;text-align:center">Charts loading…</div>';
+      inner.innerHTML = '<div style="color:#475569;font-size:12px;padding:16px;text-align:center">Charts loadingï¿½</div>';
       return;
     }
 
@@ -1145,7 +1152,7 @@ async function toggleCardChart(sym, btn) {
     overlay.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:6px;align-items:center;z-index:2;pointer-events:none';
     overlay.innerHTML = `
       <span style="background:rgba(201,150,12,0.12);color:#EA580C;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;font-family:monospace">
-        ?${latestClose.toFixed(2)} · 3mo
+        ?${latestClose.toFixed(2)} ï¿½ 3mo
       </span>`;
     inner.style.position = 'relative';
     inner.appendChild(overlay);
@@ -1260,7 +1267,7 @@ const STOCK_INTELLIGENCE = {
       points: [
         'NAV ?4.21 vs price ?3.02 = 28% discount to filinvest real estate portfolio value',
         'Annual dividend yield 8.1% - strong income stream',
-        'Dividend ?0.06/share × your 7,000 shares = ?420 cash in ~March',
+        'Dividend ?0.06/share ï¿½ your 7,000 shares = ?420 cash in ~March',
         'Asia Securities rates LONG-TERM BUY',
       ],
       sources: [
@@ -1464,7 +1471,7 @@ const STOCK_INTELLIGENCE = {
         { name: 'TradingView PSE:RRHI', url: 'https://www.tradingview.com/symbols/PSE-RRHI/technicals/' },
       ]
     },
-    conclusion: 'RRHI is a good defensive business — supermarkets, drug stores, convenience. The fundamentals are healthy. This is not a sell — you hold what you have and collect any dividends. The entry timing is just unfavorable right now for adding more. When price pulls back to ?35-36 or RSI shows oversold conditions, that\'s your accumulation zone. Target ?43, thesis: stable earnings + consumer spending recovery.',
+    conclusion: 'RRHI is a good defensive business ï¿½ supermarkets, drug stores, convenience. The fundamentals are healthy. This is not a sell ï¿½ you hold what you have and collect any dividends. The entry timing is just unfavorable right now for adding more. When price pulls back to ?35-36 or RSI shows oversold conditions, that\'s your accumulation zone. Target ?43, thesis: stable earnings + consumer spending recovery.',
   },
 };
 
@@ -1538,12 +1545,12 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
     'NAV':             "Net Asset Value - the real book value of assets owned. Price below NAV = you're buying at a discount.",
     'RSI':             "0-100 momentum meter. Below 30 = oversold (beaten down, may bounce). Above 70 = overbought (may pull back).",
     'MACD':            "Compares two moving averages. Positive = buying pressure winning. Negative = selling pressure winning.",
-    'EPS':             "Earnings Per Share - company profit ÷ shares. Rising EPS = growing profits.",
+    'EPS':             "Earnings Per Share - company profit ï¿½ shares. Rising EPS = growing profits.",
     'ex-date':         "Ex-dividend date - own the stock before this date to receive the upcoming dividend.",
     'overbought':      "RSI above 70 - stock ran up fast, short-term cooldown likely.",
     'oversold':        "RSI below 30 - stock fell too fast, potential bounce incoming.",
-    'dividend yield':  "Annual dividend ÷ stock price. 7% yield = ?7 per year for every ?100 invested.",
-    'Dividend yield':  "Annual dividend ÷ stock price. 7% yield = ?7 per year for every ?100 invested.",
+    'dividend yield':  "Annual dividend ï¿½ stock price. 7% yield = ?7 per year for every ?100 invested.",
+    'Dividend yield':  "Annual dividend ï¿½ stock price. 7% yield = ?7 per year for every ?100 invested.",
     'moving averages': "Average price over set periods (20, 50, 200 days). More MAs pointing up = stronger trend.",
     'support':         "Price floor where buyers usually step in. Holding support = bullish.",
     'resistance':      "Price ceiling where sellers appear. Breaking above resistance = bullish breakout.",
@@ -1601,12 +1608,12 @@ function renderPillar(icon, title, pillarKey, staticPillar, supabaseData, id) {
         </div>` : ''}
         ${pillarKey === 'technicals' ? `<div class="pillar-data-quality">
           <div class="dq-title">?? What does this mean for a dividend investor?</div>
-          <div class="dq-row"><span class="dq-icon">??</span><span class="dq-text">Technicals show <strong>price momentum</strong> — whether the stock is trending up, down, or sideways. Use this to decide <em>when</em> to buy more shares, not <em>whether</em> to hold.</span></div>
-          <div class="dq-row"><span class="dq-icon">??</span><span class="dq-text"><strong>Source:</strong> TradingView Scanner — RSI, MACD, and moving averages from PSE daily price data</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '??' : '??'}</span><span class="dq-text"><strong>RSI (Momentum Gauge):</strong> ${supabaseData && supabaseData.rsi14 ? `${parseFloat(supabaseData.rsi14).toFixed(1)} — ${parseFloat(supabaseData.rsi14) < 40 ? 'Oversold: stock may be cheaper than usual — potential entry point' : parseFloat(supabaseData.rsi14) > 70 ? 'Overbought: consider waiting for a price dip before adding' : 'Neutral: no strong momentum signal either way'}` : 'Not available'}</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.macd_signal ? '??' : '?'}</span><span class="dq-text"><strong>MACD (Short-term Trend):</strong> ${supabaseData && supabaseData.macd_signal ? (supabaseData.macd_signal === 'buy' ? 'Positive — upward price pressure building' : supabaseData.macd_signal === 'sell' ? 'Negative — short-term downward pressure (not a reason to sell your shares)' : supabaseData.macd_signal) : 'Not available'}</span></div>
-          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.overall_signal ? '??' : '?'}</span><span class="dq-text"><strong>Overall Signal:</strong> ${supabaseData && supabaseData.overall_signal ? supabaseData.overall_signal : 'Pending'} — this is for entry timing only</span></div>
-          <div class="dq-note">?? A SELL technical signal does <strong>not</strong> mean sell your shares. It means short-term momentum is down — which is often a <strong>buying opportunity</strong> for dividend investors if the thesis is intact.</div>
+          <div class="dq-row"><span class="dq-icon">??</span><span class="dq-text">Technicals show <strong>price momentum</strong> ï¿½ whether the stock is trending up, down, or sideways. Use this to decide <em>when</em> to buy more shares, not <em>whether</em> to hold.</span></div>
+          <div class="dq-row"><span class="dq-icon">??</span><span class="dq-text"><strong>Source:</strong> TradingView Scanner ï¿½ RSI, MACD, and moving averages from PSE daily price data</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.rsi14 ? '??' : '??'}</span><span class="dq-text"><strong>RSI (Momentum Gauge):</strong> ${supabaseData && supabaseData.rsi14 ? `${parseFloat(supabaseData.rsi14).toFixed(1)} ï¿½ ${parseFloat(supabaseData.rsi14) < 40 ? 'Oversold: stock may be cheaper than usual ï¿½ potential entry point' : parseFloat(supabaseData.rsi14) > 70 ? 'Overbought: consider waiting for a price dip before adding' : 'Neutral: no strong momentum signal either way'}` : 'Not available'}</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.macd_signal ? '??' : '?'}</span><span class="dq-text"><strong>MACD (Short-term Trend):</strong> ${supabaseData && supabaseData.macd_signal ? (supabaseData.macd_signal === 'buy' ? 'Positive ï¿½ upward price pressure building' : supabaseData.macd_signal === 'sell' ? 'Negative ï¿½ short-term downward pressure (not a reason to sell your shares)' : supabaseData.macd_signal) : 'Not available'}</span></div>
+          <div class="dq-row"><span class="dq-icon">${supabaseData && supabaseData.overall_signal ? '??' : '?'}</span><span class="dq-text"><strong>Overall Signal:</strong> ${supabaseData && supabaseData.overall_signal ? supabaseData.overall_signal : 'Pending'} ï¿½ this is for entry timing only</span></div>
+          <div class="dq-note">?? A SELL technical signal does <strong>not</strong> mean sell your shares. It means short-term momentum is down ï¿½ which is often a <strong>buying opportunity</strong> for dividend investors if the thesis is intact.</div>
         </div>` : ''}
         <div class="pillar-points">${pointsHTML}</div>
         ${sourcesHTML ? `<div class="pillar-sources">${sourcesHTML}</div>` : ''}
@@ -1668,6 +1675,24 @@ function _buildConclusion(symbol, tech, staticIntel) {
     : '';
 
   return `Current price ${price} (${chg} today). TradingView signal: ${overall}. ${rsiNote} ${macdNote} ${maNote}\n\n?? Sterling says: ${action} - ${actionReason}.${staticNote}`.trim();
+}
+
+function renderThreePillarSources(a) {
+  const allSources = [
+    ...(a.fundamentals?.sources || []),
+    ...(a.news?.sources || []),
+    ...(a.technicals?.sources || [])
+  ];
+  const seen = new Set();
+  const unique = allSources.filter(s => {
+    if (seen.has(s.url)) return false;
+    seen.add(s.url);
+    return true;
+  });
+  if (!unique.length) return '';
+  return `<div class="action-sources">${unique.map(s =>
+    `<a href="${s.url}" target="_blank" class="action-src">${s.name} â†—</a>`
+  ).join('')}</div>`;
 }
 
 function renderStockAction(symbol) {
@@ -1782,6 +1807,7 @@ function renderStockAction(symbol) {
           </div>
           <div class="action-detail" style="display:none">
             <p class="action-conclusion" id="conclusion-${uid}">${liveConclusion}</p>
+            ${renderThreePillarSources(a)}
           </div>
         </div>
       </div>`;
@@ -1789,7 +1815,7 @@ function renderStockAction(symbol) {
     // No static data - show loading shell, async fills it in
     return `<div id="action-block-${uid}">
       <div class="action-block analysis-pending">
-        <div style="font-size:11px;font-weight:800;letter-spacing:0.07em;color:#94A3B8;padding:8px 0 4px">? LOADING ANALYSIS…</div>
+        <div style="font-size:11px;font-weight:800;letter-spacing:0.07em;color:#94A3B8;padding:8px 0 4px">? LOADING ANALYSISï¿½</div>
       </div>
     </div>`;
   }
@@ -1891,7 +1917,7 @@ function renderTechSignalCard(symbol) {
         if (card && t) card.outerHTML = _buildTechCard(symbol, t, intel, uid);
       } catch(e) { /* leave skeleton */ }
     }, 400);
-    return `<div id="tech-card-${uid}" class="tech-signal-card loading"><div class="tsc-loading">Loading technicals…</div></div>`;
+    return `<div id="tech-card-${uid}" class="tech-signal-card loading"><div class="tsc-loading">Loading technicalsï¿½</div></div>`;
   }
   return _buildTechCard(symbol, tech, intel, uid);
 }
@@ -2111,22 +2137,22 @@ function _buildTechCard(symbol, tech, intel, uid) {
       <div class="sv-note">${sv.note}</div>
       <div class="sv-sub-signals">
         <span class="sv-sub">Technical: <strong>${techSubLine}</strong></span>
-        <span class="sv-sub-sep">·</span>
+        <span class="sv-sub-sep">ï¿½</span>
         <span class="sv-sub">AI: <strong>${aiSubLine}</strong></span>
       </div>
     </div>`;
 
   // Build RSI plain-English reading
   const rsiExplain = rsi !== null
-    ? (parseFloat(rsi) < 30 ? `${rsi} — Oversold. Stock has fallen fast; potential entry point for dividend buyers.`
-      : parseFloat(rsi) < 40 ? `${rsi} — Getting oversold. May be approaching a good entry zone.`
-      : parseFloat(rsi) > 70 ? `${rsi} — Overbought. Price ran up fast; consider waiting for a dip to add.`
-      : parseFloat(rsi) > 60 ? `${rsi} — Elevated. Momentum is up but watch for short-term pullback.`
-      : `${rsi} — Neutral. No strong momentum signal either way.`)
+    ? (parseFloat(rsi) < 30 ? `${rsi} ï¿½ Oversold. Stock has fallen fast; potential entry point for dividend buyers.`
+      : parseFloat(rsi) < 40 ? `${rsi} ï¿½ Getting oversold. May be approaching a good entry zone.`
+      : parseFloat(rsi) > 70 ? `${rsi} ï¿½ Overbought. Price ran up fast; consider waiting for a dip to add.`
+      : parseFloat(rsi) > 60 ? `${rsi} ï¿½ Elevated. Momentum is up but watch for short-term pullback.`
+      : `${rsi} ï¿½ Neutral. No strong momentum signal either way.`)
     : null;
   const macdExplain = macdSig
-    ? (macdSig.toLowerCase().includes('buy') ? 'Positive — upward price pressure building.'
-      : macdSig.toLowerCase().includes('sell') ? 'Negative — short-term downward pressure. Not a sell signal for long-term holders.'
+    ? (macdSig.toLowerCase().includes('buy') ? 'Positive ï¿½ upward price pressure building.'
+      : macdSig.toLowerCase().includes('sell') ? 'Negative ï¿½ short-term downward pressure. Not a sell signal for long-term holders.'
       : `${macdSig}`)
     : null;
 
@@ -2137,7 +2163,7 @@ function _buildTechCard(symbol, tech, intel, uid) {
       ${rsiExplain ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">RSI (Momentum):</span> ${rsiExplain}</div>` : ''}
       ${macdExplain ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">MACD (Trend):</span> ${macdExplain}</div>` : ''}
       ${maTrend ? `<div class="tsc-explainer-row"><span class="tsc-ex-label">Moving Averages:</span> ${maTrend}</div>` : ''}
-      <div class="tsc-explainer-note">?? A SELL signal means short-term momentum is down — often a <strong>buying opportunity</strong> if the company still pays dividends.</div>
+      <div class="tsc-explainer-note">?? A SELL signal means short-term momentum is down ï¿½ often a <strong>buying opportunity</strong> if the company still pays dividends.</div>
     </div>`;
 
   return `<div id="tech-card-${uid}" class="tech-signal-card">
@@ -2555,7 +2581,7 @@ function renderAlerts() {
           </div>
           <div class="alert-time">${formatTime(a.created_at)}</div>
         </div>
-        <button class="alert-dismiss" onclick="dismissAlert('${a.id}')" title="Dismiss">×</button>
+        <button class="alert-dismiss" onclick="dismissAlert('${a.id}')" title="Dismiss">ï¿½</button>
       </div>
     `;
   }).join('');
@@ -2883,7 +2909,7 @@ function renderDiscoveryFilters() {
   const sectors = ['All', 'Banking', 'REIT', 'Telecom', 'Property', 'Mining & Oil', 'Retail', 'Energy', 'Industrial', 'Holding Firms'];
 
   container.innerHTML = `
-    <input type="text" id="disc-search" placeholder="Search symbol or company…" oninput="updateDiscoveryFilter('search', this.value)" style="padding:8px 12px;border:1.5px solid #0A0A0A;border-radius:6px;font-size:13px;flex:1;min-width:180px">
+    <input type="text" id="disc-search" placeholder="Search symbol or companyï¿½" oninput="updateDiscoveryFilter('search', this.value)" style="padding:8px 12px;border:1.5px solid #0A0A0A;border-radius:6px;font-size:13px;flex:1;min-width:180px">
     <select id="disc-sector" onchange="updateDiscoveryFilter('sector', this.value)">
       ${sectors.map(s => `<option value="${s === 'All' ? '' : s}">${s}</option>`).join('')}
     </select>
@@ -2908,7 +2934,7 @@ async function renderDiscovery() {
   }
 
   const grid = document.getElementById('discovery-grid');
-  grid.innerHTML = `<div class="discovery-loading" style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">Loading PSE universe…</div>`;
+  grid.innerHTML = `<div class="discovery-loading" style="padding:32px;text-align:center;color:#94A3B8;font-size:13px">Loading PSE universeï¿½</div>`;
 
   // Load fundamentals from sterling_intelligence - group by symbol+pillar
   // sterling_intelligence has one row per pillar (fundamentals/news/technicals) per symbol
@@ -3090,7 +3116,7 @@ const GLOSSARY = [
   // Fundamentals
   { term: 'P/E Ratio', category: 'Fundamentals', short: 'Price-to-Earnings', explanation: 'How much you pay for ?1 of company earnings. Lower = cheaper. MBT at 6.86x means you pay ?6.86 for every ?1 of profit it earns. Banking sector avg is 11x - so MBT is cheap.', example: 'MBT P/E: 6.86x vs sector avg 11x ? MBT is undervalued', level: 'Beginner' },
   { term: 'EPS', category: 'Fundamentals', short: 'Earnings Per Share', explanation: 'How much profit each share earns. MBT EPS is ?10.76 - meaning for every 1 share you own, MBT earned ?10.76 in profit last year. Growing EPS year-over-year = healthy company.', example: 'MBT EPS grew 18% last year - strong signal', level: 'Beginner' },
-  { term: 'Dividend Yield', category: 'Fundamentals', short: 'Annual dividend ÷ share price', explanation: 'How much cash income you earn per year as a % of the stock price. KEEPR yields 11% - on your 11,000 shares worth ?25,300, you earn ~?2,783/year in dividends just for holding.', example: 'KEEPR: 11% yield. FILRT: 8.1%. GLO: 3.6%', level: 'Beginner' },
+  { term: 'Dividend Yield', category: 'Fundamentals', short: 'Annual dividend ï¿½ share price', explanation: 'How much cash income you earn per year as a % of the stock price. KEEPR yields 11% - on your 11,000 shares worth ?25,300, you earn ~?2,783/year in dividends just for holding.', example: 'KEEPR: 11% yield. FILRT: 8.1%. GLO: 3.6%', level: 'Beginner' },
   { term: 'NAV', category: 'Fundamentals', short: 'Net Asset Value', explanation: 'For REITs: the actual value of all properties owned divided by shares outstanding. KEEPR NAV is ?3.80 but trades at ?2.30 - you\'re buying ?3.80 of real estate for ?2.30. That\'s a 40% discount.', example: 'KEEPR: Price ?2.30 vs NAV ?3.80 = 40% discount', level: 'Intermediate' },
   { term: 'ROE', category: 'Fundamentals', short: 'Return on Equity', explanation: 'How efficiently a company makes money from shareholders\' funds. 15%+ is generally good. Think of it as: for every ?100 you invest, how much does the company earn? ROE 12.5% = ?12.50 earned per ?100.', example: 'MBT ROE: 12.5% - solid for a bank', level: 'Intermediate' },
   { term: 'Book Value', category: 'Fundamentals', short: 'Company\'s net worth per share', explanation: 'What each share is worth if the company sold all its assets and paid all debts. If book value is ?68 and the stock trades at ?76, you\'re paying a small premium - that\'s fair for a profitable bank.', example: 'MBT book value: ?68.50, price: ?76 ? P/B ratio 1.1x', level: 'Intermediate' },
@@ -3175,10 +3201,10 @@ Step 4: On the ex-date, the stock price usually drops by roughly the dividend am
 Step 5: The actual cash hits your DragonFi account on the PAYMENT DATE (usually 2-4 weeks later)
 
 Your FILRT example:
-• You own 7,000 shares
-• Dividend: ?0.06/share
-• Calculation: 7,000 × ?0.06 = ?420
-• Action needed: HOLD before March 11. Then ?420 arrives in your account.
+ï¿½ You own 7,000 shares
+ï¿½ Dividend: ?0.06/share
+ï¿½ Calculation: 7,000 ï¿½ ?0.06 = ?420
+ï¿½ Action needed: HOLD before March 11. Then ?420 arrives in your account.
 
 Annual dividend income from your current portfolio (estimated):
 KEEPR: ~?28,600 | FILRT: ~?4,200 | MREIT: ~?1,000 | GLO: ~?608 | DMC: ~?1,640
@@ -3313,21 +3339,21 @@ const PORTFOLIO_SCHOOL = [
     content: `MBT is a textbook example of a fundamentally cheap stock in an uptrend.
 
 FUNDAMENTAL CASE:
-• P/E of 6.86x - you pay ?6.86 for every ?1 of profit. Banking avg is 11x. That's 38% cheaper than peers.
-• EPS grew 18% last year - the business is accelerating.
-• Dividend yield 6.78% - you get paid while you wait.
-• 13 analysts say Strong Buy. Average target: ?91. High: ?97.50.
+ï¿½ P/E of 6.86x - you pay ?6.86 for every ?1 of profit. Banking avg is 11x. That's 38% cheaper than peers.
+ï¿½ EPS grew 18% last year - the business is accelerating.
+ï¿½ Dividend yield 6.78% - you get paid while you wait.
+ï¿½ 13 analysts say Strong Buy. Average target: ?91. High: ?97.50.
 
 TECHNICAL CASE:
-• ALL 12 moving averages say BUY - unanimous.
-• RSI 66.8 - strong momentum, not yet overbought.
-• Price is above all MAs: 5-day (?76.35), 20-day (?75.31), 50-day (?73.85), 200-day (?72.70).
-• Just crossed above 200-day MA - major institutional buy signal.
+ï¿½ ALL 12 moving averages say BUY - unanimous.
+ï¿½ RSI 66.8 - strong momentum, not yet overbought.
+ï¿½ Price is above all MAs: 5-day (?76.35), 20-day (?75.31), 50-day (?73.85), 200-day (?72.70).
+ï¿½ Just crossed above 200-day MA - major institutional buy signal.
 
 YOUR POSITION:
-• You bought avg ?69.70, it's now ?75.80 - up ?6,930 (+8.75%).
-• Analyst upside to avg target: +?15.20/share = +?16,720 more potential gain on 1,100 shares.
-• Upside to high target ?97.50: +?21.70/share = +?23,870 more.
+ï¿½ You bought avg ?69.70, it's now ?75.80 - up ?6,930 (+8.75%).
+ï¿½ Analyst upside to avg target: +?15.20/share = +?16,720 more potential gain on 1,100 shares.
+ï¿½ Upside to high target ?97.50: +?21.70/share = +?23,870 more.
 
 LESSON: This is what "fundamentally strong stock in uptrend" looks like. Hold it.`
   },
@@ -3337,21 +3363,21 @@ LESSON: This is what "fundamentally strong stock in uptrend" looks like. Hold it
     content: `KEEPR is down -11.54% from your buy price. It LOOKS bad. Here's why it's not time to panic.
 
 THE MATH OF VALUE:
-• NAV (actual property value per share): ?3.80
-• Current price: ?2.30
-• You're buying ?3.80 of real estate for ?2.30 - a 40% discount.
-• This discount happens when market sentiment is negative (high interest rates, REIT selloff).
-• The properties themselves are fine: 94% occupancy rate.
+ï¿½ NAV (actual property value per share): ?3.80
+ï¿½ Current price: ?2.30
+ï¿½ You're buying ?3.80 of real estate for ?2.30 - a 40% discount.
+ï¿½ This discount happens when market sentiment is negative (high interest rates, REIT selloff).
+ï¿½ The properties themselves are fine: 94% occupancy rate.
 
 THE DIVIDEND MATH:
-• Estimated annual dividend yield at current price: ~11%
-• On your 11,000 shares: ~?28,600/year just in dividends.
-• Even if the price stays flat for 2 years, you collect ?57,200 in dividends.
+ï¿½ Estimated annual dividend yield at current price: ~11%
+ï¿½ On your 11,000 shares: ~?28,600/year just in dividends.
+ï¿½ Even if the price stays flat for 2 years, you collect ?57,200 in dividends.
 
 THE CATALYST:
-• BSP is expected to cut rates in H2 2026.
-• When rates fall: REIT borrowing costs fall ? more profit ? higher dividends ? investors buy ? price rises.
-• Historical pattern: Philippine REITs rally 20-40% after rate cut cycles begin.
+ï¿½ BSP is expected to cut rates in H2 2026.
+ï¿½ When rates fall: REIT borrowing costs fall ? more profit ? higher dividends ? investors buy ? price rises.
+ï¿½ Historical pattern: Philippine REITs rally 20-40% after rate cut cycles begin.
 
 LESSON: Sometimes the best investment is the most uncomfortable one. Don't sell quality just because of a red number.`
   },
@@ -3361,20 +3387,20 @@ LESSON: Sometimes the best investment is the most uncomfortable one. Don't sell 
     content: `FILRT is flat in price - you're down 4.43%. But here's the full picture.
 
 THE DIVIDEND INCOME:
-• Q4 dividend: ?0.06/share. Ex-date: ~March 11, 2026.
-• On 7,000 shares: ?420 arriving in your account.
-• Annual: ?0.24/share × 7,000 = ?1,680/year in passive income.
-• Yield at current price: 8.1% - that's better than any bank savings account.
+ï¿½ Q4 dividend: ?0.06/share. Ex-date: ~March 11, 2026.
+ï¿½ On 7,000 shares: ?420 arriving in your account.
+ï¿½ Annual: ?0.24/share ï¿½ 7,000 = ?1,680/year in passive income.
+ï¿½ Yield at current price: 8.1% - that's better than any bank savings account.
 
 THE VALUE CASE:
-• NAV: ?4.21. Current price: ?3.02. You're buying at a 28% discount to real estate value.
-• When BSP cuts rates: FILRT's borrowing costs fall ? income rises ? price re-rates toward NAV.
+ï¿½ NAV: ?4.21. Current price: ?3.02. You're buying at a 28% discount to real estate value.
+ï¿½ When BSP cuts rates: FILRT's borrowing costs fall ? income rises ? price re-rates toward NAV.
 
 THE LESSON - "Getting Paid to Wait":
 This is the core of REIT investing. You don't need the price to rise immediately.
 You collect 8.1% per year in cash dividends. After 3 years of collecting dividends, your effective buy price drops significantly.
 
-Real math: 8.1% × 3 years = 24.3% of your investment returned as cash, while you still own the shares.`
+Real math: 8.1% ï¿½ 3 years = 24.3% of your investment returned as cash, while you still own the shares.`
   },
 ];
 
@@ -3671,12 +3697,12 @@ async function submitAddPosition(e) {
 
   const shares = sharesRaw;
   const avg = avgRaw;
-  // N1 fix: use form dataset to determine edit mode — not _addPosSymbol (which is set for new selections too)
+  // N1 fix: use form dataset to determine edit mode ï¿½ not _addPosSymbol (which is set for new selections too)
   const isEditMode = !!document.getElementById('addpos-form')?.dataset.editSymbol;
 
   const btn = document.getElementById('addpos-submit-btn');
   btn.disabled = true;
-  btn.textContent = 'Saving…';
+  btn.textContent = 'Savingï¿½';
 
   try {
     // Fix #5: use _addPosSymbol (hidden state) as source of truth for symbol in edit mode
@@ -3685,7 +3711,7 @@ async function submitAddPosition(e) {
     const isReit = meta.sector === 'REIT';
     const uid = _uid();
 
-    // Fix #2: preserve existing current_price — only update position fields
+    // Fix #2: preserve existing current_price ï¿½ only update position fields
     // Fetch existing price so we don't overwrite with 0
     let existingPrice = 0;
     try {
@@ -3768,7 +3794,7 @@ function onAssetTypeChange() {
   if (qtyLabel) qtyLabel.textContent = type === 'Gold (XAU/USD)' ? 'Lot Size' : 'Quantity (Shares)';
   if (searchInput) {
     searchInput.value = '';
-    searchInput.placeholder = type === 'Gold (XAU/USD)' ? 'XAU/USD or XAU/PHP' : 'Type symbol or name… e.g. MBT, Jollibee';
+    searchInput.placeholder = type === 'Gold (XAU/USD)' ? 'XAU/USD or XAU/PHP' : 'Type symbol or nameï¿½ e.g. MBT, Jollibee';
   }
   const hidden = document.getElementById('trade-symbol');
   if (hidden) hidden.value = '';
@@ -3840,7 +3866,7 @@ async function submitTrade(e) {
   const editIdx = form.dataset.editIdx;
   const isEdit = !!editId;
 
-  btn.textContent = isEdit ? 'Saving…' : 'Submitting…';
+  btn.textContent = isEdit ? 'Savingï¿½' : 'Submittingï¿½';
   btn.disabled = true;
 
   // Handle EDIT (PATCH existing trade)
@@ -3959,6 +3985,9 @@ async function submitTrade(e) {
     portfolioData = await window.sbFetch('sterling_portfolio', { filter: _uf(), order: 'symbol.asc' });
     loadedPages['portfolio'] = true;
     renderPortfolio();
+    if (typeof renderTradeHistory === 'function') {
+      renderTradeHistory();
+    }
     closeTradeLog();
     showToast(`? ${action} ${symbol} logged - portfolio updated`);
     // Queue analysis for this symbol - server cron picks up within 5 min
@@ -3980,7 +4009,7 @@ async function submitTrade(e) {
   btn.disabled = false;
 }
 
-// duplicate showToast removed — use the full-featured one at top of file
+// duplicate showToast removed ï¿½ use the full-featured one at top of file
 
 // ==================== INLINE GLOSSARY TOOLTIPS ====================
 
@@ -4385,7 +4414,7 @@ function renderStudyPortfolio() {
   async function renderPriceChart(sym) {
     const container = document.getElementById('chart-' + sym);
     if (!container || typeof LightweightCharts === 'undefined') return;
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loading…</div>';
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:220px;color:#475569;font-size:12px">Loadingï¿½</div>';
 
     // Fetch OHLCV from Supabase (no CORS issues on GitHub Pages)
     let ohlcv = await fetchOHLCVFromSupabase(sym);
@@ -4834,6 +4863,66 @@ function tagSentiment(text) {
   return 'neutral';
 }
 
+// ==================== MANUAL PRICE FETCHER ====================
+// Free APIs â€” no key required
+async function fetchPhisixPrice(symbol) {
+  try {
+    const res = await fetch(`https://phisix-api3.appspot.com/stocks/${symbol}.json`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const stock = Array.isArray(data.stock) ? data.stock[0] : data.stock;
+    return {
+      symbol: stock.symbol,
+      price: parseFloat(stock.price.amount),
+      change: parseFloat(stock.percent_change),
+      volume: stock.volume,
+      as_of: stock.as_of,
+      source: 'phisix'
+    };
+  } catch(e) {
+    console.warn(`[Sterling] Phisix fetch failed for ${symbol}:`, e.message);
+    return null;
+  }
+}
+
+async function fetchAllPSEPrices(symbols) {
+  const results = {};
+  const promises = symbols.map(async sym => {
+    const data = await fetchPhisixPrice(sym);
+    if (data) results[sym] = data;
+  });
+  await Promise.all(promises);
+  return results;
+}
+
+// Call this on page load + every 5 minutes during PSE hours (9:30am-3:30pm PHT)
+async function refreshPrices() {
+  const now = new Date();
+  const phtHour = (now.getUTCHours() + 8) % 24;
+  const phtDay = (now.getUTCDay() + (now.getUTCHours() >= 16 ? 1 : 0)) % 7;
+  const isPSEOpen = phtDay >= 1 && phtDay <= 5 && phtHour >= 9 && phtHour < 16;
+
+  const symbols = portfolioData.map(p => p.symbol).filter(Boolean);
+  if (!symbols.length) return;
+
+  console.log(`[Sterling] Refreshing prices for: ${symbols.join(', ')}`);
+  const prices = await fetchAllPSEPrices(symbols);
+
+  // Update portfolioData with fresh prices
+  portfolioData = portfolioData.map(p => {
+    const live = prices[p.symbol];
+    if (live) {
+      return { ...p, current_price: live.price, percent_change: live.change, price_as_of: live.as_of };
+    }
+    return p;
+  });
+
+  renderPortfolio();
+  if (isPSEOpen) {
+    setTimeout(refreshPrices, 5 * 60 * 1000); // refresh every 5min during market hours
+  }
+}
+
 // ==================== REAL-TIME PRICE UPDATER ====================
 
 let _priceUpdateInterval = null;
@@ -4995,37 +5084,37 @@ async function triggerAnalysis(symbol, btnEl) {
 
   const dataAge = tech.fetched_at ? Math.round((Date.now() - new Date(tech.fetched_at).getTime()) / 60000) + ' min ago' : 'unknown';
 
-  const prompt = `You are Sterling, a trusted broker-mentor for Carlo Rebadomia — a long-term dividend investor in Cebu, Philippines. He holds PSE REITs, banks, and conglomerates for income + capital appreciation over 1–5 years. He does NOT day trade.
+  const prompt = `You are Sterling, a trusted broker-mentor for Carlo Rebadomia ï¿½ a long-term dividend investor in Cebu, Philippines. He holds PSE REITs, banks, and conglomerates for income + capital appreciation over 1ï¿½5 years. He does NOT day trade.
 
 STOCK: ${symbol}
 CURRENT PRICE: ?${tech.close ? Number(tech.close).toFixed(2) : 'N/A'}
 TODAY'S CHANGE: ${tech.change ? (tech.change > 0 ? '+' : '') + Number(tech.change).toFixed(2) + '%' : 'N/A'}
-ENTRY TIMING SIGNAL: ${overallSignal} (for timing your entry only — not a sell trigger)
+ENTRY TIMING SIGNAL: ${overallSignal} (for timing your entry only ï¿½ not a sell trigger)
 DATA AGE: ${dataAge}
 
 RECENT NEWS:
 ${newsContext}
 
-Write your analysis in EXACTLY this format — plain English, no jargon:
+Write your analysis in EXACTLY this format ï¿½ plain English, no jargon:
 
 **DIVIDEND THESIS**
 [1-2 sentences. Is the dividend still safe? Is this a good long-term income play? What does today's price or news mean for the thesis?]
 
 **TODAY'S CALL**
 [One of: ACCUMULATE / ADD ON DIP / HOLD & COLLECT / MONITOR / WAIT]
-[1 sentence explaining why. Focus on yield, value, and dividend safety — not short-term price moves.]
+[1 sentence explaining why. Focus on yield, value, and dividend safety ï¿½ not short-term price moves.]
 
 **IF ADDING SHARES**
-Good entry: ?[price] — [plain reason, e.g. "yield is attractive at this price"]
-Target (1–2 yr): ?[price] — [plain reason]
+Good entry: ?[price] ï¿½ [plain reason, e.g. "yield is attractive at this price"]
+Target (1ï¿½2 yr): ?[price] ï¿½ [plain reason]
 
 **ONE THING TO WATCH**
 [1 sentence. Most important thing for the dividend thesis. Plain language.]
 
 RULES:
-- Never recommend selling based on price action alone — only if the dividend or fundamentals are at risk
-- Never use: RSI, MACD, SMA, EMA, or any technical jargon — explain in plain words
-- Keep each section SHORT — 1-3 sentences max
+- Never recommend selling based on price action alone ï¿½ only if the dividend or fundamentals are at risk
+- Never use: RSI, MACD, SMA, EMA, or any technical jargon ï¿½ explain in plain words
+- Keep each section SHORT ï¿½ 1-3 sentences max
 - Be direct. Carlo needs a clear dividend-investor action, not an essay.`;
 
   // 6. Call OpenRouter
@@ -5217,25 +5306,25 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
   // 3. Populate the collapsible section
   // Action glossary for plain English explanation
   const actionMeanings = {
-    'ACCUMULATE': 'Strong fundamentals — good time to add more shares and grow your dividend income.',
-    'ADD ON DIP': 'Solid holding — consider adding more shares on price weakness.',
-    'HOLD & COLLECT': 'Thesis intact — hold your position and collect dividends.',
-    'HOLD': 'Thesis intact — hold your position and collect dividends.',
+    'ACCUMULATE': 'Strong fundamentals ï¿½ good time to add more shares and grow your dividend income.',
+    'ADD ON DIP': 'Solid holding ï¿½ consider adding more shares on price weakness.',
+    'HOLD & COLLECT': 'Thesis intact ï¿½ hold your position and collect dividends.',
+    'HOLD': 'Thesis intact ï¿½ hold your position and collect dividends.',
     'MONITOR': 'Watch for changes to the dividend, yield, or fundamentals before acting.',
-    'WAIT': 'Unfavorable entry point — wait for a better price before adding.',
+    'WAIT': 'Unfavorable entry point ï¿½ wait for a better price before adding.',
     'BUY MORE': 'If you already hold this stock, consider adding more shares.',
-    'REDUCE': 'Consider the dividend safety — only reduce if the fundamental thesis has changed.',
+    'REDUCE': 'Consider the dividend safety ï¿½ only reduce if the fundamental thesis has changed.',
     'SELL': 'Only exit if the dividend is cut or the fundamental thesis is broken.',
-    'STRONG SELL': 'Significant fundamental deterioration — review your thesis carefully.'
+    'STRONG SELL': 'Significant fundamental deterioration ï¿½ review your thesis carefully.'
   };
   const meaning = actionMeanings[detectedAction.label] || '';
   const meaningHtml = meaning ? '<div class="sas-meaning">?? <strong>' + detectedAction.label + '</strong> means: ' + meaning + '</div>' : '';
   const verdictNoteHtml = `<div class="sas-verdict-note">
     <div style="font-weight:700;margin-bottom:6px">?? What do these signals mean?</div>
-    <div style="margin-bottom:4px">?? <strong>Sterling Verdict</strong> — Your single recommended action. This is what you should act on.</div>
-    <div style="margin-bottom:4px">?? <strong>Dividend Thesis</strong> — AI's view on whether the dividend is safe and worth holding long-term. Based on news + fundamentals.</div>
-    <div style="margin-bottom:4px">? <strong>Entry Timing</strong> — Price momentum signal (not a buy/sell decision). Use this only to decide <em>when</em> to add shares, not <em>whether</em> to.</div>
-    <div>?? <strong>Technicals</strong> — Raw price math: RSI, moving averages, MACD. Background data only. As a dividend investor, your edge is in fundamentals — not charts.</div>
+    <div style="margin-bottom:4px">?? <strong>Sterling Verdict</strong> ï¿½ Your single recommended action. This is what you should act on.</div>
+    <div style="margin-bottom:4px">?? <strong>Dividend Thesis</strong> ï¿½ AI's view on whether the dividend is safe and worth holding long-term. Based on news + fundamentals.</div>
+    <div style="margin-bottom:4px">? <strong>Entry Timing</strong> ï¿½ Price momentum signal (not a buy/sell decision). Use this only to decide <em>when</em> to add shares, not <em>whether</em> to.</div>
+    <div>?? <strong>Technicals</strong> ï¿½ Raw price math: RSI, moving averages, MACD. Background data only. As a dividend investor, your edge is in fundamentals ï¿½ not charts.</div>
   </div>`;
 
   analysisSection.innerHTML =
@@ -5268,7 +5357,7 @@ function showAnalysisResult(symbol, btnEl, analysis, error) {
     verdictEl.innerHTML =
       '<span class="portfolio-ai-label">DIVIDEND THESIS:</span>' +
       '<span class="tsc-verdict-badge verdict-' + detectedAct.cls + '">' + detectedAct.label + '</span>' +
-      '<span class="portfolio-ai-ts">' + ts2 + ' — just now</span>';
+      '<span class="portfolio-ai-ts">' + ts2 + ' ï¿½ just now</span>';
   }
 }
 
