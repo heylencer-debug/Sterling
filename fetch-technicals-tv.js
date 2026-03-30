@@ -32,8 +32,8 @@ const TV_COLUMNS = [
   'Recommend.All', 'Recommend.MA', 'Recommend.Other',
   'name', 'description',
   'average_volume_10d_calc',             // FEATURE 7: Volume spike detection
-  '52W High',                            // FEATURE 6: 52-week high
-  '52W Low'                              // FEATURE 6: 52-week low
+  'price_52_week_high',                  // FEATURE 6: 52-week high
+  'price_52_week_low'                    // FEATURE 6: 52-week low
 ];
 
 const COL = {
