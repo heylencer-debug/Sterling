@@ -261,7 +261,7 @@ async function runMigration() {
       path: '/v1/projects/fhfqjcvwcxizbioftvdw/database/query',
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer YOUR_SUPABASE_MGMT_TOKEN_HERE',
+        'Authorization': `Bearer ${process.env.SUPABASE_MGMT_TOKEN}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
