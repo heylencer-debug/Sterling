@@ -309,15 +309,6 @@ async function processSymbol(symbol) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function fetchNews() {
-  // Hard stop after 8 minutes (cron limit is 10min)
-  const scriptTimeout = setTimeout(() => {
-    console.log('\n⏱️ HARD TIMEOUT — 8 min script limit reached. Exiting cleanly.');
-    process.exit(0);
-  }, 8 * 60 * 1000);
-
-  // Ensure timeout doesn't keep process alive
-  scriptTimeout.unref();
-
   const startTime = Date.now();
 
   const manilaStr = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
@@ -345,11 +336,11 @@ async function fetchNews() {
     try {
       process.stdout.write(`  🔍 ${symbol}: fetching...`);
 
-      // Wrap entire per-symbol work in a 30s timeout
+      // Wrap entire per-symbol work in a 60s timeout
       const result = await Promise.race([
         processSymbol(symbol),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('SYMBOL_TIMEOUT')), 30000)
+          setTimeout(() => reject(new Error('SYMBOL_TIMEOUT')), 60000)
         )
       ]);
 
@@ -359,7 +350,7 @@ async function fetchNews() {
       }
     } catch (e) {
       if (e.message === 'SYMBOL_TIMEOUT') {
-        console.log(` ⏱️ TIMEOUT (30s) — skipping ${symbol}`);
+        console.log(` ⏱️ TIMEOUT (60s) — skipping ${symbol}`);
       } else {
         console.log(` ❌ ${e.message}`);
       }
@@ -374,7 +365,6 @@ async function fetchNews() {
 
   const elapsed = Math.round((Date.now() - startTime) / 1000);
   console.log(`\n⏱️ Total time: ${elapsed}s`);
-  clearTimeout(scriptTimeout);
 }
 
 if (require.main === module) {
