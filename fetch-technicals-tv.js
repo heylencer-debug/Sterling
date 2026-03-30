@@ -31,7 +31,9 @@ const TV_COLUMNS = [
   'EMA20', 'EMA50',
   'Recommend.All', 'Recommend.MA', 'Recommend.Other',
   'name', 'description',
-  'average_volume_10d_calc'              // FEATURE 7: Volume spike detection
+  'average_volume_10d_calc',             // FEATURE 7: Volume spike detection
+  '52W High',                            // FEATURE 6: 52-week high
+  '52W Low'                              // FEATURE 6: 52-week low
 ];
 
 const COL = {
@@ -43,8 +45,8 @@ const COL = {
   EMA20: 11, EMA50: 12,
   RECOMMEND_ALL: 13, RECOMMEND_MA: 14, RECOMMEND_OTHER: 15,
   NAME: 16, DESC: 17,
-  HIGH_52W: null, LOW_52W: null,
-  AVG_VOL_10D: 18
+  AVG_VOL_10D: 18,
+  HIGH_52W: 19, LOW_52W: 20
 };
 
 // Convert TradingView Recommend.All score (-1 to +1) to human signal
