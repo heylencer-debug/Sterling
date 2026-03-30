@@ -336,8 +336,6 @@ async function fetchNews() {
     console.log('⚠️ Using .env OpenRouter key\n');
   }
 
-  if (!OPENROUTER_API_KEY) { console.log('❌ No OpenRouter API key — aborting'); process.exit(1); }
-
   await runMigration();
 
   const symbols = await getSymbols();

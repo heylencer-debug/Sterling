@@ -10,7 +10,7 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const OPENCLAW = 'C:\\Users\\Carl Rebadomia\\AppData\\Roaming\\npm\\node_modules\\openclaw\\openclaw.mjs';
+const OPENCLAW = process.env.OPENCLAW_PATH;
 
 const SB_URL  = 'https://fhfqjcvwcxizbioftvdw.supabase.co';
 const SB_KEY  = process.env.SUPABASE_KEY;
@@ -188,7 +188,7 @@ Is momentum intact? Should they HOLD, MONITOR, or WAIT?
 Reply 1-2 sentences. End with VERDICT: HOLD & COLLECT|MONITOR|WAIT`;
 
   // Use xAI Grok directly (not via OpenRouter)
-  const GROK_KEY = 'process.env.XAI_API_KEY';
+  const GROK_KEY = process.env.XAI_API_KEY;
   const payload = JSON.stringify({
     model: 'grok-4-latest',
     messages: [{ role: 'user', content: prompt }],

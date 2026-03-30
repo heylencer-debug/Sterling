@@ -31,7 +31,7 @@ CREATE POLICY "delete_all" ON sterling_intelligence FOR DELETE USING (true);
 `;
 
 async function main() {
-  const MGMT_TOKEN = 'YOUR_SUPABASE_MGMT_TOKEN_HERE';
+  const MGMT_TOKEN = process.env.SUPABASE_MGMT_TOKEN;
   const PROJECT_REF = 'fhfqjcvwcxizbioftvdw';
   
   console.log('Creating sterling_intelligence table...');

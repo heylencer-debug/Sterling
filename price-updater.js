@@ -11,7 +11,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const SB_HOST = 'fhfqjcvwcxizbioftvdw.supabase.co';
 const SB_KEY = process.env.SUPABASE_KEY;
-const OPENCLAW = 'C:\\Users\\Carl Rebadomia\\AppData\\Roaming\\npm\\node_modules\\openclaw\\openclaw.mjs';
+const OPENCLAW = process.env.OPENCLAW_PATH;
 const TELEGRAM_ID = process.env.TELEGRAM_CHAT_ID || '1424637649';
 
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }

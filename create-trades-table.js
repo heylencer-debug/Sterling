@@ -1,5 +1,5 @@
 const https = require('https');
-const token = 'YOUR_SUPABASE_MGMT_TOKEN_HERE';
+const token = process.env.SUPABASE_MGMT_TOKEN;
 const sql = `
 CREATE TABLE IF NOT EXISTS sterling_trades (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
