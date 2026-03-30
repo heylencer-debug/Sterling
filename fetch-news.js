@@ -1,10 +1,10 @@
 /**
  * Sterling — fetch-news.js
- * Uses Google Gemini 2.5 Flash with Google Search grounding to fetch real-time
- * PSE news AND generate dividend-investor analysis in a single call per stock.
+ * Uses Grok (xAI) to fetch and analyze PSE news per stock.
+ * XAI_API_KEY is read from .env — no Google key required.
  *
- * Why Gemini: Google Search grounding gives real-time, relevant PSE news.
- * No more stale articles or hallucinated results for smaller stocks.
+ * API: https://api.x.ai/v1/chat/completions (OpenAI-compatible)
+ * Model: grok-3-mini (fast, cheap, strong reasoning)
  */
 
 const https = require('https');
@@ -15,8 +15,8 @@ const SUPABASE_URL = 'https://fhfqjcvwcxizbioftvdw.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 let OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
-const MODEL = GEMINI_MODEL; // for logging
+const GROK_MODEL = 'grok-3-mini';
+const MODEL = GROK_MODEL; // for logging
 
 const COMPANY_NAMES = {
   MBT:   'Metrobank (Metropolitan Bank and Trust)',
@@ -98,33 +98,30 @@ async function getSymbols() {
   }
 }
 
-// ─── Gemini + Google Search Grounding ────────────────────────────────────────
+// ─── Grok (xAI) AI calls ─────────────────────────────────────────────────────
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GROK_API_KEY = process.env.XAI_API_KEY;
 
-function callGemini(prompt) {
+function callGrok(prompt) {
   return new Promise((resolve) => {
-    if (!GOOGLE_API_KEY) {
-      console.log('    ⚠️ GOOGLE_API_KEY not set');
+    if (!GROK_API_KEY) {
+      console.log('    WARNING: XAI_API_KEY not set');
       return resolve(null);
     }
 
     const body = JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      tools: [{ google_search: {} }],
-      generationConfig: {
-        maxOutputTokens: 6000,
-        temperature: 0.3,
-      },
+      model: GROK_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 6000,
+      temperature: 0.3,
     });
 
-    const apiPath = `/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GOOGLE_API_KEY}`;
-
     const req = https.request({
-      hostname: 'generativelanguage.googleapis.com',
-      path: apiPath,
+      hostname: 'api.x.ai',
+      path: '/v1/chat/completions',
       method: 'POST',
       headers: {
+        'Authorization': 'Bearer ' + GROK_API_KEY,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body)
       }
@@ -133,24 +130,24 @@ function callGemini(prompt) {
       res.on('end', () => {
         try {
           if (res.statusCode !== 200) {
-            console.log(`    ⚠️ Gemini HTTP ${res.statusCode}: ${d.slice(0, 200)}`);
+            console.log(`    WARNING: Grok HTTP ${res.statusCode}: ${d.slice(0, 200)}`);
             return resolve(null);
           }
           const json = JSON.parse(d);
-          const text = json.candidates?.[0]?.content?.parts?.[0]?.text || null;
+          const text = json.choices?.[0]?.message?.content || null;
           resolve(text);
         } catch (e) {
-          console.log(`    ⚠️ Parse error: ${e.message}`);
+          console.log(`    WARNING: Parse error: ${e.message}`);
           resolve(null);
         }
       });
     });
 
     req.on('error', (e) => {
-      console.log(`    ⚠️ Gemini error: ${e.message}`);
+      console.log(`    WARNING: Grok error: ${e.message}`);
       resolve(null);
     });
-    req.setTimeout(20000, () => { req.destroy(); resolve(null); });
+    req.setTimeout(25000, () => { req.destroy(); resolve(null); });
     req.write(body);
     req.end();
   });
@@ -167,7 +164,7 @@ Format: {"ex_date":"YYYY-MM-DD","dividend_per_share":0.00,"confidence":"high|med
 
 If no upcoming ex-dividend date is known, return: {"ex_date":null,"dividend_per_share":null,"confidence":"low"}`;
 
-  const raw = await callGemini(prompt);
+  const raw = await callGrok(prompt);
   if (!raw) return null;
 
   try {
@@ -207,7 +204,7 @@ Rules:
 - Never recommend selling based on price action alone.
 - published_at must be a plausible real date.`;
 
-  const raw = await callGemini(prompt);
+  const raw = await callGrok(prompt);
   if (!raw) return [];
 
   try {
@@ -222,7 +219,7 @@ Rules:
       .map(a => ({
         symbol,
         headline: a.headline,
-        source: a.source || 'Gemini Search',
+        source: a.source || 'Grok AI',
         published_at: a.published_at ? new Date(a.published_at).toISOString() : new Date().toISOString(),
         url: a.url || null,
         ai_summary: a.ai_summary,
@@ -324,8 +321,8 @@ async function fetchNews() {
   const startTime = Date.now();
 
   const manilaStr = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
-  console.log(`\n⚔️ Sterling News Fetch — ${manilaStr}`);
-  console.log(`Model: ${GEMINI_MODEL} with Google Search grounding\n`);
+  console.log(`\nSterling News Fetch — ${manilaStr}`);
+  console.log(`Model: ${GROK_MODEL} (xAI Grok)\n`);
 
   // Load OpenRouter key from Supabase app_settings
   try {
@@ -373,7 +370,7 @@ async function fetchNews() {
   }
 
   console.log(`\n✅ Complete: ${totalInserted} articles inserted across ${symbols.length} stocks`);
-  console.log(`Model: ${GEMINI_MODEL} with Google Search grounding`);
+  console.log(`Model: ${GROK_MODEL} (xAI Grok)`);
 
   const elapsed = Math.round((Date.now() - startTime) / 1000);
   console.log(`\n⏱️ Total time: ${elapsed}s`);
