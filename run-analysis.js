@@ -33,7 +33,7 @@ const SESSIONS = {
       { script: 'fetch-technicals-tv.js',  desc: 'Update technicals' },
       { script: 'technicals-updater.js',   desc: 'Calculate RSI/MACD from OHLCV' },
       { script: 'refresh-intelligence.js', desc: 'Refresh intelligence signals' },
-      { script: 'full-analysis.js',        desc: 'Full analysis (all symbols)', args: ['ALL'] },
+      { script: 'today-analysis.js',       desc: 'Today\'s plain-English brief + dividend picks' },
     ]
   },
   eod: {
@@ -45,7 +45,7 @@ const SESSIONS = {
       { script: 'technicals-updater.js',   desc: 'Final RSI/MACD' },
       { script: 'fetch-news.js',           desc: 'Fetch latest news' },
       { script: 'refresh-intelligence.js', desc: 'Refresh intelligence signals' },
-      { script: 'full-analysis.js',        desc: 'Full analysis (all symbols)', args: ['ALL'] },
+      { script: 'today-analysis.js',       desc: 'Today\'s plain-English brief + dividend picks' },
       { script: 'eod-report.js',           desc: 'EOD report + Telegram' },
     ]
   },
@@ -59,7 +59,7 @@ const SESSIONS = {
       { script: 'fetch-news.js',           desc: 'Fetch latest news' },
       { script: 'refresh-intelligence.js', desc: 'Refresh intelligence signals' },
       { script: 'morning-analysis.js',     desc: 'AI morning brief + Telegram' },
-      { script: 'full-analysis.js',        desc: 'Full analysis (all symbols)', args: ['ALL'] },
+      { script: 'today-analysis.js',       desc: 'Today\'s plain-English brief + dividend picks' },
       { script: 'eod-report.js',           desc: 'EOD report + Telegram' },
     ]
   }

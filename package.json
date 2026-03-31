@@ -5,6 +5,8 @@
   "main": "discover-stocks.js",
   "scripts": {
     "dashboard": "npx serve docs -l 3000",
+    "today": "node today-analysis.js",
+    "dividends": "node today-analysis.js dividends",
     "pre-market": "node run-analysis.js pre-market",
     "midday": "node run-analysis.js midday",
     "eod": "node run-analysis.js eod",

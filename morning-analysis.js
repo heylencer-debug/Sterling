@@ -15,8 +15,8 @@ const OPENCLAW = process.env.OPENCLAW_PATH;
 const SB_URL  = 'https://fhfqjcvwcxizbioftvdw.supabase.co';
 const SB_KEY  = process.env.SUPABASE_KEY;
 const OC_URL  = 'http://127.0.0.1:18789';
-const OC_TOK  = 'YOUR_OPENCLAW_TOKEN_HERE';
-const TG_CHAT = '1424637649';
+const OC_TOK  = process.env.OPENCLAW_TOKEN;
+const TG_CHAT = process.env.TELEGRAM_CHAT_ID || '1424637649';
 
 let OR_KEY = null; // loaded from Supabase app_settings
 
