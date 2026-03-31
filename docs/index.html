@@ -764,6 +764,19 @@
 const SUPABASE_URL  = (window.STERLING_CONFIG && window.STERLING_CONFIG.SUPABASE_URL)  || '';
 const SUPABASE_ANON = (window.STERLING_CONFIG && window.STERLING_CONFIG.SUPABASE_KEY)  || '';
 
+if (!SUPABASE_URL || !SUPABASE_ANON) {
+  document.getElementById('summaryBar').innerHTML = `
+    <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--gold);">
+      <h3 style="margin-bottom:0.5rem;">⚙️ Configuration Required</h3>
+      <p style="color:var(--text-secondary);max-width:520px;margin:0 auto;line-height:1.6;">
+        <code>config.js</code> not found. The dashboard needs Supabase credentials to load data.<br><br>
+        <strong>Run locally:</strong><br>
+        <code style="background:var(--bg-inset);padding:2px 8px;border-radius:4px;">cd ~/Sterling && npm run dashboard</code><br><br>
+        Or copy <code>docs/config.example.js</code> → <code>docs/config.js</code> and fill in your credentials.
+      </p>
+    </div>`;
+}
+
 // ─── Helpers ───────────────────────────────────────────────────
 const fmt  = (n, d=2) => n != null ? Number(n).toLocaleString('en-PH', {minimumFractionDigits:d, maximumFractionDigits:d}) : '—';
 const fmtP = (n)      => n != null ? (Number(n) >= 0 ? '+' : '') + Number(n).toFixed(2) + '%' : '—';
@@ -1108,6 +1121,8 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
 let refreshTimer = null;
 
 async function loadAll() {
+  if (!SUPABASE_URL || !SUPABASE_ANON) return; // config.js missing
+
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
 
