@@ -7,7 +7,7 @@ node_modules/
 .env.*.local
 
 # Dashboard runtime config (contains Supabase key)
-public/config.js
+docs/config.js
 
 # Database
 *.db

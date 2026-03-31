@@ -4,7 +4,7 @@
   "description": "",
   "main": "discover-stocks.js",
   "scripts": {
-    "dashboard": "npx serve public -l 3000",
+    "dashboard": "npx serve docs -l 3000",
     "pre-market": "node run-analysis.js pre-market",
     "midday": "node run-analysis.js midday",
     "eod": "node run-analysis.js eod",
